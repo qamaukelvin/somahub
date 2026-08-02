@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /config/
+Disallow: /includes/
+Disallow: /uploads/
+
+Sitemap: https://somahub.top/sitemap.php

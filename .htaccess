@@ -1,0 +1,22 @@
+# Somahub — subdomain routing
+# Point *.somahub.top (wildcard DNS A record) at this same hosting directory,
+# and this rewrites subdomain requests to the correct school automatically.
+
+RewriteEngine On
+
+# Skip rewriting if the request is for the bare domain (somahub.top or www.somahub.top) — goes to the homepage
+RewriteCond %{HTTP_HOST} ^(www\.)?somahub\.top$ [NC]
+RewriteRule ^$ index.php [L]
+
+# Skip rewriting for real files/folders that exist (css, images, other scripts)
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Extract the subdomain (everything before .somahub.top) and route to site.php
+RewriteCond %{HTTP_HOST} ^([a-z0-9-]+)\.somahub\.top$ [NC]
+RewriteRule ^$ site.php?school=%1 [L,QSA]
+
+# Also allow /schoolname style paths as a fallback if wildcard DNS isn't set up yet
+# e.g. somahub.top/s/kinangoppride
+RewriteRule ^s/([a-z0-9-]+)/?$ site.php?school=$1 [L,QSA]

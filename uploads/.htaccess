@@ -1,0 +1,9 @@
+# Uploaded files should never be executable, no matter what gets past validation upstream.
+# This is a second layer of defense, not a replacement for the validation in section-edit.php.
+
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|cgi|sh|asp|aspx)$">
+    Require all denied
+</FilesMatch>
+
+# Also disable PHP execution outright in this folder, in case mod_php ignores the above on some setups
+php_flag engine off
