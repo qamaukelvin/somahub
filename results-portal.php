@@ -70,7 +70,7 @@ if ($query !== '') {
             <div class="name"><?= htmlspecialchars($m['name']) ?></div>
             <?php if ($m['county']): ?><div class="county"><?= htmlspecialchars($m['county']) ?> County</div><?php endif; ?>
           </div>
-          <a href="results-check.php?school=<?= urlencode($m['slug']) ?>">Check Results</a>
+          <a href="https://<?= urlencode($m['slug']) ?>.somahub.top/results-check.php">Check Results</a>
         </div>
       <?php endforeach; ?>
     <?php endif; ?>

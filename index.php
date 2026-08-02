@@ -321,7 +321,7 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
     <?php if ($schools): ?>
     <div class="portfolio-grid">
       <?php foreach ($schools as $s): ?>
-      <a href="site.php?school=<?= urlencode($s['slug']) ?>" class="portfolio-card">
+      <a href="https://<?= urlencode($s['slug']) ?>.somahub.top/" class="portfolio-card">
         <div class="school-icon"><?= strtoupper(substr($s['name'], 0, 2)) ?></div>
         <h3><?= htmlspecialchars($s['name']) ?> <?php if ($s['verification_status'] === 'verified'): ?><span class="verified-pill">✓</span><?php endif; ?></h3>
         <div class="url"><?= htmlspecialchars($s['slug']) ?>.somahub.top</div>

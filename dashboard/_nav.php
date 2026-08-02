@@ -17,7 +17,7 @@ if ($user && !empty($user['school_id'])) {
       <a href="results.php">Results</a>
       <a href="fees.php">Fees</a>
       <a href="verify.php">Verification</a>
-      <?php if ($mySlug): ?><a href="../site.php?school=<?= urlencode($mySlug) ?>" target="_blank">View My Site ↗</a><?php endif; ?>
+      <?php if ($mySlug): ?><a href="https://<?= urlencode($mySlug) ?>.somahub.top/" target="_blank">View My Site ↗</a><?php endif; ?>
       <a href="../index.php">Somahub Home</a>
       <a href="logout.php">Log Out</a>
     </div>

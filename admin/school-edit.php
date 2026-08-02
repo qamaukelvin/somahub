@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <p style="margin-bottom:16px;"><a href="index.php">&larr; Back to all schools</a></p>
   <h1>Manage: <?= htmlspecialchars($school['name']) ?></h1>
   <p style="color:#666;margin-bottom:24px;">
-    Live at: <a href="../site.php?school=<?= urlencode($school['slug']) ?>" target="_blank"><?= htmlspecialchars($school['slug']) ?>.somahub.top</a>
+    Live at: <a href="https://<?= urlencode($school['slug']) ?>.somahub.top/" target="_blank"><?= htmlspecialchars($school['slug']) ?>.somahub.top</a>
   </p>
 
   <?php if ($message): ?><div class="success"><?= htmlspecialchars($message) ?></div><?php endif; ?>
