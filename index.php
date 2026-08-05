@@ -8,7 +8,7 @@ $schools = $db->query("
     FROM schools
     WHERE status IN ('active','trial')
     ORDER BY created_at DESC
-    LIMIT 12
+    LIMIT 60
 ")->fetchAll();
 
 $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('active','trial')")->fetch()['c'];
@@ -319,9 +319,12 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
     </div>
 
     <?php if ($schools): ?>
-    <div class="portfolio-grid">
+    <?php if (count($schools) > 6): ?>
+    <input type="text" id="portfolioSearch" placeholder="Search schools by name or county…" style="width:100%;max-width:400px;padding:12px 16px;border:1.5px solid var(--line);border-radius:24px;margin-bottom:24px;font-family:inherit;font-size:0.9rem;">
+    <?php endif; ?>
+    <div class="portfolio-grid" id="portfolioGrid">
       <?php foreach ($schools as $s): ?>
-      <a href="https://<?= urlencode($s['slug']) ?>.somahub.top/" class="portfolio-card">
+      <a href="https://<?= urlencode($s['slug']) ?>.somahub.top/" class="portfolio-card" data-name="<?= htmlspecialchars(strtolower($s['name'])) ?>" data-county="<?= htmlspecialchars(strtolower($s['county'] ?? '')) ?>">
         <div class="school-icon"><?= strtoupper(substr($s['name'], 0, 2)) ?></div>
         <h3><?= htmlspecialchars($s['name']) ?> <?php if ($s['verification_status'] === 'verified'): ?><span class="verified-pill">✓</span><?php endif; ?></h3>
         <div class="url"><?= htmlspecialchars($s['slug']) ?>.somahub.top</div>
@@ -329,6 +332,7 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
       </a>
       <?php endforeach; ?>
     </div>
+    <p id="portfolioNoResults" style="display:none;color:var(--muted);text-align:center;padding:30px;">No schools match that search.</p>
     <?php else: ?>
     <div class="empty-portfolio">
       We are onboarding our first schools right now. Check back soon, or be one of the first.
@@ -389,6 +393,25 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
 <footer>
   <div>Somahub. Websites for Kenyan schools.</div>
 </footer>
+
+<script>
+const portfolioSearch = document.getElementById('portfolioSearch');
+if (portfolioSearch) {
+    portfolioSearch.addEventListener('input', () => {
+        const query = portfolioSearch.value.trim().toLowerCase();
+        const cards = document.querySelectorAll('#portfolioGrid .portfolio-card');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const matches = card.dataset.name.includes(query) || card.dataset.county.includes(query);
+            card.style.display = matches ? '' : 'none';
+            if (matches) visibleCount++;
+        });
+
+        document.getElementById('portfolioNoResults').style.display = visibleCount === 0 ? 'block' : 'none';
+    });
+}
+</script>
 
 <?php include __DIR__ . '/_chat_widget.php'; ?>
 </body>
