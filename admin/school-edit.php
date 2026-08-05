@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/mailer.php';
 require_platform_admin();
 $db = get_db();
 
@@ -63,6 +64,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $db->prepare("SELECT * FROM schools WHERE id = ?");
         $stmt->execute([$id]);
         $school = $stmt->fetch();
+
+        // Notify the school of the outcome — this is the kind of update they shouldn't have to discover by checking their dashboard
+        if (!empty($school['email']) && in_array($newStatus, ['verified', 'rejected'])) {
+            if ($newStatus === 'verified') {
+                $statusBody = "
+                    <h2 style='color:#0F5257;margin-top:0;'>You're Verified! ✓</h2>
+                    <p><strong>" . htmlspecialchars($school['name']) . "</strong> is now a Verified school on Somahub.</p>
+                    <p>Your ✓ Verified badge is now live on your website, giving parents extra confidence it's genuinely your school.</p>
+                ";
+            } else {
+                $statusBody = "
+                    <h2 style='color:#8C3B2E;margin-top:0;'>Verification Needs Attention</h2>
+                    <p>We reviewed the documents for <strong>" . htmlspecialchars($school['name']) . "</strong> and need something fixed before we can verify your school.</p>
+                    " . ($notes ? "<p style='background:#F7F2E7;padding:12px 16px;border-radius:6px;'>" . htmlspecialchars($notes) . "</p>" : "") . "
+                    <p>Log into your dashboard's Verification page to re-upload.</p>
+                ";
+            }
+            send_somahub_email($school['email'], "Verification update for {$school['name']}", $statusBody);
+        }
     }
 
     if (isset($_POST['action']) && $_POST['action'] === 'verify_owner_id' && $owner) {
@@ -76,6 +96,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?")
            ->execute([password_hash($newTempPassword, PASSWORD_DEFAULT), $owner['id']]);
         $message = 'Password reset. Send the new password below to the school directly.';
+
+        // Notify them a reset happened (without the password itself — that goes via WhatsApp)
+        if (!empty($owner['email'])) {
+            $resetBody = "
+                <h2 style='color:#0F5257;margin-top:0;'>Your Password Was Reset</h2>
+                <p>Your Somahub dashboard password was just reset by our team.</p>
+                <p>You'll receive your new temporary password on WhatsApp shortly. If you didn't request this, please message us immediately.</p>
+            ";
+            send_somahub_email($owner['email'], 'Your Somahub password was reset', $resetBody);
+        }
     }
 }
 ?>
