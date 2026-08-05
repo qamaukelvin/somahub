@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/mailer.php';
 $db = get_db();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -29,7 +30,20 @@ $stmt = $db->prepare("
 ");
 $stmt->execute([$schoolName, $contactName, $phone, $email, $county, $message, $agreedToTerms]);
 
-// TODO: send yourself a notification (email/SMS/WhatsApp) here so you see new leads immediately
+// Notify you immediately so a lead never sits unseen in the database
+$leadBody = "
+    <h2 style='color:#0F5257;margin-top:0;'>New Lead from the Homepage</h2>
+    <table style='width:100%;font-size:14px;margin:16px 0;'>
+        <tr><td style='color:#6E6A5C;padding:4px 0;'>School</td><td><strong>" . htmlspecialchars($schoolName) . "</strong></td></tr>
+        <tr><td style='color:#6E6A5C;padding:4px 0;'>Contact</td><td>" . htmlspecialchars($contactName) . "</td></tr>
+        <tr><td style='color:#6E6A5C;padding:4px 0;'>Phone</td><td>" . htmlspecialchars($phone) . "</td></tr>
+        <tr><td style='color:#6E6A5C;padding:4px 0;'>Email</td><td>" . htmlspecialchars($email ?: 'Not provided') . "</td></tr>
+        <tr><td style='color:#6E6A5C;padding:4px 0;'>County</td><td>" . htmlspecialchars($county ?: 'Not provided') . "</td></tr>
+    </table>
+    " . ($message ? "<p style='color:#6E6A5C;'>Message:</p><p>" . nl2br(htmlspecialchars($message)) . "</p>" : "") . "
+    <p style='margin-top:20px;'><a href='https://somahub.top/admin/leads.php' style='color:#0F5257;font-weight:700;'>View in Admin →</a></p>
+";
+send_somahub_email('info@somahub.top', "New lead: {$schoolName}", $leadBody, $email ?: 'hello@somahub.top');
 ?>
 <!DOCTYPE html>
 <html lang="en">

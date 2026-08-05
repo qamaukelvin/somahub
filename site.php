@@ -211,12 +211,13 @@ foreach ($sections as $s) {
   .testimonial-card .author{font-size:0.82rem;font-weight:700;color:var(--primary);}
 
   /* FAQ */
-  .faq-item{border-bottom:1px solid rgba(0,0,0,0.08);padding:18px 0;}
+  .faq-item{background:#fff;border-radius:10px;padding:20px 22px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
   .faq-item .q{font-weight:700;font-size:0.98rem;margin-bottom:6px;color:var(--primary);}
   .faq-item .a{font-size:0.9rem;color:#5a5a52;}
 
   /* STATS */
-  .stats-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:20px;text-align:center;}
+  .stats-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;}
+  .stat-item{background:#fff;border-radius:12px;padding:24px 16px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
   .stat-item .number{font-family:'<?= esc($theme['font_display'] ?? 'Sora') ?>',sans-serif;font-weight:700;font-size:2rem;color:var(--accent);}
   .stat-item .label{font-size:0.8rem;color:#6b6b60;text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;}
 
@@ -241,7 +242,8 @@ foreach ($sections as $s) {
   .gallery-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;}
 
   /* CONTACT */
-  .contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;}
+  .contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
+  .contact-item{background:#fff;border-radius:10px;padding:20px 22px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
   .contact-item .k{font-family:'Space Mono',monospace;font-size:0.7rem;text-transform:uppercase;color:var(--primary);display:block;margin-bottom:6px;}
   .contact-item .v{font-size:0.95rem;}
 
@@ -312,9 +314,6 @@ foreach ($sections as $s) {
       <div>
         <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
         <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
-        <?php if (!empty($c['cta_text']) && !empty($c['cta_link'])): ?>
-          <a href="<?= esc($c['cta_link']) ?>" class="btn-primary hero-cta"><?= esc($c['cta_text']) ?></a>
-        <?php endif; ?>
       </div>
       <?php if (count($heroPhotos) >= 2): ?>
         <div class="hero-mosaic <?= count($heroPhotos) === 2 ? 'two-photos' : '' ?>">

@@ -1,11 +1,12 @@
 <?php
 require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/mailer.php';
 require_once __DIR__ . '/includes/plan.php';
 $db = get_db();
 
 $slug = $_GET['school'] ?? '';
 $schoolStmt = $db->prepare("
-    SELECT s.id, s.name, s.slug, s.plan, s.promo_ends_at, s.accent_override, s.primary_override, s.bg_override, t.css_variables_json
+    SELECT s.id, s.name, s.slug, s.plan, s.promo_ends_at, s.email, s.accent_override, s.primary_override, s.bg_override, t.css_variables_json
     FROM schools s
     JOIN themes t ON t.id = s.theme_id
     WHERE s.slug = ?
@@ -47,7 +48,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         trim($_POST['parent_email'] ?? ''),
     ]);
 
-    // TODO: send email/SMS notification to the school's registered contact here
+    // Notify the school directly so they don't need to log in just to know a new application arrived
+    if (!empty($school['email'])) {
+        $body = "
+            <h2 style='color:#0F5257;margin-top:0;'>New Enrollment Application</h2>
+            <p>A new application was submitted through your website for <strong>" . htmlspecialchars($school['name']) . "</strong>.</p>
+            <table style='width:100%;font-size:14px;margin:16px 0;'>
+                <tr><td style='color:#6E6A5C;padding:4px 0;'>Child's Name</td><td><strong>" . htmlspecialchars(trim($_POST['child_name'])) . "</strong></td></tr>
+                <tr><td style='color:#6E6A5C;padding:4px 0;'>Grade</td><td>" . htmlspecialchars(trim($_POST['grade_applying_for'])) . "</td></tr>
+                <tr><td style='color:#6E6A5C;padding:4px 0;'>Parent</td><td>" . htmlspecialchars(trim($_POST['parent_name'])) . "</td></tr>
+                <tr><td style='color:#6E6A5C;padding:4px 0;'>Phone</td><td>" . htmlspecialchars(trim($_POST['parent_phone'])) . "</td></tr>
+            </table>
+            <p>Log into your dashboard to view the full application and respond.</p>
+        ";
+        send_somahub_email($school['email'], "New application for {$school['name']}", $body);
+    }
 
     $success = true;
 }
