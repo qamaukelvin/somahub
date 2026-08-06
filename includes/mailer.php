@@ -1,47 +1,71 @@
 <?php
+require_once __DIR__ . '/../vendor/phpmailer/Exception.php';
+require_once __DIR__ . '/../vendor/phpmailer/PHPMailer.php';
+require_once __DIR__ . '/../vendor/phpmailer/SMTP.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
+
+// ============================================================
+// IMPORTANT — fill these in with your REAL mailbox credentials
+// from cPanel's Email Accounts page before this will work.
+// Click "Connect Devices" next to no-reply@somahub.top in cPanel
+// to see the exact SMTP host/port/username Truehost gives you.
+// ============================================================
+define('SMTP_HOST', 'mail.somahub.top');        // <-- confirm exact value in cPanel
+define('SMTP_PORT', 465);                        // 465 for SSL, or 587 for TLS
+define('SMTP_USERNAME', 'no-reply@somahub.top'); // the full mailbox address
+define('SMTP_PASSWORD', 'PUT_THE_REAL_MAILBOX_PASSWORD_HERE');
+define('SMTP_ENCRYPTION', PHPMailer::ENCRYPTION_SMTPS); // matches port 465; use STARTTLS for port 587
+
 /**
- * Sends an HTML email using PHP's built-in mail() function, which works out
- * of the box on cPanel/shared hosting since it's tied to your domain's mail
- * service (Exim) — no external service or API key needed.
+ * Sends an HTML email using PHPMailer over SMTP through your real
+ * no-reply@somahub.top mailbox. Far more reliable than native mail()
+ * on shared hosting, and won't hang or silently fail the same way.
  *
- * NOTE on deliverability: plain mail() can land in spam without proper SPF/DKIM
- * DNS records for somahub.top. Since you already created real mailboxes
- * (info@, hello@, no-reply@) through cPanel, SPF/DKIM are usually set up
- * automatically by cPanel's Email Deliverability tool — worth checking that
- * tool once (cPanel → Email → Email Deliverability) to confirm somahub.top
- * shows as fully configured, since that's what actually keeps you out of spam.
- *
- * @param string $to        Recipient email
+ * @param string $to
  * @param string $subject
- * @param string $bodyHtml  HTML email body
- * @param string $replyTo   Reply-To address (defaults to hello@somahub.top)
- * @return bool             True if the mail server accepted it for delivery
+ * @param string $bodyHtml
+ * @param string $replyTo   Defaults to hello@somahub.top
+ * @return bool             True if accepted for delivery
  */
 function send_somahub_email(string $to, string $subject, string $bodyHtml, string $replyTo = 'hello@somahub.top'): bool {
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
-        return false; // never attempt to send to a malformed address
+        return false;
     }
 
-    $fromName = 'Somahub';
-    $fromAddress = 'no-reply@somahub.top';
+    $mail = new PHPMailer(true);
 
-    $headers = [
-        'MIME-Version: 1.0',
-        'Content-Type: text/html; charset=UTF-8',
-        "From: {$fromName} <{$fromAddress}>",
-        "Reply-To: {$replyTo}",
-        'X-Mailer: PHP/' . phpversion(),
-    ];
+    try {
+        $mail->isSMTP();
+        $mail->Host = SMTP_HOST;
+        $mail->SMTPAuth = true;
+        $mail->Username = SMTP_USERNAME;
+        $mail->Password = SMTP_PASSWORD;
+        $mail->SMTPSecure = SMTP_ENCRYPTION;
+        $mail->Port = SMTP_PORT;
 
-    $wrappedBody = email_wrapper($bodyHtml);
+        $mail->setFrom('no-reply@somahub.top', 'Somahub');
+        $mail->addAddress($to);
+        $mail->addReplyTo($replyTo);
 
-    return @mail($to, $subject, $wrappedBody, implode("\r\n", $headers));
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body = email_wrapper($bodyHtml);
+        $mail->AltBody = strip_tags($bodyHtml);
+
+        $mail->send();
+        return true;
+    } catch (PHPMailerException $e) {
+        // Log quietly rather than breaking the page the user is on —
+        // a failed email should never be the reason a form submission fails
+        error_log('Somahub mail failed: ' . $mail->ErrorInfo);
+        return false;
+    }
 }
 
 /**
  * Wraps email content in simple, brand-consistent HTML styling.
- * Kept minimal and table-free issues aside, this is plain enough
- * to render correctly across most email clients including Gmail's app.
  */
 function email_wrapper(string $innerHtml): string {
     return '
