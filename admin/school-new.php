@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $themeId = (int)$_POST['theme_id'];
     $ownerEmail = trim($_POST['owner_email']);
     $ownerName = trim($_POST['owner_name']);
+    $jobTitle = trim($_POST['job_title'] ?? '');
     $ownerPhone = trim($_POST['owner_phone']);
     $tempPassword = bin2hex(random_bytes(4)); // e.g. "a1b2c3d4" — sent to school owner directly
 
@@ -38,11 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // 2. Create the owner login
                 $insertUser = $db->prepare("
-                    INSERT INTO users (school_id, name, email, phone, password_hash, role)
-                    VALUES (?, ?, ?, ?, ?, 'school_owner')
+                    INSERT INTO users (school_id, name, job_title, email, phone, password_hash, role)
+                    VALUES (?, ?, ?, ?, ?, ?, 'school_owner')
                 ");
                 $insertUser->execute([
-                    $schoolId, $ownerName, $ownerEmail, $ownerPhone,
+                    $schoolId, $ownerName, $jobTitle ?: null, $ownerEmail, $ownerPhone,
                     password_hash($tempPassword, PASSWORD_DEFAULT),
                 ]);
 
@@ -114,14 +115,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p style="font-size:0.78rem;color:#888;margin-top:-10px;margin-bottom:16px;">Will be: [subdomain].somahub.top</p>
 
     <label>Theme</label>
-    <select name="theme_id" required>
-      <?php foreach ($themes as $t): ?>
-        <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['name']) ?></option>
-      <?php endforeach; ?>
-    </select>
+    <?php $selectedThemeId = $themes[0]['id'] ?? 0; include __DIR__ . '/_theme_picker.php'; ?>
 
-    <label>Owner / Head Teacher Name</label>
+    <label>Contact Person's Name</label>
     <input type="text" name="owner_name" required>
+
+    <label>Their Role at the School</label>
+    <input type="text" name="job_title" list="job_title_suggestions" placeholder="e.g. Head Teacher">
+    <datalist id="job_title_suggestions">
+      <option value="Head Teacher">
+      <option value="Deputy Head Teacher">
+      <option value="School Administrator">
+      <option value="Proprietor / Director">
+      <option value="Bursar">
+      <option value="IT / Communications Officer">
+    </datalist>
 
     <label>Owner Email (used to log in)</label>
     <input type="email" name="owner_email" required>

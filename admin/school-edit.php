@@ -107,6 +107,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             send_somahub_email($owner['email'], 'Your Somahub password was reset', $resetBody);
         }
     }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'delete_school') {
+        $confirmName = trim($_POST['confirm_name'] ?? '');
+        if ($confirmName !== $school['name']) {
+            $message = 'School name did not match exactly — nothing was deleted.';
+        } else {
+            // Database cascade handles site_sections, media, users, enrollment_applications,
+            // result_uploads/rows, fee_structures, and content_audit_log automatically.
+            // Physical uploaded files need explicit cleanup since they're not DB-managed.
+            $uploadDir = __DIR__ . '/../uploads/schools/' . $id . '/';
+            if (is_dir($uploadDir)) {
+                $files = glob($uploadDir . '*');
+                foreach ($files as $file) {
+                    if (is_file($file)) unlink($file);
+                }
+                rmdir($uploadDir);
+            }
+
+            $db->prepare("DELETE FROM schools WHERE id = ?")->execute([$id]);
+
+            header("Location: index.php?deleted=1");
+            exit;
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -148,11 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="text" name="name" value="<?= htmlspecialchars($school['name']) ?>" required>
 
       <label>Theme</label>
-      <select name="theme_id">
-        <?php foreach ($themes as $t): ?>
-          <option value="<?= $t['id'] ?>" <?= $t['id'] == $school['theme_id'] ? 'selected' : '' ?>><?= htmlspecialchars($t['name']) ?></option>
-        <?php endforeach; ?>
-      </select>
+      <?php $selectedThemeId = $school['theme_id']; include __DIR__ . '/_theme_picker.php'; ?>
 
       <label>Accent Color Override (optional)</label>
       <input type="text" name="accent_override" value="<?= htmlspecialchars($school['accent_override'] ?? '') ?>" placeholder="e.g. #C9A227 — leave blank to use the theme's default">
@@ -254,7 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h3 style="margin-bottom:16px;">Owner Login</h3>
     <?php if ($owner): ?>
       <p style="margin-bottom:16px;">
-        <strong><?= htmlspecialchars($owner['name']) ?></strong><br>
+        <strong><?= htmlspecialchars($owner['name']) ?></strong><?= !empty($owner['job_title']) ? ' — ' . htmlspecialchars($owner['job_title']) : '' ?><br>
         <?= htmlspecialchars($owner['email']) ?><br>
         <?= htmlspecialchars($owner['phone'] ?? '') ?>
       </p>
@@ -265,6 +285,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php else: ?>
       <p style="color:#888;">No owner account found for this school.</p>
     <?php endif; ?>
+  </div>
+
+  <div class="box">
+    <h3 style="margin-bottom:16px;">Website Content</h3>
+    <p style="color:var(--muted);font-size:0.88rem;margin-bottom:14px;">Edit this school's sections directly, using the same editor they use.</p>
+    <form method="POST" action="impersonate.php">
+      <input type="hidden" name="school_id" value="<?= $school['id'] ?>">
+      <button type="submit" class="btn secondary">Edit This School's Website →</button>
+    </form>
+  </div>
+
+  <div class="box" style="border:1.5px solid #F5C6C0;">
+    <h3 style="margin-bottom:8px;color:#C0392B;">Danger Zone</h3>
+    <p style="color:var(--muted);font-size:0.88rem;margin-bottom:16px;">
+      This permanently deletes <strong><?= htmlspecialchars($school['name']) ?></strong>, including their website, all uploaded photos, enrollment applications, results, and fee records. This cannot be undone.
+    </p>
+    <form method="POST" onsubmit="return confirm('Are you absolutely sure? This cannot be undone.')">
+      <input type="hidden" name="action" value="delete_school">
+      <label style="display:block;font-size:0.85rem;font-weight:700;margin-bottom:6px;">Type the school's exact name to confirm:</label>
+      <input type="text" name="confirm_name" placeholder="<?= htmlspecialchars($school['name']) ?>" required style="width:100%;max-width:400px;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;margin-bottom:14px;box-sizing:border-box;">
+      <button type="submit" class="btn danger">Permanently Delete This School</button>
+    </form>
   </div>
 </main>
 </body>

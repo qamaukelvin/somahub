@@ -513,7 +513,7 @@ foreach ($sections as $s) {
 
 <footer>
   <div><?= esc($school['name']) ?></div>
-  <div style="margin-top:8px;opacity:0.75;">Website by <a href="index.php">Somahub</a></div>
+  <div style="margin-top:8px;opacity:0.75;">Website by <a href="https://somahub.top">Somahub</a></div>
 </footer>
 
 <?php

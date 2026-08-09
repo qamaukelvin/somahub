@@ -20,26 +20,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>School Login — Somahub</title>
+<link rel="icon" type="image/x-icon" href="../favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  body{font-family:Arial,sans-serif;background:#F7F3E6;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}
-  .card{background:#fff;padding:32px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.08);width:100%;max-width:360px;}
-  h1{font-size:1.3rem;margin-bottom:20px;color:#1B4D3E;}
-  label{display:block;font-size:0.85rem;margin-bottom:6px;color:#444;}
-  input{width:100%;padding:10px;margin-bottom:16px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;}
-  button{width:100%;padding:12px;background:#1B4D3E;color:#fff;border:none;border-radius:4px;font-weight:600;cursor:pointer;}
-  .error{color:#8C3B2E;font-size:0.85rem;margin-bottom:12px;}
+  :root{ --teal:#0F5257; --teal-deep:#0A3A3E; --amber:#F2A65A; --sand:#F7F2E7; }
+  *{box-sizing:border-box;}
+  body{font-family:'Manrope',sans-serif;background:var(--sand);display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;}
+  .card{background:#fff;padding:36px 32px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.08);width:100%;max-width:380px;}
+  .brand{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:1.15rem;color:var(--teal-deep);margin-bottom:6px;}
+  .brand .dot{width:9px;height:9px;background:var(--amber);border-radius:50%;}
+  .subtitle{text-align:center;color:#6E6A5C;font-size:0.82rem;margin-bottom:28px;}
+  label{display:block;font-size:0.85rem;font-weight:700;margin-bottom:6px;color:#1C1C16;}
+  input{width:100%;padding:11px 14px;margin-bottom:16px;border:1.5px solid #E5DFCC;border-radius:8px;box-sizing:border-box;font-family:inherit;font-size:0.92rem;}
+  input:focus{outline:none;border-color:var(--teal);}
+  button{width:100%;padding:12px;background:var(--teal);color:#fff;border:none;border-radius:24px;font-weight:700;cursor:pointer;font-size:0.92rem;}
+  button:hover{background:var(--teal-deep);}
+  .error{background:#FBE8E4;color:#8C3B2E;font-size:0.85rem;padding:10px 14px;border-radius:8px;margin-bottom:16px;}
+  .back{display:block;text-align:center;margin-top:20px;color:#6E6A5C;font-size:0.82rem;text-decoration:none;}
 </style>
 </head>
 <body>
   <form class="card" method="POST">
-    <h1>School Dashboard Login</h1>
+    <div class="brand"><span class="dot"></span> somahub</div>
+    <div class="subtitle">School Dashboard</div>
     <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
     <label>Email</label>
-    <input type="email" name="email" required>
+    <input type="email" name="email" required autofocus>
     <label>Password</label>
     <input type="password" name="password" required>
     <button type="submit">Log In</button>
   </form>
-  <p style="text-align:center;margin-top:16px;"><a href="../index.php" style="color:#999;font-size:0.82rem;">&larr; Back to somahub.top</a></p>
+  <a href="../index.php" class="back">&larr; Back to somahub.top</a>
 </body>
 </html>
