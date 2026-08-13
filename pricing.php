@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pricing — Somahub</title>
+<link rel="canonical" href="https://somahub.top/pricing.php">
 <meta name="description" content="Simple, transparent pricing for Somahub. Free websites for schools, plus clear pricing for custom domains and custom design work.">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">

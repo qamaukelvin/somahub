@@ -134,11 +134,11 @@ $uploads = $uploads->fetchAll();
     <tr><th>Term</th><th>File</th><th>Students</th><th>Status</th><th>Uploaded</th></tr>
     <?php foreach ($uploads as $u): ?>
     <tr>
-      <td><?= htmlspecialchars($u['term_label']) ?></td>
-      <td><?= htmlspecialchars($u['original_filename']) ?></td>
-      <td><?= $u['row_count'] ?? '—' ?></td>
-      <td><?= ucfirst($u['status']) ?></td>
-      <td><?= date('d M Y', strtotime($u['uploaded_at'])) ?></td>
+      <td data-label="Term"><?= htmlspecialchars($u['term_label']) ?></td>
+      <td data-label="File"><?= htmlspecialchars($u['original_filename']) ?></td>
+      <td data-label="Students"><?= $u['row_count'] ?? '—' ?></td>
+      <td data-label="Status"><?= ucfirst($u['status']) ?></td>
+      <td data-label="Uploaded"><?= date('d M Y', strtotime($u['uploaded_at'])) ?></td>
     </tr>
     <?php endforeach; ?>
   </table>

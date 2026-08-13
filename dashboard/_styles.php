@@ -27,4 +27,17 @@
   th{background:#F4F1E6;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;color:#666;}
   .btn{display:inline-block;padding:10px 18px;background:#1B4D3E;color:#fff;border:none;border-radius:4px;font-weight:600;cursor:pointer;text-decoration:none;font-size:0.88rem;}
   .status-new{color:#8C3B2E;font-weight:600;}
+
+  /* Mobile card-style tables — each row becomes a card, each cell shows its
+     column name via data-label. Falls back to normal table above 640px. */
+  @media(max-width:640px){
+    table, thead, tbody, th, td, tr{display:block;}
+    thead{display:none;}
+    table{background:none;}
+    tr{background:#fff;border:1px solid #E2DCC6;border-radius:8px;margin-bottom:14px;padding:12px 14px;}
+    td{border:none;padding:8px 0;display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:right;}
+    td[data-label=""]{justify-content:flex-end;}
+    td::before{content:attr(data-label);font-weight:700;color:#888;font-size:0.72rem;text-transform:uppercase;text-align:left;}
+    td[data-label=""]::before{content:none;}
+  }
 </style>

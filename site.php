@@ -21,6 +21,56 @@ if (!$school) {
     die('School not found. Check the address and try again.');
 }
 
+// Canonical redirect — if this school is being accessed via any URL other than
+// its real subdomain (e.g. the old somahub.top/site.php?school=X pattern that
+// existed before subdomains worked), force a 301 redirect to the real one.
+// Fixes the "duplicate without user-selected canonical" issue in Search Console.
+$canonicalHost = $school['slug'] . '.somahub.top';
+if (strtolower($_SERVER['HTTP_HOST']) !== $canonicalHost) {
+    header("Location: https://{$canonicalHost}/", true, 301);
+    exit;
+}
+
+// Gate: unverified schools are NOT publicly visible yet — they're still being
+// built/reviewed. The owner themself (logged in) and a platform admin can still
+// preview the real content; everyone else sees a friendly "coming soon" page.
+// This makes verification a hard requirement before any site goes live.
+require_once __DIR__ . '/includes/auth.php';
+$viewer = current_user();
+$isOwnerPreview = $viewer && (
+    ($viewer['role'] === 'platform_admin') ||
+    (in_array($viewer['role'] ?? '', ['school_owner', 'school_editor'], true) && $viewer['school_id'] == $school['id'])
+);
+
+if (($school['verification_status'] ?? '') !== 'verified' && !$isOwnerPreview) {
+    http_response_code(200);
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars($school['name']) ?> — Coming Soon</title>
+    <meta name="robots" content="noindex">
+    <style>
+      body{font-family:Arial,sans-serif;background:#F7F2E7;color:#1C1C16;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px;}
+      .box{max-width:420px;}
+      h1{color:#0F5257;font-size:1.5rem;margin-bottom:10px;}
+      p{color:#6E6A5C;line-height:1.6;}
+      .badge{display:inline-block;background:#0F5257;color:#F7F2E7;font-weight:800;padding:6px 16px;border-radius:20px;font-size:0.8rem;margin-bottom:20px;}
+    </style>
+    </head>
+    <body>
+      <div class="box">
+        <div class="badge">● somahub</div>
+        <h1><?= htmlspecialchars($school['name']) ?>'s website is coming soon</h1>
+        <p>This site is currently being set up and verified. Check back shortly.</p>
+      </div>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
 $theme = json_decode($school['css_variables_json'], true);
 $theme_custom_css = $school['custom_css'] ?? '';
 if (!empty($school['accent_override'])) $theme['accent'] = $school['accent_override'];
@@ -112,6 +162,7 @@ foreach ($sections as $s) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= esc($school['name']) ?></title>
 <meta name="description" content="<?= esc($school['name']) ?> — official website">
+<link rel="canonical" href="https://<?= esc($school['slug']) ?>.somahub.top/">
 
 <!-- Favicons -->
 <link rel="icon" type="image/x-icon" href="favicon.ico">

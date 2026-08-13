@@ -15,7 +15,7 @@ use PHPMailer\PHPMailer\Exception as PHPMailerException;
 define('SMTP_HOST', 'mail.somahub.top');        // <-- confirm exact value in cPanel
 define('SMTP_PORT', 465);                        // 465 for SSL, or 587 for TLS
 define('SMTP_USERNAME', 'no-reply@somahub.top'); // the full mailbox address
-define('SMTP_PASSWORD', 'PUT_THE_REAL_MAILBOX_PASSWORD_HERE');
+define('SMTP_PASSWORD', 'Q@mau2309');
 define('SMTP_ENCRYPTION', PHPMailer::ENCRYPTION_SMTPS); // matches port 465; use STARTTLS for port 587
 
 /**
@@ -45,6 +45,13 @@ function send_somahub_email(string $to, string $subject, string $bodyHtml, strin
         $mail->SMTPSecure = SMTP_ENCRYPTION;
         $mail->Port = SMTP_PORT;
 
+        // --- TEMPORARY DEBUG: remove once the issue is found ---
+        $mail->SMTPDebug = 2; // prints the full SMTP conversation
+        $mail->Debugoutput = function ($str, $level) {
+            error_log("Somahub SMTP debug: $str");
+        };
+        // ---------------------------------------------------------
+
         $mail->setFrom('no-reply@somahub.top', 'Somahub');
         $mail->addAddress($to);
         $mail->addReplyTo($replyTo);
@@ -60,6 +67,7 @@ function send_somahub_email(string $to, string $subject, string $bodyHtml, strin
         // Log quietly rather than breaking the page the user is on —
         // a failed email should never be the reason a form submission fails
         error_log('Somahub mail failed: ' . $mail->ErrorInfo);
+        error_log('Somahub SMTP config: Host=' . SMTP_HOST . ' Port=' . SMTP_PORT . ' User=' . SMTP_USERNAME);
         return false;
     }
 }

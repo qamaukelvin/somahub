@@ -72,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Apply for Admission — <?= htmlspecialchars($school['name']) ?></title>
+<link rel="canonical" href="https://<?= htmlspecialchars($school['slug']) ?>.somahub.top/enrollment-apply.php?school=<?= htmlspecialchars($school['slug']) ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=<?= urlencode($theme['font_display'] ?? 'Sora') ?>:wght@600;700&family=<?= urlencode($theme['font_body'] ?? 'Nunito Sans') ?>:wght@400;500;600&display=swap" rel="stylesheet">
 <style>

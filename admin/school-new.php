@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/mailer.php';
 require_platform_admin();
 $db = get_db();
 
@@ -14,7 +13,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $themeId = (int)$_POST['theme_id'];
     $ownerEmail = trim($_POST['owner_email']);
     $ownerName = trim($_POST['owner_name']);
-    $jobTitle = trim($_POST['job_title'] ?? '');
     $ownerPhone = trim($_POST['owner_phone']);
     $tempPassword = bin2hex(random_bytes(4)); // e.g. "a1b2c3d4" — sent to school owner directly
 
@@ -39,11 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // 2. Create the owner login
                 $insertUser = $db->prepare("
-                    INSERT INTO users (school_id, name, job_title, email, phone, password_hash, role)
-                    VALUES (?, ?, ?, ?, ?, ?, 'school_owner')
+                    INSERT INTO users (school_id, name, email, phone, password_hash, role)
+                    VALUES (?, ?, ?, ?, ?, 'school_owner')
                 ");
                 $insertUser->execute([
-                    $schoolId, $ownerName, $jobTitle ?: null, $ownerEmail, $ownerPhone,
+                    $schoolId, $ownerName, $ownerEmail, $ownerPhone,
                     password_hash($tempPassword, PASSWORD_DEFAULT),
                 ]);
 
@@ -64,21 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $db->commit();
-
-                // Welcome email — deliberately doesn't include the password itself,
-                // that's sent separately via WhatsApp, matching existing practice
-                if ($ownerEmail) {
-                    $welcomeBody = "
-                        <h2 style='color:#0F5257;margin-top:0;'>Welcome to Somahub, {$ownerName}!</h2>
-                        <p><strong>" . htmlspecialchars($name) . "</strong>'s website is ready.</p>
-                        <p>Your site: <a href='https://{$slug}.somahub.top' style='color:#0F5257;'>{$slug}.somahub.top</a></p>
-                        <p>Your login details will be sent to you separately on WhatsApp. Once you have them, log in here to start editing your site:</p>
-                        <p><a href='https://somahub.top/dashboard/login.php' style='color:#0F5257;font-weight:700;'>Go to your dashboard →</a></p>
-                        <p style='margin-top:20px;color:#6E6A5C;'>Questions? Just reply to this email or message us on WhatsApp.</p>
-                    ";
-                    send_somahub_email($ownerEmail, "Welcome to Somahub — {$name} is ready", $welcomeBody);
-                }
-
                 header("Location: school-created.php?id=$schoolId&pw=" . urlencode($tempPassword));
                 exit;
             } catch (Exception $e) {
@@ -115,21 +98,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p style="font-size:0.78rem;color:#888;margin-top:-10px;margin-bottom:16px;">Will be: [subdomain].somahub.top</p>
 
     <label>Theme</label>
-    <?php $selectedThemeId = $themes[0]['id'] ?? 0; include __DIR__ . '/_theme_picker.php'; ?>
+    <select name="theme_id" required>
+      <?php foreach ($themes as $t): ?>
+        <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['name']) ?></option>
+      <?php endforeach; ?>
+    </select>
 
-    <label>Contact Person's Name</label>
+    <label>Owner / Head Teacher Name</label>
     <input type="text" name="owner_name" required>
-
-    <label>Their Role at the School</label>
-    <input type="text" name="job_title" list="job_title_suggestions" placeholder="e.g. Head Teacher">
-    <datalist id="job_title_suggestions">
-      <option value="Head Teacher">
-      <option value="Deputy Head Teacher">
-      <option value="School Administrator">
-      <option value="Proprietor / Director">
-      <option value="Bursar">
-      <option value="IT / Communications Officer">
-    </datalist>
 
     <label>Owner Email (used to log in)</label>
     <input type="email" name="owner_email" required>

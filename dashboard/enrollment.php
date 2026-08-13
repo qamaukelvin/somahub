@@ -36,12 +36,12 @@ $apps = $apps->fetchAll();
     </tr>
     <?php foreach ($apps as $a): ?>
     <tr>
-      <td><?= htmlspecialchars($a['child_name']) ?></td>
-      <td><?= htmlspecialchars($a['grade_applying_for']) ?></td>
-      <td><?= htmlspecialchars($a['parent_name']) ?></td>
-      <td><a href="tel:<?= htmlspecialchars($a['parent_phone']) ?>"><?= htmlspecialchars($a['parent_phone']) ?></a></td>
-      <td><?= date('d M Y', strtotime($a['submitted_at'])) ?></td>
-      <td>
+      <td data-label="Child"><?= htmlspecialchars($a['child_name']) ?></td>
+      <td data-label="Grade"><?= htmlspecialchars($a['grade_applying_for']) ?></td>
+      <td data-label="Parent"><?= htmlspecialchars($a['parent_name']) ?></td>
+      <td data-label="Phone"><a href="tel:<?= htmlspecialchars($a['parent_phone']) ?>"><?= htmlspecialchars($a['parent_phone']) ?></a></td>
+      <td data-label="Submitted"><?= date('d M Y', strtotime($a['submitted_at'])) ?></td>
+      <td data-label="Status">
         <form method="POST" style="display:inline">
           <input type="hidden" name="app_id" value="<?= $a['id'] ?>">
           <select name="status" onchange="this.form.submit()" class="<?= $a['status'] === 'new' ? 'status-new' : '' ?>">

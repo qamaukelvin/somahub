@@ -96,11 +96,11 @@ $fees = $fees->fetchAll();
     <tr><th>Grade</th><th>Term</th><th>Amount</th><th>Paybill</th><th></th></tr>
     <?php foreach ($fees as $f): $pd = json_decode($f['payment_details_json'], true); ?>
     <tr>
-      <td><?= htmlspecialchars($f['grade']) ?></td>
-      <td><?= htmlspecialchars($f['term_label']) ?></td>
-      <td>KSh <?= number_format($f['amount'], 2) ?></td>
-      <td><?= htmlspecialchars($pd['paybill'] ?? '—') ?></td>
-      <td>
+      <td data-label="Grade"><?= htmlspecialchars($f['grade']) ?></td>
+      <td data-label="Term"><?= htmlspecialchars($f['term_label']) ?></td>
+      <td data-label="Amount">KSh <?= number_format($f['amount'], 2) ?></td>
+      <td data-label="Paybill"><?= htmlspecialchars($pd['paybill'] ?? '—') ?></td>
+      <td data-label="">
         <form method="POST" onsubmit="return confirm('Delete this fee entry?')">
           <input type="hidden" name="delete_id" value="<?= $f['id'] ?>">
           <button type="submit" style="border:none;background:none;color:#8C3B2E;cursor:pointer;">Delete</button>

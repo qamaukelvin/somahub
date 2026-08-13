@@ -19,6 +19,7 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Somahub: Free Websites for Kenyan Schools</title>
+<link rel="canonical" href="https://somahub.top/">
 <meta name="description" content="Get your school online free. Somahub builds and hosts your school's website, you just edit and go live.">
 
 <!-- Favicons -->
@@ -183,7 +184,7 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
       <li><a href="#portfolio">Schools</a></li>
       <li><a href="results-portal.php">Check Results</a></li>
       <li><a href="dashboard/login.php">School Login</a></li>
-      <li><a href="#contact" class="navcta">Get Started</a></li>
+      <li><a href="get-started.php" class="navcta">Get Started</a></li>
     </ul></nav>
     <button class="menu-toggle" onclick="document.getElementById('navlinks').classList.toggle('open')">☰</button>
   </div>
@@ -195,7 +196,7 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
     <h1>Your school deserves a <span class="accent">real website</span>, at no cost to you</h1>
     <p>Somahub builds and hosts your school's site. You review it, edit it from a simple dashboard, and it goes live in days, not months.</p>
     <div class="hero-ctas">
-      <a href="#contact" class="btn-primary">Get Your Free Website</a>
+      <a href="get-started.php" class="btn-primary">Get Your Free Website</a>
       <a href="#portfolio" class="btn-ghost">See Schools Already Live</a>
     </div>
     <div class="quick-links">
@@ -289,7 +290,7 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
           <li><span class="check">＋</span> Self service editing dashboard</li>
           <li><span class="check">＋</span> Unlimited photo updates</li>
         </ul>
-        <a href="#contact" class="plan-cta">Get Started Free</a>
+        <a href="get-started.php" class="plan-cta">Get Started Free</a>
       </div>
       <div class="plan-card highlight">
         <div class="plan-note">First term free</div>
@@ -302,7 +303,7 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
           <li><span class="check">＋</span> Term results checking for parents</li>
           <li><span class="check">＋</span> Published fee structure</li>
         </ul>
-        <a href="#contact" class="plan-cta">Start Your Free Term</a>
+        <a href="get-started.php" class="plan-cta">Start Your Free Term</a>
       </div>
     </div>
     <p style="text-align:center;margin-top:24px;font-size:0.9rem;color:var(--muted);">

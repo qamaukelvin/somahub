@@ -5,6 +5,8 @@
       <a href="index.php">Schools</a>
       <a href="leads.php">Leads</a>
       <a href="audit-log.php">Audit Log</a>
+      <a href="outreach.php">Outreach</a>
+      <a href="blog.php">Blog</a>
       <a href="school-new.php">Add School</a>
       <a href="../index.php" target="_blank">Main Site ↗</a>
       <a href="logout.php">Log Out</a>

@@ -4,6 +4,10 @@
 
 RewriteEngine On
 
+# Force HTTPS on every host (bare domain + all school subdomains)
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
 # Bare domain or www — goes to the homepage
 RewriteCond %{HTTP_HOST} ^(www\.)?somahub\.top$ [NC]
 RewriteRule ^$ index.php [L]
@@ -24,3 +28,14 @@ RewriteRule ^ - [L]
 # Also allow /schoolname style paths as a fallback if wildcard DNS/hosting isn't working
 # e.g. somahub.top/s/kinangoppride
 RewriteRule ^s/([a-z0-9-]+)/?$ site.php?school=$1 [L,QSA]
+
+# Blog post clean URLs: /blog/some-post-slug -> blog/post.php?slug=some-post-slug
+# (/blog/ itself already resolves to blog/index.php via the real-file/folder rule above)
+RewriteRule ^blog/([a-z0-9-]+)/?$ blog/post.php?slug=$1 [L,QSA]
+
+# php -- BEGIN cPanel-generated handler, do not edit
+# Set the “ea-php83” package as the default “PHP” programming language.
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php83 .php .php8 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit

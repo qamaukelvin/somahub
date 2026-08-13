@@ -28,13 +28,13 @@ $leads = $db->query("SELECT * FROM leads ORDER BY submitted_at DESC")->fetchAll(
     <tr><th>School</th><th>Contact</th><th>Phone</th><th>County</th><th>Message</th><th>Received</th><th>Status</th></tr>
     <?php foreach ($leads as $l): ?>
     <tr>
-      <td><?= htmlspecialchars($l['school_name']) ?></td>
-      <td><?= htmlspecialchars($l['contact_name']) ?><?= $l['email'] ? '<br><small>'.htmlspecialchars($l['email']).'</small>' : '' ?></td>
-      <td><a href="tel:<?= htmlspecialchars($l['phone']) ?>"><?= htmlspecialchars($l['phone']) ?></a></td>
-      <td><?= htmlspecialchars($l['county'] ?: '—') ?></td>
-      <td style="max-width:220px;"><?= htmlspecialchars($l['message'] ?: '—') ?></td>
-      <td><?= date('d M Y', strtotime($l['submitted_at'])) ?></td>
-      <td>
+      <td data-label="School"><?= htmlspecialchars($l['school_name']) ?></td>
+      <td data-label="Contact"><?= htmlspecialchars($l['contact_name']) ?><?= $l['email'] ? '<br><small>'.htmlspecialchars($l['email']).'</small>' : '' ?></td>
+      <td data-label="Phone"><a href="tel:<?= htmlspecialchars($l['phone']) ?>"><?= htmlspecialchars($l['phone']) ?></a></td>
+      <td data-label="County"><?= htmlspecialchars($l['county'] ?: '—') ?></td>
+      <td data-label="Message" style="max-width:220px;"><?= htmlspecialchars($l['message'] ?: '—') ?></td>
+      <td data-label="Received"><?= date('d M Y', strtotime($l['submitted_at'])) ?></td>
+      <td data-label="Status">
         <form method="POST">
           <input type="hidden" name="lead_id" value="<?= $l['id'] ?>">
           <select name="status" onchange="this.form.submit()">

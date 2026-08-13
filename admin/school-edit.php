@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/mailer.php';
+require_once __DIR__ . '/../includes/content-presets.php';
 require_platform_admin();
 $db = get_db();
 
@@ -24,6 +25,37 @@ $message = '';
 $newTempPassword = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    if (isset($_POST['action']) && $_POST['action'] === 'apply_content_preset') {
+        $presetKey = $_POST['content_preset'] ?? '';
+        $contentPresets = get_school_content_presets();
+        $presetContent = $contentPresets[$presetKey]['content'] ?? [];
+
+        if ($presetContent) {
+            $typeStmt = $db->prepare("SELECT id, schema_json FROM section_types WHERE key_name = ?");
+            $sectionStmt = $db->prepare("SELECT content_json FROM site_sections WHERE school_id = ? AND section_type_id = ?");
+            $updateStmt = $db->prepare("UPDATE site_sections SET content_json = ? WHERE school_id = ? AND section_type_id = ?");
+            $onlyIfEmpty = !empty($_POST['only_if_empty']);
+
+            foreach ($presetContent as $key => $fields) {
+                $typeStmt->execute([$key]);
+                $type = $typeStmt->fetch();
+                if (!$type) continue;
+
+                $sectionStmt->execute([$id, $type['id']]);
+                $existing = $sectionStmt->fetch();
+                $current = $existing ? json_decode($existing['content_json'], true) : array_fill_keys(array_keys(json_decode($type['schema_json'], true)), '');
+
+                foreach ($fields as $field => $text) {
+                    if (!array_key_exists($field, $current)) continue;
+                    if ($onlyIfEmpty && trim($current[$field]) !== '') continue; // don't clobber real content already written
+                    $current[$field] = str_replace('{school}', $school['name'], $text);
+                }
+                $updateStmt->execute([json_encode($current), $id, $type['id']]);
+            }
+            $message = 'Content preset applied.';
+        }
+    }
 
     if (isset($_POST['action']) && $_POST['action'] === 'update_details') {
         $stmt = $db->prepare("
@@ -151,8 +183,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <main class="wrap">
   <p style="margin-bottom:16px;"><a href="index.php">&larr; Back to all schools</a></p>
   <h1>Manage: <?= htmlspecialchars($school['name']) ?></h1>
-  <p style="color:#666;margin-bottom:24px;">
-    Live at: <a href="https://<?= urlencode($school['slug']) ?>.somahub.top/" target="_blank"><?= htmlspecialchars($school['slug']) ?>.somahub.top</a>
+  <p style="color:#666;margin-bottom:8px;">
+    Address: <a href="https://<?= urlencode($school['slug']) ?>.somahub.top/" target="_blank"><?= htmlspecialchars($school['slug']) ?>.somahub.top</a>
+    <?php if (($school['verification_status'] ?? '') !== 'verified'): ?>
+      <span style="color:#8C6D1F;font-size:0.82rem;"> (not public yet — pending verification)</span>
+    <?php endif; ?>
+  </p>
+  <p style="margin-bottom:24px;">
+    <a href="https://<?= urlencode($school['slug']) ?>.somahub.top/" target="_blank" class="btn-secondary" style="display:inline-block;background:#0F5257;color:#fff;padding:8px 18px;border-radius:6px;font-size:0.85rem;font-weight:700;text-decoration:none;">👁 Preview Site</a>
+    <span style="font-size:0.78rem;color:#888;margin-left:8px;">You'll see the real content even if it's not public yet, since you're logged in as admin.</span>
   </p>
 
   <?php if ($message): ?><div class="success"><?= htmlspecialchars($message) ?></div><?php endif; ?>
@@ -213,6 +252,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="text" name="email" value="<?= htmlspecialchars($school['email'] ?? '') ?>">
 
       <button type="submit" class="btn">Save Changes</button>
+    </form>
+  </div>
+
+  <div class="box">
+    <h3 style="margin-bottom:10px;">Generic Content</h3>
+    <p style="font-size:0.85rem;color:#666;margin-bottom:14px;">Fill in starter content matched to the school type — useful if the school hasn't written their own yet, or as a quick starting point for you to hand off.</p>
+    <form method="POST" class="stacked">
+      <input type="hidden" name="action" value="apply_content_preset">
+      <label>Preset</label>
+      <select name="content_preset">
+        <?php foreach (get_school_content_presets() as $key => $p): ?>
+          <?php if ($key === 'blank') continue; ?>
+          <option value="<?= $key ?>"><?= htmlspecialchars($p['label']) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-top:12px;">
+        <input type="checkbox" name="only_if_empty" value="1" checked style="width:auto;margin:0;">
+        Only fill in sections that are still empty (won't overwrite what the school already wrote)
+      </label>
+      <button type="submit" class="btn" style="margin-top:14px;">Apply Preset</button>
     </form>
   </div>
 

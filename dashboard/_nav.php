@@ -57,6 +57,7 @@ function plan_badge_text(array $school): array {
       <a href="results.php">Results</a>
       <a href="fees.php">Fees</a>
       <a href="verify.php">Verification</a>
+      <a href="account.php">Account</a>
       <?php if ($mySlug): ?><a href="https://<?= urlencode($mySlug) ?>.somahub.top/" target="_blank">View My Site ↗</a><?php endif; ?>
       <a href="../index.php">Somahub Home</a>
       <?php if ($impersonatingSchoolId): ?>

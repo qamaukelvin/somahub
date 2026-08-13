@@ -1,17 +1,33 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/mailer.php';
+$db = get_db();
 
-$error = '';
+$message = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
 
-    if (login($email, $password)) {
-        header('Location: index.php');
-        exit;
-    } else {
-        $error = 'Incorrect email or password.';
+    if ($email) {
+        $stmt = $db->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        // Always show the same message whether or not the email exists —
+        // prevents leaking which emails are registered on the platform.
+        if ($user) {
+            $code = create_password_reset_code($db, $user['id']);
+            $body = "
+                <h2 style='color:#0F5257;margin-top:0;'>Reset your password</h2>
+                <p>Use this code to reset your Somahub password. It expires in 15 minutes.</p>
+                <p style='font-size:28px;font-weight:800;letter-spacing:4px;color:#0F5257;text-align:center;padding:16px;background:#F4F1E6;border-radius:8px;'>{$code}</p>
+                <p style='font-size:0.85rem;color:#888;'>If you didn't request this, you can safely ignore this email.</p>
+            ";
+            send_somahub_email($user['email'], 'Your Somahub password reset code', $body);
+        }
     }
+
+    $message = "If that email is registered, we've sent a reset code to it.";
 }
 ?>
 <!DOCTYPE html>
@@ -19,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>School Login — Somahub</title>
+<title>Forgot Password — Somahub</title>
 <link rel="icon" type="image/x-icon" href="../favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -36,22 +52,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   input:focus{outline:none;border-color:var(--teal);}
   button{width:100%;padding:12px;background:var(--teal);color:#fff;border:none;border-radius:24px;font-weight:700;cursor:pointer;font-size:0.92rem;}
   button:hover{background:var(--teal-deep);}
-  .error{background:#FBE8E4;color:#8C3B2E;font-size:0.85rem;padding:10px 14px;border-radius:8px;margin-bottom:16px;}
+  .notice{background:#E4F5EA;color:#1B4D3E;font-size:0.85rem;padding:10px 14px;border-radius:8px;margin-bottom:16px;}
   .back{display:block;text-align:center;margin-top:20px;color:#6E6A5C;font-size:0.82rem;text-decoration:none;}
 </style>
 </head>
 <body>
   <form class="card" method="POST">
     <div class="brand"><span class="dot"></span> somahub</div>
-    <div class="subtitle">School Dashboard</div>
-    <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-    <label>Email</label>
-    <input type="email" name="email" required autofocus>
-    <label>Password</label>
-    <input type="password" name="password" required>
-    <button type="submit">Log In</button>
-    <p style="text-align:center;margin-top:14px;"><a href="forgot-password.php" style="color:var(--teal);font-size:0.82rem;font-weight:700;">Forgot password?</a></p>
+    <div class="subtitle">Reset your password</div>
+    <?php if ($message): ?>
+      <div class="notice"><?= htmlspecialchars($message) ?></div>
+      <p style="text-align:center;font-size:0.85rem;"><a href="reset-password.php" style="color:var(--teal);font-weight:700;">Enter your code →</a></p>
+    <?php else: ?>
+      <label>Email</label>
+      <input type="email" name="email" required autofocus>
+      <button type="submit">Send Reset Code</button>
+    <?php endif; ?>
   </form>
-  <a href="../index.php" class="back">&larr; Back to somahub.top</a>
+  <a href="login.php" class="back">&larr; Back to login</a>
 </body>
 </html>
