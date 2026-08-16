@@ -100,7 +100,7 @@ foreach ($availableTypes as $t) {
 
   <?php if (isset($_GET['error']) && $_GET['error'] === 'upgrade_required'): ?>
     <div style="background:#FBE8E4;color:#8C3B2E;padding:12px 16px;border-radius:6px;margin-bottom:16px;font-size:0.88rem;">
-      That section is part of the paid plan. <a href="upgrade.php" style="color:#8C3B2E;font-weight:600;">Learn more</a>.
+      That section is part of the paid plan. <a href="checkout.php" style="color:#8C3B2E;font-weight:600;">Upgrade now</a>.
     </div>
   <?php endif; ?>
 

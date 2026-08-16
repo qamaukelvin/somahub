@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/reviews.php';
 $db = get_db();
 
 // Live portfolio — schools actually on the platform (for social proof + showcase)
@@ -12,6 +13,9 @@ $schools = $db->query("
 ")->fetchAll();
 
 $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('active','trial')")->fetch()['c'];
+
+$platformReviews = get_approved_reviews($db, 'platform', null, 12);
+$platformAvgRating = get_average_rating($platformReviews);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -127,7 +131,7 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
 
   /* PLANS — two clean cards, not a table */
   .plans-wrap{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;}
-  .plan-card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:36px;width:320px;}
+  .plan-card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:32px;width:300px;}
   .plan-card.highlight{background:var(--teal);color:var(--sand);border-color:var(--teal);position:relative;}
   .plan-card.highlight .plan-note{position:absolute;top:-14px;left:36px;background:var(--amber);color:var(--teal-deep);font-size:0.7rem;font-weight:800;padding:6px 14px;border-radius:20px;text-transform:uppercase;}
   .plan-name{font-size:1.1rem;font-weight:700;margin-bottom:6px;}
@@ -182,6 +186,7 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
       <li><a href="#plans">Plans</a></li>
       <li><a href="pricing.php">Full Pricing</a></li>
       <li><a href="#portfolio">Schools</a></li>
+      <li><a href="#reviews">Reviews</a></li>
       <li><a href="results-portal.php">Check Results</a></li>
       <li><a href="dashboard/login.php">School Login</a></li>
       <li><a href="get-started.php" class="navcta">Get Started</a></li>
@@ -259,16 +264,17 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
     <div class="section-head">
       <span class="kicker">What is included</span>
       <h2>Free to start, more when you need it</h2>
+      <p style="margin-top:10px;font-size:0.92rem;color:var(--muted);">Everything tagged "Paid" below is free to try for 60 days on our <a href="#plans" style="color:var(--teal);font-weight:700;">Trial plan</a> — no card required.</p>
     </div>
     <div class="feature-grid">
       <div class="feature-card"><h3>Website and hosting</h3><p>Every core page your school needs, hosted and online, always free.</p></div>
       <div class="feature-card"><h3>Free subdomain</h3><p>yourschool.somahub.top, live from day one, no setup fee.</p></div>
       <div class="feature-card"><h3>Editable dashboard</h3><p>Update your own text and photos anytime, from a phone or a computer.</p></div>
-      <div class="feature-card"><h3>Your own domain <span class="tag">Paid</span></h3><p>Bring a domain like yourschool.ac.ke, from KSh 900/year. <a href="pricing.php" style="color:var(--teal);font-weight:600;">See pricing</a></p></div>
+      <div class="feature-card"><h3>Your own domain <span class="tag">Add-on</span></h3><p>Bring a domain like yourschool.ac.ke, from KSh 900/year. <a href="pricing.php" style="color:var(--teal);font-weight:600;">See pricing</a></p></div>
       <div class="feature-card"><h3>Online enrollment <span class="tag">Paid</span></h3><p>Parents apply directly through your site instead of calling the office.</p></div>
       <div class="feature-card"><h3>Results checking <span class="tag">Paid</span></h3><p>Upload term results and let parents check them securely by admission number.</p></div>
       <div class="feature-card"><h3>Fee structure <span class="tag">Paid</span></h3><p>Publish clear fees and payment details for every grade and term.</p></div>
-      <div class="feature-card"><h3>News and updates <span class="tag">Paid</span></h3><p>Post announcements, events, and photos as they happen.</p></div>
+      <div class="feature-card"><h3>Premium themes <span class="tag">Paid</span></h3><p>Unlock every theme in our gallery, not just the free starter set. <a href="pricing.php#addons" style="color:var(--teal);font-weight:600;">See themes</a></p></div>
     </div>
   </div>
 </section>
@@ -278,6 +284,7 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
     <div class="section-head center">
       <span class="kicker">Plans</span>
       <h2>Pick what your school needs today</h2>
+      <p style="margin-top:10px;font-size:0.95rem;color:var(--muted);">Start on Free anytime, or try everything free for 60 days on Trial — no card required either way.</p>
     </div>
     <div class="plans-wrap">
       <div class="plan-card">
@@ -292,22 +299,33 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
         </ul>
         <a href="get-started.php" class="plan-cta">Get Started Free</a>
       </div>
+      <div class="plan-card" style="border-color:var(--amber);">
+        <div class="plan-name">60-Day Trial</div>
+        <div class="plan-price">KSh 0 <span>for 60 days</span></div>
+        <div class="plan-desc">Everything unlocked, free, so you can see the real value before deciding.</div>
+        <ul>
+          <li><span class="check">＋</span> Everything in Free</li>
+          <li><span class="check">＋</span> Every premium theme</li>
+          <li><span class="check">＋</span> Online enrollment applications</li>
+          <li><span class="check">＋</span> Term results checking & fee publishing</li>
+        </ul>
+        <a href="get-started.php" class="plan-cta" style="background:var(--amber);color:var(--teal-deep);">Start Free Trial</a>
+      </div>
       <div class="plan-card highlight">
-        <div class="plan-note">First term free</div>
         <div class="plan-name">Paid</div>
         <div class="plan-price">KSh 2,500 <span>per year</span></div>
-        <div class="plan-desc">Everything in Free, plus the tools that save your office real time.</div>
+        <div class="plan-desc">About KSh 625 a term. Everything the Trial unlocks, permanently.</div>
         <ul>
           <li><span class="check">＋</span> Everything in Free</li>
           <li><span class="check">＋</span> Online enrollment applications</li>
           <li><span class="check">＋</span> Term results checking for parents</li>
           <li><span class="check">＋</span> Published fee structure</li>
         </ul>
-        <a href="get-started.php" class="plan-cta">Start Your Free Term</a>
+        <a href="get-started.php" class="plan-cta">Get Started</a>
       </div>
     </div>
     <p style="text-align:center;margin-top:24px;font-size:0.9rem;color:var(--muted);">
-      Want your own domain, or a custom designed site? <a href="pricing.php" style="color:var(--teal);font-weight:600;">See full pricing</a>
+      Want your own domain, custom templates, or a custom designed site? <a href="pricing.php" style="color:var(--teal);font-weight:600;">See full pricing</a>
     </p>
   </div>
 </section>
@@ -342,12 +360,71 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
   </div>
 </section>
 
+<section id="reviews">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="kicker">What people are saying</span>
+      <h2>Reviews</h2>
+      <?php if ($platformAvgRating !== null): ?>
+        <p style="color:var(--muted);"><?= render_stars((int)round($platformAvgRating)) ?> <?= $platformAvgRating ?> out of 5 (<?= count($platformReviews) ?> review<?= count($platformReviews) == 1 ? '' : 's' ?>)</p>
+      <?php endif; ?>
+    </div>
+
+    <?php if (isset($_GET['review_submitted'])): ?>
+      <p style="background:#DCEFE1;color:#1B4D3E;padding:10px 16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;max-width:480px;margin-left:auto;margin-right:auto;text-align:center;">✓ Thank you! Your review has been submitted and will appear once reviewed.</p>
+    <?php elseif (!empty($_GET['review_error'])): ?>
+      <p style="background:#FBE8E4;color:#8C3B2E;padding:10px 16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;max-width:480px;margin-left:auto;margin-right:auto;text-align:center;"><?= htmlspecialchars($_GET['review_error']) ?></p>
+    <?php endif; ?>
+
+    <div class="testimonial-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-bottom:32px;">
+      <?php foreach ($platformReviews as $r): ?>
+        <div class="testimonial-card" style="background:#fff;border-radius:10px;padding:22px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+          <div style="color:#F2A65A;letter-spacing:2px;margin-bottom:8px;"><?= render_stars((int)$r['rating']) ?></div>
+          <div style="font-style:italic;color:#333;margin-bottom:10px;">"<?= htmlspecialchars($r['comment']) ?>"</div>
+          <div style="font-weight:700;font-size:0.9rem;"><?= htmlspecialchars($r['reviewer_name']) ?><?= $r['reviewer_role'] ? ' — ' . htmlspecialchars($r['reviewer_role']) : '' ?></div>
+        </div>
+      <?php endforeach; ?>
+      <?php if (!$platformReviews): ?><p style="color:var(--muted);grid-column:1/-1;text-align:center;">No reviews yet — be the first to leave one.</p><?php endif; ?>
+    </div>
+
+    <details style="max-width:480px;margin:0 auto;">
+      <summary style="cursor:pointer;color:var(--teal);font-weight:700;text-align:center;">Leave a review</summary>
+      <form method="POST" action="/reviews-submit.php" style="margin-top:16px;">
+        <input type="hidden" name="reviewable_type" value="platform">
+        <input type="hidden" name="redirect_to" value="/index.php">
+        <input type="text" name="website" style="position:absolute;left:-9999px;" tabindex="-1" autocomplete="off">
+
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Your Name</label>
+        <input type="text" name="reviewer_name" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;box-sizing:border-box;">
+
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">You are a... (optional)</label>
+        <input type="text" name="reviewer_role" placeholder="e.g. Head Teacher, School Admin" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;box-sizing:border-box;">
+
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Rating</label>
+        <select name="rating" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+          <option value="">Choose a rating</option>
+          <option value="5">★★★★★ Excellent</option>
+          <option value="4">★★★★☆ Good</option>
+          <option value="3">★★★☆☆ Average</option>
+          <option value="2">★★☆☆☆ Below Average</option>
+          <option value="1">★☆☆☆☆ Poor</option>
+        </select>
+
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Your Review</label>
+        <textarea name="comment" rows="4" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:14px;box-sizing:border-box;"></textarea>
+
+        <button type="submit" class="btn-primary" style="width:100%;">Submit Review</button>
+      </form>
+    </details>
+  </div>
+</section>
+
 <section class="bg-white" id="contact">
   <div class="wrap">
     <div class="section-head center">
-      <span class="kicker">Get in touch</span>
-      <h2>Tell us about your school</h2>
-      <p style="margin-top:14px;font-size:0.95rem;color:var(--muted);">Send your details and we will reach out to set up your free website.</p>
+      <span class="kicker">Not ready to sign up yet?</span>
+      <h2>Talk to us first</h2>
+      <p style="margin-top:14px;font-size:0.95rem;color:var(--muted);">Prefer to ask questions before creating an account? Send your details and we'll reach out directly. Ready to jump straight in instead? <a href="get-started.php" style="color:var(--teal);font-weight:700;text-decoration:underline;">Get started here</a> — takes about 2 minutes.</p>
     </div>
     <form method="POST" action="contact-submit.php" class="contact-form">
       <div class="form-row">
@@ -378,7 +455,7 @@ $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('acti
         <input type="checkbox" name="agreed_to_terms" required>
         I agree to Somahub's <a href="terms.php" target="_blank">Terms of Service</a> and <a href="privacy.php" target="_blank">Privacy Policy</a>.
       </label>
-      <button type="submit" class="btn-primary" style="width:100%;margin-top:10px;">Send and Get Started</button>
+      <button type="submit" class="btn-primary" style="width:100%;margin-top:10px;">Send Message</button>
     </form>
   </div>
 </section>

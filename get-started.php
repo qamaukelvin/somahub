@@ -1,10 +1,11 @@
 <?php
 require_once __DIR__ . '/config/db.php';
 $db = get_db();
-require_once __DIR__ . '/includes/auth.php'; // for password_hash consistency, session
+require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/content-presets.php';
+require_once __DIR__ . '/includes/payments.php';
 
-$themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY name")->fetchAll();
+$themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium ASC, name ASC")->fetchAll();
 $contentPresets = get_school_content_presets();
 $error = '';
 
@@ -18,11 +19,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $themeId = (int)($_POST['theme_id'] ?? 0);
     $presetKey = $_POST['content_preset'] ?? 'blank';
     $password = $_POST['password'] ?? '';
+    $planChoice = $_POST['plan_choice'] ?? 'free'; // 'free' or 'trial'
+
+    // A premium theme requires either the Trial (which unlocks everything
+    // temporarily) or the Custom Templates add-on — free accounts can't
+    // pick a premium theme at signup.
+    $chosenTheme = null;
+    foreach ($themes as $t) { if ($t['id'] == $themeId) { $chosenTheme = $t; break; } }
+    $themeIsPremium = $chosenTheme && !empty($chosenTheme['is_premium']);
 
     if (!$schoolName || !$slug || !$ownerName || !$ownerEmail || !$password) {
         $error = 'Please fill in all required fields.';
     } elseif (strlen($password) < 6) {
         $error = 'Password must be at least 6 characters.';
+    } elseif ($themeIsPremium && $planChoice !== 'trial') {
+        $error = 'That theme is a premium template — choose the Trial plan to unlock it, or pick a free theme for now.';
     } else {
         $check = $db->prepare("SELECT id FROM schools WHERE slug = ?");
         $check->execute([$slug]);
@@ -31,9 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $db->beginTransaction();
             try {
-                // New schools start UNPUBLISHED and UNVERIFIED — site.php will show a
-                // "coming soon" placeholder to the public until an admin approves
-                // verification (uploaded in dashboard/verify.php).
                 $insertSchool = $db->prepare("
                     INSERT INTO schools (name, slug, theme_id, plan, status, verification_status, county, phone, email)
                     VALUES (?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?)
@@ -41,15 +49,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertSchool->execute([$schoolName, $slug, $themeId, $county, $ownerPhone, $ownerEmail]);
                 $schoolId = $db->lastInsertId();
 
+                if ($planChoice === 'trial') {
+                    start_trial($db, $schoolId, 60); // full Paid-tier access for 60 days
+                }
+
                 $insertUser = $db->prepare("
                     INSERT INTO users (school_id, name, email, phone, password_hash, role)
                     VALUES (?, ?, ?, ?, ?, 'school_owner')
                 ");
                 $insertUser->execute([$schoolId, $ownerName, $ownerEmail, $ownerPhone, password_hash($password, PASSWORD_DEFAULT)]);
 
-                // Seed the standard starter sections. If a content preset was chosen,
-                // fill them with real starter copy; otherwise leave blank for the
-                // school to write themselves before requesting verification.
                 $presetContent = $contentPresets[$presetKey]['content'] ?? [];
                 $defaultSectionKeys = ['hero','about','academics','admissions','gallery','contact'];
                 $typeStmt = $db->prepare("SELECT id, schema_json FROM section_types WHERE key_name = ?");
@@ -63,7 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($type) {
                         $schema = json_decode($type['schema_json'], true);
                         $emptyContent = array_fill_keys(array_keys($schema), '');
-
                         if (!empty($presetContent[$key])) {
                             foreach ($presetContent[$key] as $field => $text) {
                                 if (array_key_exists($field, $emptyContent)) {
@@ -71,15 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 }
                             }
                         }
-
                         $insertSection->execute([$schoolId, $type['id'], $i, json_encode($emptyContent)]);
                     }
                 }
 
                 $db->commit();
-
-                // Log the new owner straight in and send them to the dashboard —
-                // no waiting on you to create anything.
                 login($ownerEmail, $password);
                 header("Location: dashboard/index.php?welcome=1");
                 exit;
@@ -105,12 +109,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Manrope',sans-serif;background:var(--sand);color:var(--ink);line-height:1.6;}
   a{color:inherit;}
-  .wrap{max-width:520px;margin:0 auto;padding:40px 20px;}
+  .wrap{max-width:600px;margin:0 auto;padding:40px 20px;}
   header{padding:20px 24px;}
   .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.15rem;}
   .brand .dot{width:9px;height:9px;background:var(--amber);border-radius:50%;}
   h1{font-size:1.8rem;margin-bottom:8px;}
-  .sub{color:var(--muted);margin-bottom:28px;}
+  .sub{color:var(--muted);margin-bottom:24px;}
   .card{background:#fff;border-radius:12px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
   label{display:block;font-size:0.85rem;font-weight:700;margin:16px 0 6px;}
   label:first-of-type{margin-top:0;}
@@ -126,6 +130,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   button[type=submit]:disabled{opacity:0.5;cursor:not-allowed;}
   .error{background:#FBE8E4;color:#8C3B2E;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:0.88rem;}
   .flow-note{font-size:0.82rem;color:var(--muted);margin-top:20px;text-align:center;}
+
+  /* Plan toggle */
+  .plan-toggle{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px;}
+  .plan-option{position:relative;}
+  .plan-option input{position:absolute;opacity:0;}
+  .plan-option label{display:block;border:2px solid var(--line);border-radius:10px;padding:14px;cursor:pointer;background:#fff;}
+  .plan-option input:checked + label{border-color:var(--teal);box-shadow:0 0 0 2px rgba(15,82,87,0.15);background:#F4F8F6;}
+  .plan-name{font-weight:800;font-size:0.95rem;}
+  .plan-price{font-size:0.78rem;color:var(--muted);margin-top:2px;}
+  .plan-desc{font-size:0.78rem;color:var(--muted);margin-top:6px;line-height:1.4;}
+
+  /* Theme picker with real previews */
+  .theme-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:6px;}
+  .theme-option{position:relative;}
+  .theme-option input{position:absolute;opacity:0;}
+  .theme-option label{display:block;border:2px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;background:#fff;}
+  .theme-option input:checked + label{border-color:var(--teal);box-shadow:0 0 0 2px rgba(15,82,87,0.15);}
+  .theme-preview{height:70px;position:relative;overflow:hidden;}
+  .theme-preview .tp-bar{height:16px;display:flex;align-items:center;padding:0 6px;gap:3px;}
+  .theme-preview .tp-dot{width:5px;height:5px;border-radius:50%;}
+  .theme-preview .tp-body{padding:6px;}
+  .theme-preview .tp-line{height:5px;border-radius:2px;margin-bottom:4px;}
+  .theme-meta{padding:8px 10px;}
+  .theme-option-name{font-size:0.78rem;font-weight:700;}
+  .premium-tag{display:inline-block;background:#F2A65A;color:#0A3A3E;font-size:0.62rem;font-weight:800;padding:1px 6px;border-radius:8px;margin-left:4px;vertical-align:middle;}
+  .theme-option.locked label{opacity:0.55;}
 </style>
 </head>
 <body>
@@ -133,12 +163,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <main class="wrap">
   <h1>Get Your School Online</h1>
-  <p class="sub">Pick your web address, build your site, then request verification to go live.</p>
+  <p class="sub">Pick a plan, choose a theme, build your site, then request verification to go live.</p>
 
   <div class="card">
     <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
 
     <form method="POST" id="signupForm">
+      <label>Choose Your Plan</label>
+      <div class="plan-toggle">
+        <div class="plan-option">
+          <input type="radio" name="plan_choice" id="plan_free" value="free" checked>
+          <label for="plan_free">
+            <div class="plan-name">Free</div>
+            <div class="plan-price">KSh 0</div>
+            <div class="plan-desc">Full website, free themes. Enrollment, results & fees tools locked.</div>
+          </label>
+        </div>
+        <div class="plan-option">
+          <input type="radio" name="plan_choice" id="plan_trial" value="trial">
+          <label for="plan_trial">
+            <div class="plan-name">60-Day Trial</div>
+            <div class="plan-price">KSh 0 for 60 days</div>
+            <div class="plan-desc">Everything unlocked — premium themes, enrollment, results, fees. No card needed.</div>
+          </label>
+        </div>
+      </div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:14px;">After 60 days, the Trial reverts to Free automatically unless you upgrade to Paid — nothing is charged without you choosing to.</p>
+
       <label>School Name</label>
       <input type="text" name="school_name" required placeholder="e.g. Kinangop Pride Primary School">
 
@@ -153,11 +204,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="text" name="county" placeholder="e.g. Nyandarua">
 
       <label>Theme</label>
-      <select name="theme_id" required>
-        <?php foreach ($themes as $t): ?>
-          <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['name']) ?></option>
+      <div class="theme-picker" id="themePicker">
+        <?php foreach ($themes as $t):
+          $vars = json_decode($t['css_variables_json'], true);
+          $isPremium = !empty($t['is_premium']);
+        ?>
+          <div class="theme-option<?= $isPremium ? ' locked' : '' ?>" data-premium="<?= $isPremium ? '1' : '0' ?>">
+            <input type="radio" name="theme_id" id="theme_<?= $t['id'] ?>" value="<?= $t['id'] ?>" <?= !$isPremium && $t === $themes[0] ? '' : '' ?> required>
+            <label for="theme_<?= $t['id'] ?>">
+              <div class="theme-preview" style="background:<?= htmlspecialchars($vars['bg'] ?? '#f4f4f4') ?>;">
+                <div class="tp-bar" style="background:<?= htmlspecialchars($vars['primary'] ?? '#333') ?>;">
+                  <span class="tp-dot" style="background:<?= htmlspecialchars($vars['accent'] ?? '#fff') ?>;"></span>
+                </div>
+                <div class="tp-body">
+                  <div class="tp-line" style="width:70%;background:<?= htmlspecialchars($vars['primary'] ?? '#333') ?>;opacity:0.8;"></div>
+                  <div class="tp-line" style="width:90%;background:<?= htmlspecialchars($vars['accent'] ?? '#333') ?>;opacity:0.5;"></div>
+                  <div class="tp-line" style="width:50%;background:<?= htmlspecialchars($vars['accent'] ?? '#333') ?>;opacity:0.5;"></div>
+                </div>
+              </div>
+              <div class="theme-meta">
+                <span class="theme-option-name"><?= htmlspecialchars($t['name']) ?></span>
+                <?php if ($isPremium): ?><span class="premium-tag">Trial+</span><?php endif; ?>
+              </div>
+            </label>
+          </div>
         <?php endforeach; ?>
-      </select>
+      </div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-top:-2px;margin-bottom:14px;" id="themeHint">Premium themes (marked "Trial+") need the Trial plan or Custom Templates add-on.</p>
 
       <label>Starting Content</label>
       <select name="content_preset">
@@ -165,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <option value="<?= $key ?>" <?= $key === 'primary_day' ? 'selected' : '' ?>><?= htmlspecialchars($p['label']) ?></option>
         <?php endforeach; ?>
       </select>
-      <p style="font-size:0.78rem;color:var(--muted);margin-top:-4px;">Fills your About, Academics, and Admissions sections with a starting point matched to your school type — fully editable afterward.</p>
+      <p style="font-size:0.78rem;color:var(--muted);margin-top:-4px;">Fills your About, Academics, and Admissions sections with a starting point matched to your school type — fully editable afterward. Want bespoke, hand-written content instead? That's available as a paid add-on once you're set up.</p>
 
       <label>Your Name (school representative)</label>
       <input type="text" name="owner_name" required>
@@ -183,13 +256,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
   </div>
 
-  <p class="flow-note">After signing up, you'll edit your site content and upload verification documents in your dashboard. Your site goes live once verified — usually within a day or two.</p>
+  <p class="flow-note">After signing up, you'll edit your site content and upload verification documents in your dashboard. Your site is live immediately for a preview window, and stays live once verified.</p>
 </main>
 
 <script>
 const slugInput = document.getElementById('slugInput');
 const availMsg = document.getElementById('availMsg');
-const submitBtn = document.getElementById('submitBtn');
 let debounceTimer, isAvailable = false;
 
 slugInput.addEventListener('input', () => {
@@ -220,9 +292,7 @@ slugInput.addEventListener('input', () => {
                     availMsg.className = 'avail-msg avail-bad';
                 }
             })
-            .catch(() => {
-                availMsg.textContent = '';
-            });
+            .catch(() => { availMsg.textContent = ''; });
     }, 400);
 });
 
@@ -234,6 +304,20 @@ document.getElementById('signupForm').addEventListener('submit', (e) => {
         slugInput.focus();
     }
 });
+
+// Premium theme radios get visually locked out unless Trial is selected —
+// still submit-checkable server-side regardless (see PHP validation above),
+// this is just a friendlier client-side nudge.
+const planRadios = document.querySelectorAll('input[name="plan_choice"]');
+function updateThemeLocking() {
+    const trialSelected = document.getElementById('plan_trial').checked;
+    document.querySelectorAll('.theme-option').forEach(opt => {
+        const isPremium = opt.dataset.premium === '1';
+        opt.classList.toggle('locked', isPremium && !trialSelected);
+    });
+}
+planRadios.forEach(r => r.addEventListener('change', updateThemeLocking));
+updateThemeLocking();
 </script>
 </body>
 </html>

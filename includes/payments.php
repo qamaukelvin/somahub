@@ -101,6 +101,28 @@ function mark_order_paid(PDO $db, int $orderId, string $verifiedBy): void {
         $db->prepare("UPDATE schools SET custom_domain_enabled = 1 WHERE id = ?")
            ->execute([$schoolId]);
     }
+    if (in_array('custom_templates', $productKeys, true)) {
+        $db->prepare("UPDATE schools SET custom_templates_enabled = 1 WHERE id = ?")
+           ->execute([$schoolId]);
+    }
+    if (in_array('content_writing', $productKeys, true)) {
+        // One-time service, not a toggle — flag it so it shows in your admin
+        // queue as a to-do (you write and add the content manually), rather
+        // than something that auto-applies itself.
+        $db->prepare("UPDATE orders SET status = 'paid' WHERE id = ?")->execute([$orderId]); // already set above, kept explicit for clarity
+    }
+}
+
+/**
+ * Starts a 60-day Trial: full Paid-tier feature access (enrollment, results,
+ * fees) without payment, using the same promo_paid mechanic as the existing
+ * "free first term" flow. Reverts to Free (locked) automatically once
+ * promo_ends_at passes — is_premium_locked() in includes/plan.php already
+ * handles this, no separate expiry logic needed.
+ */
+function start_trial(PDO $db, int $schoolId, int $days = 60): void {
+    $db->prepare("UPDATE schools SET plan = 'promo_paid', promo_ends_at = DATE_ADD(NOW(), INTERVAL ? DAY) WHERE id = ?")
+       ->execute([$days, $schoolId]);
 }
 
 function request_refund(PDO $db, int $orderId, float $amount, string $reason): void {

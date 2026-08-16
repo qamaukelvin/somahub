@@ -38,7 +38,7 @@ $templates = [
     'verification_nudge' => [
         'label' => 'Verification nudge',
         'subject' => 'Get {school} verified on Somahub',
-        'body' => "Hi {name},\n\nOne last step to complete your school's setup — verification.\n\nA verified badge on your page confirms to parents and the public that {school}'s site is genuine and managed by an authorized representative.\n\nYou'll need to upload a signed agreement and your ID as the representative managing the account.\n\nBest,\nSomahub",
+        'body' => "Hi {name},\n\nOne last step to complete your school's setup — verification.\n\nA verified badge on your page confirms to parents and the public that {school}'s site is genuine and managed by an authorized representative.\n\nHere's what you'll need:\n1. Download and sign the agreement: https://somahub.top/agreement.php\n2. Upload the signed copy plus your ID as the representative managing the account\n\nBest,\nSomahub",
         'cta_text' => 'Verify Now',
         'cta_link' => 'https://somahub.top/dashboard/verify.php',
     ],
@@ -51,7 +51,7 @@ $templates = [
     ],
 ];
 
-$schools = $db->query("SELECT name, phone, email FROM schools ORDER BY name")->fetchAll();
+$schools = $db->query("SELECT name, phone, email, slug, verification_status FROM schools ORDER BY name")->fetchAll();
 
 $sentResult = null;
 $waLink = null;
@@ -239,6 +239,20 @@ function fillFromSchool(select) {
     document.getElementById('school_name').value = s.name || '';
     document.getElementById('recipient_email').value = s.email || '';
     document.getElementById('recipient_phone').value = s.phone || '';
+
+    // Auto-fill the CTA with a live link to the school's own site — leading
+    // with concrete evidence (a real, working preview) is far more convincing
+    // in cold outreach than a text description alone.
+    if (s.slug) {
+        const ctaLinkField = document.getElementById('cta_link');
+        const ctaTextField = document.getElementById('cta_text');
+        if (!ctaLinkField.value || ctaLinkField.value.includes('somahub.top')) {
+            ctaLinkField.value = 'https://' + s.slug + '.somahub.top/';
+        }
+        if (!ctaTextField.value) {
+            ctaTextField.value = s.verification_status === 'verified' ? 'View ' + s.name + "'s Live Site" : 'Preview ' + s.name + "'s Site";
+        }
+    }
 }
 </script>
 

@@ -261,7 +261,7 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
     paidfeatures: {
       msg: "Enrollment, Results, and Fees are part of the paid plan. If you don't see them yet, your school may still be on the free plan — message us to upgrade.",
       options: [
-        { label: "Ask about upgrading", wa: "Hi Somahub, I'd like to upgrade my school's plan." },
+        { label: "Upgrade my plan", link: "checkout.php" },
         { label: "Back to menu", next: "root" },
       ]
     },

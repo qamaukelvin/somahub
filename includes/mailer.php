@@ -15,7 +15,7 @@ use PHPMailer\PHPMailer\Exception as PHPMailerException;
 define('SMTP_HOST', 'mail.somahub.top');        // <-- confirm exact value in cPanel
 define('SMTP_PORT', 465);                        // 465 for SSL, or 587 for TLS
 define('SMTP_USERNAME', 'no-reply@somahub.top'); // the full mailbox address
-define('SMTP_PASSWORD', 'Q@mau2309');
+define('SMTP_PASSWORD', '');
 define('SMTP_ENCRYPTION', PHPMailer::ENCRYPTION_SMTPS); // matches port 465; use STARTTLS for port 587
 
 /**

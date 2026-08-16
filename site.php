@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/plan.php';
+require_once __DIR__ . '/includes/reviews.php';
 $db = get_db();
 
 // In production, subdomain routing (.htaccess) sets this from *.somahub.top automatically.
@@ -31,10 +32,15 @@ if (strtolower($_SERVER['HTTP_HOST']) !== $canonicalHost) {
     exit;
 }
 
-// Gate: unverified schools are NOT publicly visible yet — they're still being
-// built/reviewed. The owner themself (logged in) and a platform admin can still
-// preview the real content; everyone else sees a friendly "coming soon" page.
-// This makes verification a hard requirement before any site goes live.
+// Gate: new schools get a grace period during which their site is live and
+// public immediately (so they can see real value and share it right away),
+// even before verification is complete. This is deliberately a grace period
+// rather than a hard block — requiring verification before anything goes
+// live discourages schools from finishing the process at all. If they don't
+// verify within the window, the site quietly reverts to a "pending" page
+// until they do. The owner and platform admins always see the real site.
+const VERIFICATION_GRACE_PERIOD_DAYS = 7;
+
 require_once __DIR__ . '/includes/auth.php';
 $viewer = current_user();
 $isOwnerPreview = $viewer && (
@@ -42,7 +48,14 @@ $isOwnerPreview = $viewer && (
     (in_array($viewer['role'] ?? '', ['school_owner', 'school_editor'], true) && $viewer['school_id'] == $school['id'])
 );
 
-if (($school['verification_status'] ?? '') !== 'verified' && !$isOwnerPreview) {
+$isVerified = ($school['verification_status'] ?? '') === 'verified';
+$daysSinceCreated = $school['created_at'] ? (time() - strtotime($school['created_at'])) / 86400 : 0;
+$inGracePeriod = $daysSinceCreated <= VERIFICATION_GRACE_PERIOD_DAYS;
+$daysLeftToVerify = max(0, ceil(VERIFICATION_GRACE_PERIOD_DAYS - $daysSinceCreated));
+
+$sitePubliclyVisible = $isVerified || $inGracePeriod;
+
+if (!$sitePubliclyVisible && !$isOwnerPreview) {
     http_response_code(200);
     ?>
     <!DOCTYPE html>
@@ -62,8 +75,8 @@ if (($school['verification_status'] ?? '') !== 'verified' && !$isOwnerPreview) {
     <body>
       <div class="box">
         <div class="badge">● somahub</div>
-        <h1><?= htmlspecialchars($school['name']) ?>'s website is coming soon</h1>
-        <p>This site is currently being set up and verified. Check back shortly.</p>
+        <h1><?= htmlspecialchars($school['name']) ?>'s website is temporarily unavailable</h1>
+        <p>This site's free preview period has ended. It will be back online once verification is complete.</p>
       </div>
     </body>
     </html>
@@ -133,7 +146,7 @@ function nl2p($text) {
 // a single dropdown group ONLY when a school actually has 2+ items in that group — a school
 // with just "About" still sees a plain link, not a one-item dropdown.
 $navGroupMap = [
-    'about' => 'About', 'staff' => 'About', 'testimonials' => 'About', 'stats' => 'About', 'faq' => 'About',
+    'about' => 'About', 'staff' => 'About', 'testimonials' => 'About', 'reviews' => 'About', 'stats' => 'About', 'faq' => 'About',
     'results_lookup' => 'Portals', 'enrollment_form' => 'Portals', 'fees' => 'Portals',
 ];
 
@@ -201,7 +214,7 @@ foreach ($sections as $s) {
   header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid rgba(0,0,0,0.08);}
   .navbar{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;max-width:1080px;margin:0 auto;gap:16px;}
   .brand{font-family:'<?= esc($theme['font_display'] ?? 'Sora') ?>',sans-serif;font-weight:700;font-size:1.05rem;color:var(--primary);display:flex;align-items:center;gap:8px;}
-  .verified-badge{background:#DCEFE1;color:#1B4D3E;font-size:0.65rem;font-weight:700;padding:3px 9px;border-radius:20px;font-family:'Space Mono',monospace;letter-spacing:0.02em;}
+  .verified-badge{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;background:var(--accent,#0F5257);color:#fff;border-radius:50%;font-size:0.7rem;font-weight:900;flex-shrink:0;}
   nav ul{list-style:none;display:flex;gap:22px;align-items:center;}
   nav a{font-size:0.88rem;font-weight:600;}
   nav a:hover{opacity:0.7;}
@@ -324,7 +337,7 @@ foreach ($sections as $s) {
     <div class="brand">
       <?= esc($school['name']) ?>
       <?php if (($school['verification_status'] ?? '') === 'verified'): ?>
-        <span class="verified-badge" title="Verified by Somahub">✓ Verified</span>
+        <span class="verified-badge" title="Verified by Somahub">✓</span>
       <?php endif; ?>
     </div>
     <nav><ul id="navlinks">
@@ -428,6 +441,25 @@ foreach ($sections as $s) {
         <?php if (!empty($c['email'])): ?><div class="contact-item"><span class="k">Email</span><span class="v"><a href="mailto:<?= esc($c['email']) ?>"><?= esc($c['email']) ?></a></span></div><?php endif; ?>
         <?php if (!empty($c['office_hours'])): ?><div class="contact-item"><span class="k">Office Hours</span><span class="v"><?= esc($c['office_hours']) ?></span></div><?php endif; ?>
       </div>
+      <?php if (!empty($c['map_location']) && strpos($c['map_location'], ',') !== false):
+        [$mapLat, $mapLng] = explode(',', $c['map_location'], 2);
+        $mapLat = trim($mapLat); $mapLng = trim($mapLng);
+      ?>
+        <div id="school-map" style="height:300px;border-radius:12px;margin-top:20px;"></div>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+          (function() {
+            const map = L.map('school-map').setView([<?= $mapLat ?>, <?= $mapLng ?>], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+            }).addTo(map);
+            L.marker([<?= $mapLat ?>, <?= $mapLng ?>]).addTo(map)
+              .bindPopup(<?= json_encode($school['name']) ?>);
+          })();
+        </script>
+        <p style="margin-top:8px;"><a href="https://www.google.com/maps/dir/?api=1&destination=<?= $mapLat ?>,<?= $mapLng ?>" target="_blank" style="font-size:0.85rem;color:var(--primary,#0F5257);font-weight:700;">Get Directions →</a></p>
+      <?php endif; ?>
     </div>
   </section>
 
@@ -514,6 +546,73 @@ foreach ($sections as $s) {
           </div>
         <?php endfor; ?>
       </div>
+    </div>
+  </section>
+
+<?php elseif ($key === 'reviews'):
+    $schoolReviews = get_approved_reviews($db, 'school', $school['id']);
+    $avgRating = get_average_rating($schoolReviews);
+    $reviewFlagSubmitted = isset($_GET['review_submitted']);
+    $reviewFlagError = $_GET['review_error'] ?? '';
+?>
+  <section id="reviews">
+    <div class="wrap">
+      <div class="section-head">
+        <h2><?= esc($s['label']) ?></h2>
+        <?php if ($avgRating !== null): ?>
+          <p style="color:var(--muted);font-size:0.95rem;"><?= render_stars((int)round($avgRating)) ?> <?= $avgRating ?> out of 5 (<?= count($schoolReviews) ?> review<?= count($schoolReviews) == 1 ? '' : 's' ?>)</p>
+        <?php endif; ?>
+      </div>
+
+      <?php if (!empty($c['intro_text'])): ?><p style="margin-bottom:24px;color:var(--muted);"><?= nl2p($c['intro_text']) ?></p><?php endif; ?>
+
+      <?php if ($reviewFlagSubmitted): ?>
+        <p style="background:#DCEFE1;color:#1B4D3E;padding:10px 16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;">✓ Thank you! Your review has been submitted and will appear once reviewed.</p>
+      <?php elseif ($reviewFlagError): ?>
+        <p style="background:#FBE8E4;color:#8C3B2E;padding:10px 16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;"><?= esc($reviewFlagError) ?></p>
+      <?php endif; ?>
+
+      <div class="testimonial-grid">
+        <?php foreach ($schoolReviews as $r): ?>
+          <div class="testimonial-card">
+            <div style="color:#F2A65A;letter-spacing:2px;margin-bottom:6px;"><?= render_stars((int)$r['rating']) ?></div>
+            <div class="quote">"<?= esc($r['comment']) ?>"</div>
+            <div class="author"><?= esc($r['reviewer_name']) ?><?= $r['reviewer_role'] ? ' — ' . esc($r['reviewer_role']) : '' ?></div>
+          </div>
+        <?php endforeach; ?>
+        <?php if (!$schoolReviews): ?><p style="color:var(--muted);">No reviews yet — be the first to leave one.</p><?php endif; ?>
+      </div>
+
+      <details style="margin-top:28px;max-width:480px;">
+        <summary style="cursor:pointer;color:var(--teal,#0F5257);font-weight:600;">Leave a review</summary>
+        <form method="POST" action="/reviews-submit.php" style="margin-top:14px;">
+          <input type="hidden" name="reviewable_type" value="school">
+          <input type="hidden" name="reviewable_id" value="<?= (int)$school['id'] ?>">
+          <input type="hidden" name="redirect_to" value="https://<?= esc($school['slug']) ?>.somahub.top/">
+          <input type="text" name="website" style="position:absolute;left:-9999px;" tabindex="-1" autocomplete="off">
+
+          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Your Name</label>
+          <input type="text" name="reviewer_name" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;box-sizing:border-box;">
+
+          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">You are a... (optional)</label>
+          <input type="text" name="reviewer_role" placeholder="e.g. Parent, Alumni" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;box-sizing:border-box;">
+
+          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Rating</label>
+          <select name="rating" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+            <option value="">Choose a rating</option>
+            <option value="5">★★★★★ Excellent</option>
+            <option value="4">★★★★☆ Good</option>
+            <option value="3">★★★☆☆ Average</option>
+            <option value="2">★★☆☆☆ Below Average</option>
+            <option value="1">★☆☆☆☆ Poor</option>
+          </select>
+
+          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Your Review</label>
+          <textarea name="comment" rows="4" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:14px;box-sizing:border-box;"></textarea>
+
+          <button type="submit" class="btn-primary">Submit Review</button>
+        </form>
+      </details>
     </div>
   </section>
 

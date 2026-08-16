@@ -34,13 +34,13 @@ $newEnrollments = $enrollCount->fetch()['c'];
     <div style="background:#FBE8E4;color:#8C3B2E;padding:16px 20px;border-radius:8px;margin-bottom:24px;font-size:0.9rem;">
       <strong>Your paid features are currently paused.</strong> Your free term ended and payment wasn't received in time.
       Results checking, online enrollment, and fees are hidden from your website until this is resolved.
-      <a href="https://wa.me/254707306888?text=<?= urlencode('Hi Somahub, I would like to reactivate my paid plan for ' . $school['name']) ?>" target="_blank" style="color:#8C3B2E;font-weight:700;">Message us to reactivate &rarr;</a>
+      <a href="checkout.php" style="color:#8C3B2E;font-weight:700;">Reactivate now &rarr;</a>
     </div>
   <?php elseif ($daysLeft !== null && $daysLeft <= 14): ?>
     <div style="background:#FBF0D1;color:#8C6D1F;padding:16px 20px;border-radius:8px;margin-bottom:24px;font-size:0.9rem;">
       <strong>Your free term ends in <?= $daysLeft ?> day<?= $daysLeft == 1 ? '' : 's' ?>.</strong>
       After that, results checking, online enrollment, and fees will be paused until payment is received.
-      <a href="https://wa.me/254707306888?text=<?= urlencode('Hi Somahub, I would like to continue on the paid plan for ' . $school['name']) ?>" target="_blank" style="color:#8C6D1F;font-weight:700;">Message us about payment &rarr;</a>
+      <a href="checkout.php" style="color:#8C6D1F;font-weight:700;">Continue on paid plan &rarr;</a>
     </div>
   <?php endif; ?>
 
@@ -65,7 +65,7 @@ $newEnrollments = $enrollCount->fetch()['c'];
     <?php else: ?>
     <div class="card-link locked">
       <h3>Results &amp; Fees 🔒</h3>
-      <p>Available on the paid plan. <a href="upgrade.php">Learn more</a></p>
+      <p>Available on the paid plan. <a href="checkout.php">Upgrade now</a></p>
     </div>
     <?php endif; ?>
   </div>

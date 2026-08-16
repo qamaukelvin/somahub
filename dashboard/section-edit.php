@@ -28,7 +28,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newContent = [];
     foreach ($schema as $field => $fieldType) {
         if ($fieldType === 'image') continue; // handled separately below
+        if ($fieldType === 'location') continue; // handled separately below (lat/lng pair)
         $newContent[$field] = trim($_POST[$field] ?? '');
+    }
+
+    // Location field: stored as "lat,lng" inside content_json under the
+    // schema field name (e.g. content['map_location'] = "-1.286389,36.817223").
+    // Reuses the same picker as the Google Business Profile add-on request.
+    foreach ($schema as $field => $fieldType) {
+        if ($fieldType === 'location') {
+            $lat = trim($_POST['lat'] ?? '');
+            $lng = trim($_POST['lng'] ?? '');
+            $newContent[$field] = ($lat !== '' && $lng !== '') ? "{$lat},{$lng}" : ($content[$field] ?? '');
+        }
     }
 
     // Handle image upload if a file was submitted for an 'image' field
@@ -131,6 +143,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <img class="current-img" src="../<?= htmlspecialchars($content[$field]) ?>" alt="">
           <?php endif; ?>
           <input type="file" name="<?= $field ?>" accept="image/*">
+
+        <?php elseif ($fieldType === 'location'): ?>
+          <?php
+            $existingLoc = $content[$field] ?? '';
+            [$locLat, $locLng] = strpos($existingLoc, ',') !== false ? explode(',', $existingLoc, 2) : [null, null];
+            include __DIR__ . '/../includes/_location_picker.php';
+          ?>
 
         <?php else: ?>
           <input type="text" name="<?= $field ?>" value="<?= htmlspecialchars($content[$field] ?? '') ?>">

@@ -8,7 +8,7 @@ $schoolStmt = $db->prepare("SELECT plan, promo_ends_at FROM schools WHERE id = ?
 $schoolStmt->execute([$user['school_id']]);
 $schoolPlanRow = $schoolStmt->fetch();
 if (is_premium_locked($schoolPlanRow)) {
-    die('Results checking is a paid-plan feature, or your paid term has ended. <a href="https://wa.me/254707306888?text=' . urlencode('Hi Somahub, I would like to reactivate my paid plan.') . '" target="_blank">Message us</a> to reactivate.');
+    die('Results checking is a paid-plan feature, or your paid term has ended. <a href="checkout.php">Upgrade now</a> to reactivate.');
 }
 
 $error = '';

@@ -1,7 +1,22 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 
-session_start();
+// Scope the session cookie to the whole *.somahub.top domain (not just the
+// exact host that served the page). Without this, a session started on
+// somahub.top (e.g. the admin panel) is invisible on a school's subdomain
+// (slug.somahub.top) — which is why "Preview Site" from admin used to open
+// a logged-out view and show the "coming soon" gate even for admins.
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '.somahub.top',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    session_start();
+}
 
 function current_user() {
     return $_SESSION['user'] ?? null;
@@ -98,7 +113,20 @@ function verify_password_reset_code(PDO $db, int $userId, string $submittedCode)
     $stmt->execute([$userId]);
     $reset = $stmt->fetch();
 
-    if (!$reset || !password_verify($submittedCode, $reset['code_hash'])) {
+    if (!$reset) {
+        return false;
+    }
+
+    // Rate limiting — a 6-digit code has only 900,000 combinations, brute-forceable
+    // within the 15-minute window without a cap. 5 attempts per code is generous for
+    // a genuine typo but stops any real guessing attempt cold.
+    if ((int)$reset['attempts'] >= 5) {
+        $db->prepare("UPDATE password_resets SET used_at = NOW() WHERE id = ?")->execute([$reset['id']]);
+        return false;
+    }
+
+    if (!password_verify($submittedCode, $reset['code_hash'])) {
+        $db->prepare("UPDATE password_resets SET attempts = attempts + 1 WHERE id = ?")->execute([$reset['id']]);
         return false;
     }
 

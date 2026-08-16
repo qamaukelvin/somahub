@@ -120,6 +120,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="upload-box">
     <h3>1. School Agreement</h3>
     <p class="desc">A signed and stamped copy of your Somahub agreement.</p>
+    <p style="margin-bottom:14px;">
+      <a href="../agreement.php?school=<?= urlencode($school['slug']) ?>" target="_blank" style="background:#F4F1E6;color:#0F5257;padding:8px 16px;border-radius:6px;font-size:0.85rem;font-weight:700;text-decoration:none;display:inline-block;">📄 Download Agreement to Sign</a>
+      <span style="font-size:0.78rem;color:#888;display:block;margin-top:4px;">Print it, sign and stamp it, then scan or photograph it and upload below.</span>
+    </p>
     <?php if (!empty($school['signed_agreement_path'])): ?>
       <div class="current-doc">
         Current document: <a href="../<?= htmlspecialchars($school['signed_agreement_path']) ?>" target="_blank">View uploaded file</a>
