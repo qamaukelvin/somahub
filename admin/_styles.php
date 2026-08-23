@@ -24,6 +24,24 @@
   th,td{text-align:left;padding:13px 14px;border-bottom:1px solid var(--line);font-size:0.88rem;}
   th{background:var(--sand);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);}
   tr:last-child td{border-bottom:none;}
+
+  /* Mobile: collapse the table into stacked cards instead of horizontal
+     overflow. Each row becomes a card; each cell shows its column label
+     (from data-label="...") next to the value, using the attribute the
+     markup already sets rather than duplicating the header text as content. */
+  @media(max-width:640px){
+    table, thead, tbody, th, tr{ display:block; }
+    thead{ display:none; }
+    table{ background:none; box-shadow:none; border-radius:0; }
+    tr{ background:#fff; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,0.05); margin-bottom:12px; padding:6px 0; }
+    td{ display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom:1px solid var(--line); padding:10px 14px; text-align:right; }
+    tr td:last-child{ border-bottom:none; }
+    td::before{
+      content: attr(data-label);
+      font-size:0.7rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); font-weight:700;
+      text-align:left; flex-shrink:0;
+    }
+  }
   .btn{display:inline-block;padding:10px 18px;background:var(--teal);color:#fff;border:none;border-radius:24px;font-weight:700;cursor:pointer;text-decoration:none;font-size:0.86rem;}
   .btn:hover{background:var(--teal-deep);}
   .btn.danger{background:#C0392B;}

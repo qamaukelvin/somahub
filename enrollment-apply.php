@@ -64,6 +64,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         send_somahub_email($school['email'], "New application for {$school['name']}", $body);
     }
 
+    $parentEmail = trim($_POST['parent_email'] ?? '');
+    if ($parentEmail) {
+        $parentBody = "
+            <h2 style='color:#0F5257;margin-top:0;'>Application Received</h2>
+            <p>Thank you, your application for <strong>" . htmlspecialchars(trim($_POST['child_name'])) . "</strong> to join <strong>" . htmlspecialchars($school['name']) . "</strong> has been received.</p>
+            <p>The school will contact you directly about next steps.</p>
+        ";
+        send_somahub_email($parentEmail, "Application received - {$school['name']}", $parentBody);
+    }
+
     $success = true;
 }
 ?>
@@ -71,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Apply for Admission — <?= htmlspecialchars($school['name']) ?></title>
+<title>Apply for Admission - <?= htmlspecialchars($school['name']) ?></title>
 <link rel="canonical" href="https://<?= htmlspecialchars($school['slug']) ?>.somahub.top/enrollment-apply.php?school=<?= htmlspecialchars($school['slug']) ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=<?= urlencode($theme['font_display'] ?? 'Sora') ?>:wght@600;700&family=<?= urlencode($theme['font_body'] ?? 'Nunito Sans') ?>:wght@400;500;600&display=swap" rel="stylesheet">
@@ -90,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </style>
 </head>
 <body>
+<?php $navRoot = '.'; include __DIR__ . '/_public_nav.php'; ?>
 <header class="school-header">
   <a href="site.php?school=<?= urlencode($school['slug']) ?>" class="school-brand"><?= htmlspecialchars($school['name']) ?></a>
 </header>
@@ -100,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?= htmlspecialchars($school['name']) ?> will contact you shortly.
     </div>
   <?php else: ?>
-    <h1>Apply for Admission — <?= htmlspecialchars($school['name']) ?></h1>
+    <h1>Apply for Admission - <?= htmlspecialchars($school['name']) ?></h1>
     <form method="POST">
       <label>Child's Full Name</label>
       <input type="text" name="child_name" required>

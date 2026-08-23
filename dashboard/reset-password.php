@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <style>
   :root{ --teal:#0F5257; --teal-deep:#0A3A3E; --amber:#F2A65A; --sand:#F7F2E7; }
   *{box-sizing:border-box;}
-  body{font-family:'Manrope',sans-serif;background:var(--sand);display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;}
+  body{font-family:'Manrope',sans-serif;background:var(--sand);margin:0;}
   .card{background:#fff;padding:36px 32px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.08);width:100%;max-width:380px;}
   .brand{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:1.15rem;color:var(--teal-deep);margin-bottom:6px;}
   .brand .dot{width:9px;height:9px;background:var(--amber);border-radius:50%;}
@@ -60,6 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </style>
 </head>
 <body>
+  <?php $navRoot = '..'; include __DIR__ . '/../_public_nav.php'; ?>
+  <div style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 65px);padding:20px;">
   <form class="card" method="POST">
     <div class="brand"><span class="dot"></span> somahub</div>
     <div class="subtitle">Enter your reset code</div>
@@ -81,5 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
   </form>
   <a href="forgot-password.php" class="back">&larr; Request a new code</a>
+  </div>
 </body>
 </html>

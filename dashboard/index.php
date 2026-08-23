@@ -16,13 +16,19 @@ $newEnrollments = $enrollCount->fetch()['c'];
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — <?= htmlspecialchars($school['name']) ?></title>
+<title>Dashboard - <?= htmlspecialchars($school['name']) ?></title>
 <?php include __DIR__ . '/_styles.php'; ?>
 </head>
 <body>
 <?php include __DIR__ . '/_nav.php'; ?>
 
 <main class="wrap">
+  <?php if (isset($_GET['welcome'])): ?>
+    <div style="background:#E4F0E7;color:#1B4D3E;padding:18px 22px;border-radius:10px;margin-bottom:24px;">
+      <strong>Your site is live! 🎉</strong> It's already public at <?= htmlspecialchars($school['slug']) ?>.somahub.top. You have 7 days to complete <a href="verify.php" style="color:#1B4D3E;font-weight:700;text-decoration:underline;">Verification</a> before it's taken offline until confirmed — edit your content below, then verify when ready.
+    </div>
+  <?php endif; ?>
+
   <h1>Welcome back, <?= htmlspecialchars($user['name']) ?></h1>
   <p class="sub"><?= htmlspecialchars($school['name']) ?> · <?= htmlspecialchars($school['slug']) ?>.somahub.top</p>
 

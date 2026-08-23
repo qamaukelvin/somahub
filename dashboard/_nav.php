@@ -25,6 +25,10 @@ if ($schoolPlanInfo && ($schoolPlanInfo['verification_status'] ?? '') !== 'verif
     $verificationDaysLeft = max(0, ceil(DASH_VERIFICATION_GRACE_PERIOD_DAYS - $daysSince));
 }
 
+// Placeholder-email nudge — schools converted straight from a lead (see
+// admin/leads.php) often start with no real email on file.
+$hasPlaceholderEmail = $user && str_ends_with($user['email'] ?? '', '@leads.somahub.top');
+
 function plan_badge_text(array $school): array {
     $locked = is_premium_locked($school);
     $daysLeft = days_until_lockout($school);
@@ -60,6 +64,12 @@ function plan_badge_text(array $school): array {
   <a href="verify.php" style="color:inherit;text-decoration:underline;margin-left:8px;">Verify now</a>
 </div>
 <?php endif; ?>
+<?php if ($hasPlaceholderEmail): ?>
+<div style="background:#FBF0D1;color:#8C6D1F;padding:9px 20px;text-align:center;font-size:0.82rem;font-weight:700;border-bottom:1px solid rgba(0,0,0,0.06);">
+  Please add your real email so you can log in normally and get updates from us.
+  <a href="account.php" style="color:inherit;text-decoration:underline;margin-left:8px;">Add it now</a>
+</div>
+<?php endif; ?>
 <?php if ($impersonatingSchoolId): ?>
 <div style="background:#F2A65A;color:#0A3A3E;padding:10px 20px;text-align:center;font-size:0.85rem;font-weight:700;">
   🔧 Admin Mode — editing <?= htmlspecialchars($impersonatingSchoolName) ?>'s website
@@ -74,6 +84,7 @@ function plan_badge_text(array $school): array {
       <a href="sections.php">Website</a>
       <a href="enrollment.php">Enrollment</a>
       <a href="results.php">Results</a>
+      <a href="attendance.php">Attendance</a>
       <a href="fees.php">Fees</a>
       <a href="verify.php">Verification</a>
       <a href="checkout.php">Upgrade</a>

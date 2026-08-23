@@ -19,8 +19,7 @@ $posts = $db->query("SELECT id, title, slug, excerpt, cover_image, published_at 
 <meta name="twitter:card" content="summary_large_image">
 <style>
   body{font-family:Arial,sans-serif;background:#F7F2E7;margin:0;color:#1C1C16;}
-  header{background:#0F5257;padding:20px 24px;}
-  header a{color:#F7F2E7;text-decoration:none;font-weight:800;font-size:18px;}
+  a{color:inherit;}
   .wrap{max-width:720px;margin:0 auto;padding:32px 20px;}
   h1{color:#0F5257;}
   .post-card{background:#fff;border-radius:10px;overflow:hidden;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
@@ -33,7 +32,7 @@ $posts = $db->query("SELECT id, title, slug, excerpt, cover_image, published_at 
 </style>
 </head>
 <body>
-<header><a href="/">● somahub</a></header>
+<?php $navRoot = '..'; include __DIR__ . '/../_public_nav.php'; ?>
 <main class="wrap">
   <h1>Blog</h1>
   <?php if (!$posts): ?>

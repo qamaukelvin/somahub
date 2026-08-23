@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/mailer.php';
 $user = require_school_login();
 $db = get_db();
 
@@ -12,6 +13,12 @@ $roleLabels = ['school_owner' => 'School Owner', 'school_editor' => 'Editor', 'p
 $error = '';
 $success = '';
 $isImpersonating = !empty($user['is_admin_impersonating']);
+
+// A lead converted straight to a school (see admin/leads.php) gets a
+// placeholder email like slug@leads.somahub.top since most leads only
+// have a phone number on file. This lets them set their real one once —
+// after that it's a normal login email again, locked like any other.
+$hasPlaceholderEmail = str_ends_with($currentUser['email'] ?? '', '@leads.somahub.top');
 
 function store_avatar($fileKey, $userId, &$error) {
     if (empty($_FILES[$fileKey]['tmp_name'])) return null;
@@ -37,23 +44,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isImpersonating) {
     if ($action === 'update_profile') {
         $name = trim($_POST['name'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
+        $newEmail = trim($_POST['email'] ?? '');
 
         if (!$name) {
             $error = 'Name cannot be empty.';
-        } else {
+        } elseif ($hasPlaceholderEmail && $newEmail && !filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+            $error = 'Please enter a valid email address.';
+        } elseif ($hasPlaceholderEmail && $newEmail) {
+            $dupeCheck = $db->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+            $dupeCheck->execute([$newEmail, $user['id']]);
+            if ($dupeCheck->fetch()) {
+                $error = 'That email is already in use by another account.';
+            }
+        }
+
+        if (!$error) {
             $avatarPath = store_avatar('avatar', $user['id'], $error);
             if (!$error) {
+                $finalEmail = ($hasPlaceholderEmail && $newEmail) ? $newEmail : $currentUser['email'];
                 if ($avatarPath) {
-                    $db->prepare("UPDATE users SET name = ?, phone = ?, avatar_path = ? WHERE id = ?")
-                       ->execute([$name, $phone, $avatarPath, $user['id']]);
+                    $db->prepare("UPDATE users SET name = ?, phone = ?, email = ?, avatar_path = ? WHERE id = ?")
+                       ->execute([$name, $phone, $finalEmail, $avatarPath, $user['id']]);
                     $currentUser['avatar_path'] = $avatarPath;
                 } else {
-                    $db->prepare("UPDATE users SET name = ?, phone = ? WHERE id = ?")
-                       ->execute([$name, $phone, $user['id']]);
+                    $db->prepare("UPDATE users SET name = ?, phone = ?, email = ? WHERE id = ?")
+                       ->execute([$name, $phone, $finalEmail, $user['id']]);
                 }
                 $currentUser['name'] = $name;
                 $currentUser['phone'] = $phone;
-                $success = 'Profile updated.';
+                $currentUser['email'] = $finalEmail;
+                $hasPlaceholderEmail = str_ends_with($finalEmail, '@leads.somahub.top');
+                $success = ($finalEmail !== $currentUser['email']) ? 'Profile updated — your login email is now ' . htmlspecialchars($finalEmail) . '.' : 'Profile updated.';
             }
         }
     } elseif ($action === 'change_password') {
@@ -71,12 +92,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isImpersonating) {
             $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?")
                ->execute([password_hash($newPassword, PASSWORD_DEFAULT), $user['id']]);
             $success = 'Password updated successfully.';
+
+            $changeBody = "
+                <h2 style='color:#0F5257;margin-top:0;'>Your Password Was Changed</h2>
+                <p>This confirms your Somahub password was just changed from your account settings.</p>
+                <p>If this wasn't you, message us immediately.</p>
+            ";
+            send_somahub_email($currentUser['email'], 'Your Somahub password was changed', $changeBody);
         }
     } elseif ($action === 'request_removal') {
         $reason = trim($_POST['removal_reason'] ?? '');
         $db->prepare("INSERT INTO account_removal_requests (user_id, school_id, reason) VALUES (?, ?, ?)")
            ->execute([$user['id'], $user['school_id'], $reason]);
         $success = 'Removal request submitted. We\'ll be in touch before anything is deleted.';
+
+        $adminBody = "
+            <h2 style='color:#8C3B2E;margin-top:0;'>Account Removal Requested</h2>
+            <table style='width:100%;font-size:14px;margin:16px 0;'>
+                <tr><td style='color:#6E6A5C;padding:4px 0;'>User</td><td><strong>" . htmlspecialchars($currentUser['name']) . "</strong> (" . htmlspecialchars($currentUser['email']) . ")</td></tr>
+                <tr><td style='color:#6E6A5C;padding:4px 0;'>Reason</td><td>" . htmlspecialchars($reason ?: 'Not provided') . "</td></tr>
+            </table>
+            <p><a href='https://somahub.top/admin/account-requests.php' style='color:#0F5257;font-weight:700;'>Review in Admin &rarr;</a></p>
+        ";
+        send_somahub_email('admin@somahub.top', 'Account removal requested', $adminBody, $currentUser['email']);
     }
 }
 
@@ -137,9 +175,15 @@ $pendingRemoval = $pendingRemoval->fetch();
       <input type="text" name="name" value="<?= htmlspecialchars($currentUser['name']) ?>" required>
       <label>Phone</label>
       <input type="text" name="phone" value="<?= htmlspecialchars($currentUser['phone'] ?? '') ?>" placeholder="07XXXXXXXX">
-      <label>Email</label>
-      <input type="email" value="<?= htmlspecialchars($currentUser['email']) ?>" disabled style="background:#f4f4f4;color:#888;">
-      <p style="font-size:0.78rem;color:#888;margin-top:-10px;margin-bottom:14px;">Email is your login and can't be changed here — contact Somahub if you need it updated.</p>
+      <?php if ($hasPlaceholderEmail): ?>
+        <label>Email <span style="color:#8C3B2E;font-weight:400;">— please add your real one</span></label>
+        <input type="email" name="email" value="" placeholder="you@example.com">
+        <p style="font-size:0.78rem;color:#8C6D1F;margin-top:-10px;margin-bottom:14px;">Your account was set up with a placeholder email. Add your real one so you can log in normally and receive updates from us.</p>
+      <?php else: ?>
+        <label>Email</label>
+        <input type="email" value="<?= htmlspecialchars($currentUser['email']) ?>" disabled style="background:#f4f4f4;color:#888;">
+        <p style="font-size:0.78rem;color:#888;margin-top:-10px;margin-bottom:14px;">Email is your login and can't be changed here — contact Somahub if you need it updated.</p>
+      <?php endif; ?>
       <label>Profile Picture</label>
       <input type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp">
       <button type="submit" class="btn">Save Profile</button>

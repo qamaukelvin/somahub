@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Check Results — <?= htmlspecialchars($school['name']) ?></title>
+<title>Check Results - <?= htmlspecialchars($school['name']) ?></title>
 <link rel="canonical" href="https://<?= htmlspecialchars($school['slug']) ?>.somahub.top/results-check.php?school=<?= htmlspecialchars($school['slug']) ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=<?= urlencode($theme['font_display'] ?? 'Sora') ?>:wght@600;700&family=<?= urlencode($theme['font_body'] ?? 'Nunito Sans') ?>:wght@400;500;600&display=swap" rel="stylesheet">
@@ -94,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </style>
 </head>
 <body>
+<?php $navRoot = '.'; include __DIR__ . '/_public_nav.php'; ?>
 <header class="school-header">
   <a href="site.php?school=<?= urlencode($school['slug']) ?>" class="school-brand"><?= htmlspecialchars($school['name']) ?></a>
 </header>

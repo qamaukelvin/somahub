@@ -10,12 +10,14 @@
  * everything else here stays the same.
  */
 
+require_once __DIR__ . '/mailer.php';
+
 // Your payment details — update these once (e.g. after registering the business name)
-const PAYMENT_TILL_NUMBER = 'XXXXXX';           // <-- fill in your real Till Number
-const PAYMENT_POCHI_NUMBER = '07XXXXXXXX';       // <-- fill in your real Pochi la Biashara number
-const PAYMENT_SEND_MONEY_NUMBER = '07XXXXXXXX';  // <-- fill in your real Send Money number
+const PAYMENT_TILL_NUMBER = '4567050';
+const PAYMENT_POCHI_NUMBER = '254707306888';
+const PAYMENT_SEND_MONEY_NUMBER = '254707306888';
 const PAYMENT_EQUITY_PAYBILL = '247247';          // Equity Bank's standard paybill number (same for all Equity account holders)
-const PAYMENT_EQUITY_ACCOUNT_NUMBER = 'XXXXXXXXXXX'; // <-- fill in YOUR Equity account number
+const PAYMENT_EQUITY_ACCOUNT_NUMBER = 'XXXXXXXXXXX'; // not in use yet — bank option hidden until this is set
 const PAYMENT_DISPLAY_NAME = 'Kelvin Njehia';    // <-- shown to schools so they can confirm the name matches
 
 function generate_order_reference(PDO $db): string {
@@ -111,6 +113,19 @@ function mark_order_paid(PDO $db, int $orderId, string $verifiedBy): void {
         // than something that auto-applies itself.
         $db->prepare("UPDATE orders SET status = 'paid' WHERE id = ?")->execute([$orderId]); // already set above, kept explicit for clarity
     }
+
+    $schoolStmt = $db->prepare("SELECT name, email FROM schools WHERE id = ?");
+    $schoolStmt->execute([$schoolId]);
+    $school = $schoolStmt->fetch();
+    if ($school && !empty($school['email'])) {
+        $itemsList = implode(', ', array_map(fn($k) => str_replace('_', ' ', $k), $productKeys));
+        $confirmBody = "
+            <h2 style='color:#0F5257;margin-top:0;'>Payment Confirmed</h2>
+            <p>Your payment for <strong>" . htmlspecialchars(ucwords($itemsList)) . "</strong> has been verified. The changes are live on your account now.</p>
+            <p><a href='https://somahub.top/dashboard/index.php' style='color:#0F5257;font-weight:700;'>Go to your dashboard &rarr;</a></p>
+        ";
+        send_somahub_email($school['email'], 'Your Somahub payment is confirmed', $confirmBody);
+    }
 }
 
 /**
@@ -121,8 +136,12 @@ function mark_order_paid(PDO $db, int $orderId, string $verifiedBy): void {
  * handles this, no separate expiry logic needed.
  */
 function start_trial(PDO $db, int $schoolId, int $days = 60): void {
-    $db->prepare("UPDATE schools SET plan = 'promo_paid', promo_ends_at = DATE_ADD(NOW(), INTERVAL ? DAY) WHERE id = ?")
-       ->execute([$days, $schoolId]);
+    $db->prepare("
+        UPDATE schools
+        SET plan = 'promo_paid', promo_ends_at = DATE_ADD(NOW(), INTERVAL ? DAY),
+            plan_reminder_sent_7d = 0, plan_reminder_sent_1d = 0, plan_reminder_sent_expired = 0
+        WHERE id = ?
+    ")->execute([$days, $schoolId]);
 }
 
 function request_refund(PDO $db, int $orderId, float $amount, string $reason): void {

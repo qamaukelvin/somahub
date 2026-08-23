@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/auth.php';
 $user = require_school_login();
 require_once __DIR__ . '/../includes/payments.php';
+require_once __DIR__ . '/../includes/mailer.php';
 $db = get_db();
 $schoolId = $user['school_id'];
 
@@ -34,6 +35,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Please enter your M-Pesa confirmation code.';
         } else {
             submit_mpesa_code($db, $order['id'], $method, $code);
+
+            $schoolStmt = $db->prepare("SELECT name FROM schools WHERE id = ?");
+            $schoolStmt->execute([$schoolId]);
+            $schoolName = $schoolStmt->fetchColumn();
+
+            $adminBody = "
+                <h2 style='color:#0F5257;margin-top:0;'>Payment Code Submitted</h2>
+                <table style='width:100%;font-size:14px;margin:16px 0;'>
+                    <tr><td style='color:#6E6A5C;padding:4px 0;'>School</td><td><strong>" . htmlspecialchars($schoolName) . "</strong></td></tr>
+                    <tr><td style='color:#6E6A5C;padding:4px 0;'>Order</td><td>#" . htmlspecialchars($order['reference_code']) . "</td></tr>
+                    <tr><td style='color:#6E6A5C;padding:4px 0;'>Method</td><td>" . htmlspecialchars($method) . "</td></tr>
+                    <tr><td style='color:#6E6A5C;padding:4px 0;'>Code</td><td><strong>" . htmlspecialchars($code) . "</strong></td></tr>
+                </table>
+                <p><a href='https://somahub.top/admin/payments.php' style='color:#0F5257;font-weight:700;'>Verify in Admin &rarr;</a></p>
+            ";
+            send_somahub_email('admin@somahub.top', "Payment code submitted: {$schoolName}", $adminBody);
+
             header("Location: checkout.php?submitted=1");
             exit;
         }
@@ -76,7 +94,7 @@ if ($order) {
   <?php if (!$order): ?>
     <div class="box">
       <h3>Select what you'd like</h3>
-      <form method="POST">
+      <form method="POST" class="loader-on-submit">
         <input type="hidden" name="action" value="create_order">
         <?php foreach ($products as $p): ?>
           <div class="product-row">
@@ -126,6 +144,7 @@ if ($order) {
         Amount: KSh <?= number_format($order['total_amount'], 2) ?><br>
         Name shown: <?= htmlspecialchars(PAYMENT_DISPLAY_NAME) ?>
       </div>
+      <?php if (PAYMENT_EQUITY_ACCOUNT_NUMBER !== 'XXXXXXXXXXX'): ?>
       <div class="pay-option">
         <strong>Option 4 — Bank Deposit (Equity Paybill)</strong>
         Paybill No: <strong><?= htmlspecialchars(PAYMENT_EQUITY_PAYBILL) ?></strong><br>
@@ -133,18 +152,21 @@ if ($order) {
         Amount: KSh <?= number_format($order['total_amount'], 2) ?><br>
         <small style="color:#888;">Deposits directly to the business bank account — works from M-Pesa (Lipa na M-Pesa → Pay Bill) or any bank's own paybill/bank transfer.</small>
       </div>
+      <?php endif; ?>
 
       <p style="font-size:0.8rem;color:#888;">Note: this number currently shows my personal name, not "Somahub" — this is temporary until the business is formally registered.</p>
 
       <h4 style="margin-top:20px;">Already paid? Submit your code</h4>
-      <form method="POST">
+      <form method="POST" class="loader-on-submit">
         <input type="hidden" name="action" value="submit_code">
         <label>Which option did you use?</label>
         <select name="payment_method" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
           <option value="till">Till Number</option>
           <option value="pochi">Pochi la Biashara</option>
           <option value="send_money">Send Money</option>
+          <?php if (PAYMENT_EQUITY_ACCOUNT_NUMBER !== 'XXXXXXXXXXX'): ?>
           <option value="equity_paybill">Bank Deposit (Equity Paybill)</option>
+          <?php endif; ?>
         </select>
         <label>Confirmation Code</label>
         <input type="text" name="mpesa_code" placeholder="e.g. QJH7XXXXXX (M-Pesa code, or bank transaction ref for direct bank deposits)" required <?= $order['mpesa_code'] ? 'value="'.htmlspecialchars($order['mpesa_code']).'"' : '' ?>>
@@ -159,5 +181,6 @@ if ($order) {
 
   <p><a href="invoices.php">View my invoices →</a></p>
 </main>
+<?php include __DIR__ . '/../_loader.php'; ?>
 </body>
 </html>

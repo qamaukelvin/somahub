@@ -3,7 +3,7 @@ require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/reviews.php';
 $db = get_db();
 
-// Live portfolio — schools actually on the platform (for social proof + showcase)
+// Live portfolio - schools actually on the platform (for social proof + showcase)
 $schools = $db->query("
     SELECT name, slug, plan, county, verification_status
     FROM schools
@@ -34,7 +34,7 @@ $platformAvgRating = get_average_rating($platformReviews);
 
 <!-- Open Graph (WhatsApp, Facebook, Instagram DM previews) -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="Somahub — Free Websites for Kenyan Schools">
+<meta property="og:title" content="Somahub - Free Websites for Kenyan Schools">
 <meta property="og:description" content="Get your school online free. We build and host your school's website, you just edit and go live.">
 <meta property="og:image" content="https://somahub.top/assets/og-share-image.png">
 <meta property="og:url" content="https://somahub.top">
@@ -42,7 +42,7 @@ $platformAvgRating = get_average_rating($platformReviews);
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Somahub — Free Websites for Kenyan Schools">
+<meta name="twitter:title" content="Somahub - Free Websites for Kenyan Schools">
 <meta name="twitter:description" content="Get your school online free. We build and host your school's website, you just edit and go live.">
 <meta name="twitter:image" content="https://somahub.top/assets/og-share-image.png">
 
@@ -129,7 +129,7 @@ $platformAvgRating = get_average_rating($platformReviews);
   .feature-card p{font-size:0.86rem;color:var(--muted);}
   .tag{font-size:0.62rem;background:var(--teal);color:var(--sand);padding:2px 9px;border-radius:20px;font-weight:700;text-transform:uppercase;}
 
-  /* PLANS — two clean cards, not a table */
+  /* PLANS - two clean cards, not a table */
   .plans-wrap{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;}
   .plan-card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:32px;width:300px;}
   .plan-card.highlight{background:var(--teal);color:var(--sand);border-color:var(--teal);position:relative;}
@@ -153,7 +153,7 @@ $platformAvgRating = get_average_rating($platformReviews);
   .portfolio-card h3{font-size:1rem;margin-bottom:4px;}
   .portfolio-card .url{font-family:'Space Mono',monospace;font-size:0.78rem;color:var(--muted);margin-bottom:10px;}
   .portfolio-card .county-pill{font-size:0.72rem;background:var(--sand);padding:4px 12px;border-radius:20px;}
-  .verified-pill{background:#DCEFE1;color:#1B4D3E;font-size:0.68rem;padding:2px 6px;border-radius:10px;vertical-align:middle;}
+  .verified-pill{display:inline-block;width:8px;height:8px;border-radius:50%;background:#F2A65A;vertical-align:middle;}
   .empty-portfolio{padding:40px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:16px;}
 
   /* CONTACT FORM */
@@ -201,12 +201,9 @@ $platformAvgRating = get_average_rating($platformReviews);
     <h1>Your school deserves a <span class="accent">real website</span>, at no cost to you</h1>
     <p>Somahub builds and hosts your school's site. You review it, edit it from a simple dashboard, and it goes live in days, not months.</p>
     <div class="hero-ctas">
-      <a href="get-started.php" class="btn-primary">Get Your Free Website</a>
-      <a href="#portfolio" class="btn-ghost">See Schools Already Live</a>
-    </div>
-    <div class="quick-links">
-      <a href="results-portal.php">🔎 Parent? Check your child's results</a>
-      <a href="dashboard/login.php">🏫 School staff? Log in to your dashboard</a>
+      <a href="get-started.php" class="btn-primary">Get Started</a>
+      <a href="dashboard/login.php" class="btn-ghost">Log In</a>
+      <a href="#portfolio" class="btn-ghost">View Schools</a>
     </div>
 
     <div class="bento">
@@ -264,7 +261,7 @@ $platformAvgRating = get_average_rating($platformReviews);
     <div class="section-head">
       <span class="kicker">What is included</span>
       <h2>Free to start, more when you need it</h2>
-      <p style="margin-top:10px;font-size:0.92rem;color:var(--muted);">Everything tagged "Paid" below is free to try for 60 days on our <a href="#plans" style="color:var(--teal);font-weight:700;">Trial plan</a> — no card required.</p>
+      <p style="margin-top:10px;font-size:0.92rem;color:var(--muted);">Everything tagged "Paid" below is free to try for 60 days on our <a href="#plans" style="color:var(--teal);font-weight:700;">Trial plan</a> - no card required.</p>
     </div>
     <div class="feature-grid">
       <div class="feature-card"><h3>Website and hosting</h3><p>Every core page your school needs, hosted and online, always free.</p></div>
@@ -284,7 +281,7 @@ $platformAvgRating = get_average_rating($platformReviews);
     <div class="section-head center">
       <span class="kicker">Plans</span>
       <h2>Pick what your school needs today</h2>
-      <p style="margin-top:10px;font-size:0.95rem;color:var(--muted);">Start on Free anytime, or try everything free for 60 days on Trial — no card required either way.</p>
+      <p style="margin-top:10px;font-size:0.95rem;color:var(--muted);">Start on Free anytime, or try everything free for 60 days on Trial - no card required either way.</p>
     </div>
     <div class="plans-wrap">
       <div class="plan-card">
@@ -345,7 +342,7 @@ $platformAvgRating = get_average_rating($platformReviews);
       <?php foreach ($schools as $s): ?>
       <a href="https://<?= urlencode($s['slug']) ?>.somahub.top/" class="portfolio-card" data-name="<?= htmlspecialchars(strtolower($s['name'])) ?>" data-county="<?= htmlspecialchars(strtolower($s['county'] ?? '')) ?>">
         <div class="school-icon"><?= strtoupper(substr($s['name'], 0, 2)) ?></div>
-        <h3><?= htmlspecialchars($s['name']) ?> <?php if ($s['verification_status'] === 'verified'): ?><span class="verified-pill">✓</span><?php endif; ?></h3>
+        <h3><?php if ($s['verification_status'] === 'verified'): ?><span class="verified-pill" title="Verified by Somahub"></span> <?php endif; ?><?= htmlspecialchars($s['name']) ?></h3>
         <div class="url"><?= htmlspecialchars($s['slug']) ?>.somahub.top</div>
         <span class="county-pill"><?= $s['county'] ? htmlspecialchars($s['county']) : ucfirst(str_replace('_',' ',$s['plan'])) ?></span>
       </a>
@@ -381,10 +378,10 @@ $platformAvgRating = get_average_rating($platformReviews);
         <div class="testimonial-card" style="background:#fff;border-radius:10px;padding:22px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
           <div style="color:#F2A65A;letter-spacing:2px;margin-bottom:8px;"><?= render_stars((int)$r['rating']) ?></div>
           <div style="font-style:italic;color:#333;margin-bottom:10px;">"<?= htmlspecialchars($r['comment']) ?>"</div>
-          <div style="font-weight:700;font-size:0.9rem;"><?= htmlspecialchars($r['reviewer_name']) ?><?= $r['reviewer_role'] ? ' — ' . htmlspecialchars($r['reviewer_role']) : '' ?></div>
+          <div style="font-weight:700;font-size:0.9rem;"><?= htmlspecialchars($r['reviewer_name']) ?><?= $r['reviewer_role'] ? ' - ' . htmlspecialchars($r['reviewer_role']) : '' ?></div>
         </div>
       <?php endforeach; ?>
-      <?php if (!$platformReviews): ?><p style="color:var(--muted);grid-column:1/-1;text-align:center;">No reviews yet — be the first to leave one.</p><?php endif; ?>
+      <?php if (!$platformReviews): ?><p style="color:var(--muted);grid-column:1/-1;text-align:center;">No reviews yet - be the first to leave one.</p><?php endif; ?>
     </div>
 
     <details style="max-width:480px;margin:0 auto;">
@@ -422,35 +419,25 @@ $platformAvgRating = get_average_rating($platformReviews);
 <section class="bg-white" id="contact">
   <div class="wrap">
     <div class="section-head center">
-      <span class="kicker">Not ready to sign up yet?</span>
-      <h2>Talk to us first</h2>
-      <p style="margin-top:14px;font-size:0.95rem;color:var(--muted);">Prefer to ask questions before creating an account? Send your details and we'll reach out directly. Ready to jump straight in instead? <a href="get-started.php" style="color:var(--teal);font-weight:700;text-decoration:underline;">Get started here</a> — takes about 2 minutes.</p>
+      <span class="kicker">Get In Touch</span>
+      <h2>Have a question?</h2>
+      <p style="margin-top:14px;font-size:0.95rem;color:var(--muted);">We'll get back to you as soon as we can.</p>
     </div>
-    <form method="POST" action="contact-submit.php" class="contact-form">
+    <form method="POST" action="contact-submit.php" class="contact-form loader-on-submit">
       <div class="form-row">
         <div>
-          <label>School name</label>
-          <input type="text" name="school_name" required>
+          <label>Email</label>
+          <input type="email" name="email" required>
         </div>
         <div>
-          <label>Your name</label>
-          <input type="text" name="contact_name" required>
+          <label>Phone (optional)</label>
+          <input type="tel" name="phone">
         </div>
       </div>
-      <div class="form-row">
-        <div>
-          <label>Phone number</label>
-          <input type="tel" name="phone" required>
-        </div>
-        <div>
-          <label>Email (optional)</label>
-          <input type="email" name="email">
-        </div>
-      </div>
-      <label>County</label>
-      <input type="text" name="county" placeholder="e.g. Nyandarua">
-      <label>Anything else we should know</label>
-      <textarea name="message" rows="4" placeholder="Tell us a little about your school"></textarea>
+      <label>Subject</label>
+      <input type="text" name="subject" required>
+      <label>Message</label>
+      <textarea name="message" rows="5" required></textarea>
       <label class="consent-check">
         <input type="checkbox" name="agreed_to_terms" required>
         I agree to Somahub's <a href="terms.php" target="_blank">Terms of Service</a> and <a href="privacy.php" target="_blank">Privacy Policy</a>.
@@ -491,6 +478,7 @@ if (portfolioSearch) {
 }
 </script>
 
+<?php include __DIR__ . '/_loader.php'; ?>
 <?php include __DIR__ . '/_chat_widget.php'; ?>
 </body>
 </html>

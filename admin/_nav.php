@@ -4,6 +4,7 @@
     <div class="navlinks" id="adminnavlinks">
       <a href="index.php">Schools</a>
       <a href="leads.php">Leads</a>
+      <a href="contact-messages.php">Contact Messages</a>
       <a href="reviews.php">Reviews</a>
       <a href="account-requests.php">Account Requests</a>
       <a href="content-writing-queue.php">Content Writing</a>

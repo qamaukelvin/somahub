@@ -80,8 +80,6 @@ $jsonLd = [
 
 <style>
   body{font-family:Arial,sans-serif;background:#F7F2E7;margin:0;color:#1C1C16;}
-  header{background:#0F5257;padding:20px 24px;}
-  header a{color:#F7F2E7;text-decoration:none;font-weight:800;font-size:18px;}
   .wrap{max-width:680px;margin:0 auto;padding:32px 20px;}
   .back-link{display:inline-block;margin-bottom:18px;color:#0F5257;text-decoration:none;font-size:0.85rem;font-weight:700;}
   .post-date{font-size:0.8rem;color:#999;margin-bottom:8px;}
@@ -112,7 +110,7 @@ $jsonLd = [
 </style>
 </head>
 <body>
-<header><a href="/">● somahub</a></header>
+<?php $navRoot = '..'; include __DIR__ . '/../_public_nav.php'; ?>
 <main class="wrap">
   <a href="/blog/" class="back-link">← Back to Blog</a>
   <div class="post-date"><?= date('d M Y', strtotime($post['published_at'])) ?></div>

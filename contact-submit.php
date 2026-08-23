@@ -8,15 +8,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$schoolName = trim($_POST['school_name'] ?? '');
-$contactName = trim($_POST['contact_name'] ?? '');
-$phone = trim($_POST['phone'] ?? '');
 $email = trim($_POST['email'] ?? '');
-$county = trim($_POST['county'] ?? '');
+$phone = trim($_POST['phone'] ?? '');
+$subject = trim($_POST['subject'] ?? '');
 $message = trim($_POST['message'] ?? '');
 $agreedToTerms = isset($_POST['agreed_to_terms']) ? 1 : 0;
 
-if (!$schoolName || !$contactName || !$phone) {
+if (!$email || !$subject || !$message) {
     die('Please fill in the required fields and try again.');
 }
 
@@ -25,25 +23,21 @@ if (!$agreedToTerms) {
 }
 
 $stmt = $db->prepare("
-    INSERT INTO leads (school_name, contact_name, phone, email, county, message, agreed_to_terms)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO contact_messages (email, phone, subject, message)
+    VALUES (?, ?, ?, ?)
 ");
-$stmt->execute([$schoolName, $contactName, $phone, $email, $county, $message, $agreedToTerms]);
+$stmt->execute([$email, $phone, $subject, $message]);
 
-// Notify you immediately so a lead never sits unseen in the database
-$leadBody = "
-    <h2 style='color:#0F5257;margin-top:0;'>New Lead from the Homepage</h2>
+$body = "
+    <h2 style='color:#0F5257;margin-top:0;'>New Contact Message</h2>
     <table style='width:100%;font-size:14px;margin:16px 0;'>
-        <tr><td style='color:#6E6A5C;padding:4px 0;'>School</td><td><strong>" . htmlspecialchars($schoolName) . "</strong></td></tr>
-        <tr><td style='color:#6E6A5C;padding:4px 0;'>Contact</td><td>" . htmlspecialchars($contactName) . "</td></tr>
-        <tr><td style='color:#6E6A5C;padding:4px 0;'>Phone</td><td>" . htmlspecialchars($phone) . "</td></tr>
-        <tr><td style='color:#6E6A5C;padding:4px 0;'>Email</td><td>" . htmlspecialchars($email ?: 'Not provided') . "</td></tr>
-        <tr><td style='color:#6E6A5C;padding:4px 0;'>County</td><td>" . htmlspecialchars($county ?: 'Not provided') . "</td></tr>
+        <tr><td style='color:#6E6A5C;padding:4px 0;'>Email</td><td><strong>" . htmlspecialchars($email) . "</strong></td></tr>
+        <tr><td style='color:#6E6A5C;padding:4px 0;'>Phone</td><td>" . htmlspecialchars($phone ?: 'Not provided') . "</td></tr>
+        <tr><td style='color:#6E6A5C;padding:4px 0;'>Subject</td><td>" . htmlspecialchars($subject) . "</td></tr>
     </table>
-    " . ($message ? "<p style='color:#6E6A5C;'>Message:</p><p>" . nl2br(htmlspecialchars($message)) . "</p>" : "") . "
-    <p style='margin-top:20px;'><a href='https://somahub.top/admin/leads.php' style='color:#0F5257;font-weight:700;'>View in Admin →</a></p>
+    <p style='color:#6E6A5C;'>Message:</p><p>" . nl2br(htmlspecialchars($message)) . "</p>
 ";
-send_somahub_email('info@somahub.top', "New lead: {$schoolName}", $leadBody, $email ?: 'hello@somahub.top');
+send_somahub_email('admin@somahub.top', "New contact message: {$subject}", $body, $email);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -61,7 +55,7 @@ send_somahub_email('info@somahub.top', "New lead: {$schoolName}", $leadBody, $em
 <body>
   <div class="card">
     <h1>Thank you</h1>
-    <p>We have received your details and will reach out shortly to get your school online.</p>
+    <p>We have received your message and will get back to you shortly.</p>
     <a href="index.php">Back to Home</a>
   </div>
 </body>

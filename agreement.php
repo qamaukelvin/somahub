@@ -44,10 +44,9 @@ if ($slug) {
     <p style="color:#666;font-size:0.85rem;">Between Somahub and: <span class="fill"><?= htmlspecialchars($schoolName) ?>&nbsp;</span></p>
 
     <!--
-      ⚠️ KELVIN — replace the placeholder clauses below with your actual
-      agreed terms. This is a starting structure only, not legal advice.
-      Consider having a lawyer review the final version once you're
-      registered, especially the liability and data sections.
+      Internal note: review these clauses before relying on this as a
+      binding agreement. Consider a lawyer review once registered,
+      especially the liability and data sections.
     -->
 
     <h2>1. Services Provided</h2>

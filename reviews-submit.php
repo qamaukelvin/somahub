@@ -6,7 +6,7 @@ $db = get_db();
 $error = '';
 $redirectBack = $_POST['redirect_to'] ?? '/';
 
-// Prevent this from being used as an open redirect — only ever send someone
+// Prevent this from being used as an open redirect - only ever send someone
 // back to a real somahub.top page, regardless of what redirect_to claims.
 // Without this check, anyone could craft a review form pointing redirect_to
 // at an external site, and Somahub's own domain would do the redirecting,

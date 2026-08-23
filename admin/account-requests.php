@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 require_platform_admin();
+require_once __DIR__ . '/../includes/mailer.php';
 $db = get_db();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -9,7 +10,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $note = trim($_POST['admin_note'] ?? '');
 
     if ($action === 'mark_completed') {
+        $reqStmt = $db->prepare("
+            SELECT r.*, u.name AS user_name, u.email AS user_email, s.name AS school_name
+            FROM account_removal_requests r
+            JOIN users u ON u.id = r.user_id
+            JOIN schools s ON s.id = r.school_id
+            WHERE r.id = ?
+        ");
+        $reqStmt->execute([$id]);
+        $req = $reqStmt->fetch();
+
         $db->prepare("UPDATE account_removal_requests SET status='completed', admin_note=?, processed_at=NOW() WHERE id=?")->execute([$note, $id]);
+
+        if ($req) {
+            $deletedBody = "
+                <h2 style='color:#0F5257;margin-top:0;'>Your Account Has Been Removed</h2>
+                <p>As requested, <strong>" . htmlspecialchars($req['school_name']) . "</strong> and your account have been removed from Somahub.</p>
+                " . ($note ? "<p style='color:#6E6A5C;'>Note: " . htmlspecialchars($note) . "</p>" : "") . "
+                <p>If this wasn't expected, message us right away.</p>
+            ";
+            send_somahub_email($req['user_email'], 'Your Somahub account has been removed', $deletedBody);
+        }
     } elseif ($action === 'decline') {
         $db->prepare("UPDATE account_removal_requests SET status='declined', admin_note=?, processed_at=NOW() WHERE id=?")->execute([$note, $id]);
     }

@@ -35,6 +35,14 @@ function login($email, $password) {
         $db->prepare("UPDATE users SET last_login_at = NOW() WHERE id = ?")
            ->execute([$user['id']]);
 
+        // Verification countdown starts from first login, not account creation —
+        // an admin-created school shouldn't lose its window before the owner
+        // has even logged in once to see it.
+        if (!empty($user['school_id'])) {
+            $db->prepare("UPDATE schools SET first_login_at = NOW() WHERE id = ? AND first_login_at IS NULL")
+               ->execute([$user['school_id']]);
+        }
+
         return true;
     }
     return false;
@@ -67,6 +75,17 @@ function require_school_login() {
         header('Location: login.php');
         exit;
     }
+
+    // Logged in, but hasn't completed school setup yet (personal-details-first
+    // signup flow). Send them to finish that instead of letting every other
+    // dashboard page break on a missing school_id. school-setup.php itself is
+    // exempt from this check since it's the destination, not a caller.
+    $callingScript = basename($_SERVER['SCRIPT_NAME']);
+    if (empty($user['school_id']) && $callingScript !== 'school-setup.php') {
+        header('Location: school-setup.php');
+        exit;
+    }
+
     return $user;
 }
 

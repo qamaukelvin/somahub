@@ -22,7 +22,7 @@ if (!$school) {
     die('School not found. Check the address and try again.');
 }
 
-// Canonical redirect — if this school is being accessed via any URL other than
+// Canonical redirect - if this school is being accessed via any URL other than
 // its real subdomain (e.g. the old somahub.top/site.php?school=X pattern that
 // existed before subdomains worked), force a 301 redirect to the real one.
 // Fixes the "duplicate without user-selected canonical" issue in Search Console.
@@ -35,11 +35,8 @@ if (strtolower($_SERVER['HTTP_HOST']) !== $canonicalHost) {
 // Gate: new schools get a grace period during which their site is live and
 // public immediately (so they can see real value and share it right away),
 // even before verification is complete. This is deliberately a grace period
-// rather than a hard block — requiring verification before anything goes
+// rather than a hard block - requiring verification before anything goes
 // live discourages schools from finishing the process at all. If they don't
-// verify within the window, the site quietly reverts to a "pending" page
-// until they do. The owner and platform admins always see the real site.
-const VERIFICATION_GRACE_PERIOD_DAYS = 7;
 
 require_once __DIR__ . '/includes/auth.php';
 $viewer = current_user();
@@ -49,9 +46,19 @@ $isOwnerPreview = $viewer && (
 );
 
 $isVerified = ($school['verification_status'] ?? '') === 'verified';
-$daysSinceCreated = $school['created_at'] ? (time() - strtotime($school['created_at'])) / 86400 : 0;
-$inGracePeriod = $daysSinceCreated <= VERIFICATION_GRACE_PERIOD_DAYS;
-$daysLeftToVerify = max(0, ceil(VERIFICATION_GRACE_PERIOD_DAYS - $daysSinceCreated));
+
+// Grace period counts from the owner's first login, not account creation —
+// an admin-created school shouldn't have its window run out before the
+// owner has even logged in once to see their site. No login yet means the
+// countdown hasn't started, so the site stays visible.
+if (empty($school['first_login_at'])) {
+    $inGracePeriod = true;
+    $daysLeftToVerify = VERIFICATION_GRACE_PERIOD_DAYS;
+} else {
+    $daysSinceFirstLogin = (time() - strtotime($school['first_login_at'])) / 86400;
+    $inGracePeriod = $daysSinceFirstLogin <= VERIFICATION_GRACE_PERIOD_DAYS;
+    $daysLeftToVerify = max(0, ceil(VERIFICATION_GRACE_PERIOD_DAYS - $daysSinceFirstLogin));
+}
 
 $sitePubliclyVisible = $isVerified || $inGracePeriod;
 
@@ -62,7 +69,7 @@ if (!$sitePubliclyVisible && !$isOwnerPreview) {
     <html lang="en">
     <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($school['name']) ?> — Coming Soon</title>
+    <title><?= htmlspecialchars($school['name']) ?> - Coming Soon</title>
     <meta name="robots" content="noindex">
     <style>
       body{font-family:Arial,sans-serif;background:#F7F2E7;color:#1C1C16;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px;}
@@ -101,7 +108,7 @@ $sectionsStmt->execute([$school['id']]);
 $sections = $sectionsStmt->fetchAll();
 
 // Kill switch: if this school's paid plan has lapsed (past the grace period with no
-// payment), quietly drop premium sections from what's rendered — same as if they'd
+// payment), quietly drop premium sections from what's rendered - same as if they'd
 // never added them. This never shows publicly as "payment overdue"; it just reverts
 // to looking like the free tier, keeping the school's public reputation intact.
 if (is_premium_locked($school)) {
@@ -143,7 +150,7 @@ function nl2p($text) {
 
 // Build a nav from whichever sections this school actually has, in their chosen order.
 // Related items (e.g. About + Staff + Stats, or Results + Enrollment + Fees) collapse into
-// a single dropdown group ONLY when a school actually has 2+ items in that group — a school
+// a single dropdown group ONLY when a school actually has 2+ items in that group - a school
 // with just "About" still sees a plain link, not a one-item dropdown.
 $navGroupMap = [
     'about' => 'About', 'staff' => 'About', 'testimonials' => 'About', 'reviews' => 'About', 'stats' => 'About', 'faq' => 'About',
@@ -174,7 +181,7 @@ foreach ($sections as $s) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= esc($school['name']) ?></title>
-<meta name="description" content="<?= esc($school['name']) ?> — official website">
+<meta name="description" content="<?= esc($school['name']) ?> - official website">
 <link rel="canonical" href="https://<?= esc($school['slug']) ?>.somahub.top/">
 
 <!-- Favicons -->
@@ -184,7 +191,7 @@ foreach ($sections as $s) {
 <!-- Open Graph (WhatsApp, Facebook, Instagram DM previews) -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="<?= esc($school['name']) ?>">
-<meta property="og:description" content="<?= esc($school['name']) ?> — official website, built with Somahub.">
+<meta property="og:description" content="<?= esc($school['name']) ?> - official website, built with Somahub.">
 <meta property="og:image" content="<?= esc($ogImage) ?>">
 <meta property="og:url" content="https://<?= esc($school['slug']) ?>.somahub.top">
 <meta property="og:site_name" content="<?= esc($school['name']) ?>">
@@ -214,7 +221,7 @@ foreach ($sections as $s) {
   header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid rgba(0,0,0,0.08);}
   .navbar{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;max-width:1080px;margin:0 auto;gap:16px;}
   .brand{font-family:'<?= esc($theme['font_display'] ?? 'Sora') ?>',sans-serif;font-weight:700;font-size:1.05rem;color:var(--primary);display:flex;align-items:center;gap:8px;}
-  .verified-badge{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;background:var(--accent,#0F5257);color:#fff;border-radius:50%;font-size:0.7rem;font-weight:900;flex-shrink:0;}
+  .verify-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--accent,#F2A65A);flex-shrink:0;margin-right:2px;}
   nav ul{list-style:none;display:flex;gap:22px;align-items:center;}
   nav a{font-size:0.88rem;font-weight:600;}
   nav a:hover{opacity:0.7;}
@@ -251,7 +258,7 @@ foreach ($sections as $s) {
   .hero-photo img{width:100%;height:100%;object-fit:cover;aspect-ratio:4/3;}
   .hero-cta{background:var(--accent);color:var(--primary);margin-top:24px;padding:13px 28px;border-radius:6px;font-weight:700;font-size:0.9rem;display:inline-block;}
 
-  /* MOSAIC — used when a school has more than one hero photo */
+  /* MOSAIC - used when a school has more than one hero photo */
   .hero-mosaic{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;height:100%;min-height:280px;}
   .hero-mosaic img{width:100%;height:100%;object-fit:cover;}
   .hero-mosaic .m-main{grid-row:1/3;}
@@ -335,10 +342,10 @@ foreach ($sections as $s) {
 <header>
   <div class="navbar">
     <div class="brand">
-      <?= esc($school['name']) ?>
       <?php if (($school['verification_status'] ?? '') === 'verified'): ?>
-        <span class="verified-badge" title="Verified by Somahub">✓</span>
+        <span class="verify-dot" title="Verified by Somahub"></span>
       <?php endif; ?>
+      <?= esc($school['name']) ?>
     </div>
     <nav><ul id="navlinks">
       <?php foreach ($navSequence as $item): ?>
@@ -500,6 +507,7 @@ foreach ($sections as $s) {
       <div class="callout-block">
         <?php if (!empty($c['intro_text'])): ?><p><?= esc($c['intro_text']) ?></p><?php else: ?><p>Check your child's term results using their admission number.</p><?php endif; ?>
         <a href="results-check.php?school=<?= urlencode($school['slug']) ?>" class="btn-primary">Check Results</a>
+        <a href="report-card.php?school=<?= urlencode($school['slug']) ?>" class="btn-primary" style="margin-left:10px;background:transparent;border:2px solid var(--primary);color:var(--primary);">View Full Report</a>
       </div>
     </div>
   </section>
@@ -577,10 +585,10 @@ foreach ($sections as $s) {
           <div class="testimonial-card">
             <div style="color:#F2A65A;letter-spacing:2px;margin-bottom:6px;"><?= render_stars((int)$r['rating']) ?></div>
             <div class="quote">"<?= esc($r['comment']) ?>"</div>
-            <div class="author"><?= esc($r['reviewer_name']) ?><?= $r['reviewer_role'] ? ' — ' . esc($r['reviewer_role']) : '' ?></div>
+            <div class="author"><?= esc($r['reviewer_name']) ?><?= $r['reviewer_role'] ? ' - ' . esc($r['reviewer_role']) : '' ?></div>
           </div>
         <?php endforeach; ?>
-        <?php if (!$schoolReviews): ?><p style="color:var(--muted);">No reviews yet — be the first to leave one.</p><?php endif; ?>
+        <?php if (!$schoolReviews): ?><p style="color:var(--muted);">No reviews yet - be the first to leave one.</p><?php endif; ?>
       </div>
 
       <details style="margin-top:28px;max-width:480px;">

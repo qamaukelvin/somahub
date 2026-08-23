@@ -7,7 +7,7 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pricing — Somahub</title>
+<title>Pricing - Somahub</title>
 <link rel="canonical" href="https://somahub.top/pricing.php">
 <meta name="description" content="Simple, transparent pricing for Somahub. Free websites for schools, a 60-day full-access trial, plus clear pricing for domains, templates, and content writing.">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -23,10 +23,6 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
   a{color:inherit;text-decoration:none;}
   .wrap{max-width:1080px;margin:0 auto;padding:0 24px;}
 
-  header{position:sticky;top:0;z-index:50;background:rgba(247,242,231,0.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);}
-  .navbar{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;max-width:1080px;margin:0 auto;}
-  .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.2rem;}
-  .brand .dot{width:10px;height:10px;background:var(--amber);border-radius:50%;}
   .navcta{background:var(--teal);color:var(--sand);padding:10px 20px;border-radius:24px;font-size:0.85rem;font-weight:700;}
 
   .hero{padding:70px 24px 40px;text-align:center;}
@@ -97,12 +93,7 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
 </head>
 <body>
 
-<header>
-  <div class="navbar">
-    <a href="index.php" class="brand"><span class="dot"></span> somahub</a>
-    <a href="get-started.php" class="navcta">Get Started</a>
-  </div>
-</header>
+<?php $navRoot = '.'; include __DIR__ . '/_public_nav.php'; ?>
 
 <section class="hero">
   <span class="kicker">Pricing</span>
@@ -113,7 +104,7 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
 <section id="plans">
   <div class="section-head" style="text-align:center;margin-left:auto;margin-right:auto;">
     <h2>Website plans</h2>
-    <p>Start on Free anytime, or try everything free for 60 days on Trial — no card required either way.</p>
+    <p>Start on Free anytime, or try everything free for 60 days on Trial - no card required either way.</p>
   </div>
   <div class="plans-wrap">
     <div class="plan-card">
@@ -124,7 +115,8 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
         <li><span class="check">＋</span> Full website with all core pages</li>
         <li><span class="check">＋</span> Free yourschool.somahub.top address</li>
         <li><span class="check">＋</span> Self service editing dashboard</li>
-        <li><span class="check">＋</span> Unlimited photo updates</li>
+        <li><span class="check">＋</span> Published fee structure</li>
+        <li><span class="check">＋</span> Term-by-term results checking</li>
       </ul>
       <a href="get-started.php" class="plan-cta">Get Started Free</a>
     </div>
@@ -136,19 +128,19 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
         <li><span class="check">＋</span> Everything in Free</li>
         <li><span class="check">＋</span> Every premium theme</li>
         <li><span class="check">＋</span> Online enrollment applications</li>
-        <li><span class="check">＋</span> Term results checking & fee publishing</li>
+        <li><span class="check">＋</span> Full report: results, attendance, position, trends & fees</li>
       </ul>
       <a href="get-started.php" class="plan-cta">Start Free Trial</a>
     </div>
     <div class="plan-card highlight">
-      <div class="plan-name">Paid</div>
-      <div class="plan-price">KSh 2,500 <span>/ year</span></div>
-      <div class="plan-desc">About KSh 625 a term. Everything the Trial unlocks, permanently.</div>
+      <div class="plan-name">Premium</div>
+      <div class="plan-price">KSh 3,000 <span>/ year</span></div>
+      <div class="plan-desc">About KSh 750 a term. Everything the Trial unlocks, permanently.</div>
       <ul>
         <li><span class="check">＋</span> Everything in Free</li>
+        <li><span class="check">＋</span> Every premium theme</li>
         <li><span class="check">＋</span> Online enrollment applications</li>
-        <li><span class="check">＋</span> Term results checking for parents</li>
-        <li><span class="check">＋</span> Published fee structure</li>
+        <li><span class="check">＋</span> Full report: results, attendance, position, trends & fees</li>
       </ul>
       <a href="get-started.php" class="plan-cta">Get Started</a>
     </div>
@@ -159,7 +151,7 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
   <div class="wrap">
     <div class="section-head">
       <h2>See our themes</h2>
-      <p>Every school picks a theme at signup — change it anytime from your dashboard. Premium themes are included free during your Trial, or available as a standalone add-on below.</p>
+      <p>Every school picks a theme at signup - change it anytime from your dashboard. Premium themes are included with the Premium plan and the 60-Day Trial.</p>
     </div>
     <div class="theme-gallery">
       <?php foreach ($themes as $t): $vars = json_decode($t['css_variables_json'], true); $isPremium = !empty($t['is_premium']); ?>
@@ -193,34 +185,26 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
     <table class="addon-table">
       <tr><th>Add-on</th><th>What's included</th><th>Price</th></tr>
       <tr>
-        <td>Custom Domain — Budget<br><span style="color:var(--muted);font-size:0.8rem;">e.g. yourschool.top</span></td>
+        <td>Custom Domain - Budget<br><span style="color:var(--muted);font-size:0.8rem;">e.g. yourschool.top</span></td>
         <td>Registration, renewal tracking, DNS setup and support</td>
         <td class="price">KSh 900 / year</td>
       </tr>
       <tr>
-        <td>Custom Domain — .co.ke<br><span style="color:var(--muted);font-size:0.8rem;">e.g. yourschool.co.ke</span></td>
+        <td>Custom Domain - .co.ke<br><span style="color:var(--muted);font-size:0.8rem;">e.g. yourschool.co.ke</span></td>
         <td>Registration, renewal tracking, DNS setup and support</td>
         <td class="price">KSh 1,800 / year</td>
       </tr>
       <tr>
-        <td>Custom Templates</td>
-        <td>Unlocks every premium theme in the gallery above, not just the free starter set</td>
-        <td class="price">KSh 1,000 / year</td>
-      </tr>
-      <tr>
         <td>Content Writing</td>
-        <td>We write your About, Academics, and Admissions text for you, tailored to your actual school — not the generic starter content</td>
+        <td>We write your About, Academics, and Admissions text for you, tailored to your actual school - not the generic starter content</td>
         <td class="price">KSh 1,500 one-time</td>
       </tr>
       <tr>
         <td>Google Business Profile Setup</td>
-        <td>We create and verify your school on Google Business Profile using your exact location — shows up on Google Maps and local search</td>
+        <td>We create and verify your school on Google Business Profile using your exact location - shows up on Google Maps and local search</td>
         <td class="price">KSh 1,200 one-time</td>
       </tr>
     </table>
-    <div class="note-box">
-      <strong>Why domains cost slightly above the raw registration price:</strong> we track your renewal date so it never silently expires, handle the registrar relationship, and set up the technical DNS pointing correctly — an ongoing service, not just a one-time purchase.
-    </div>
   </div>
 </section>
 
@@ -241,7 +225,7 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
         <div class="build-name">Fully Custom Design</div>
         <div class="build-price">From KSh 10,000</div>
         <span class="build-time">2–3 weeks</span>
-        <p>A genuinely bespoke layout and sections beyond our standard templates, matched to your school's real branding. Final price depends on scope — we'll quote after understanding what you need.</p>
+        <p>A genuinely bespoke layout and sections beyond our standard templates, matched to your school's real branding. Final price depends on scope - we'll quote after understanding what you need.</p>
       </div>
     </div>
   </div>

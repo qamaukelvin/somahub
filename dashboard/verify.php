@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/plan.php';
 $user = require_school_login();
 $db = get_db();
 
@@ -102,6 +103,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <main class="wrap">
   <h1>School Verification</h1>
+  <?php if (($school['verification_status'] ?? '') !== 'verified'):
+    $daysLeft = days_until_verification_deadline($school) ?? 0;
+  ?>
+    <?php if ($daysLeft > 0): ?>
+      <div style="background:#FBF0D1;color:#8C6D1F;padding:14px 18px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;">
+        <strong><?= $daysLeft ?> day<?= $daysLeft == 1 ? '' : 's' ?> left</strong> before your site is taken offline until verification is complete.
+      </div>
+    <?php else: ?>
+      <div style="background:#FBE8E4;color:#8C3B2E;padding:14px 18px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;">
+        <strong>Your preview period has ended.</strong> Your site is currently offline until verification is complete.
+      </div>
+    <?php endif; ?>
+  <?php endif; ?>
   <p class="sub">To confirm your school is genuine and that you're authorized to manage its website, please complete both steps below.</p>
 
   <?php

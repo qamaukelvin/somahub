@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <style>
   :root{ --teal:#0F5257; --teal-deep:#0A3A3E; --amber:#F2A65A; --sand:#F7F2E7; }
   *{box-sizing:border-box;}
-  body{font-family:'Manrope',sans-serif;background:var(--teal-deep);display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;}
+  body{font-family:'Manrope',sans-serif;background:var(--teal-deep);margin:0;}
   .card{background:#fff;padding:36px 32px;border-radius:16px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
   .brand{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:1.15rem;color:var(--teal-deep);margin-bottom:6px;}
   .brand .dot{width:9px;height:9px;background:var(--amber);border-radius:50%;}
@@ -41,16 +41,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </style>
 </head>
 <body>
-  <form class="card" method="POST">
-    <div class="brand"><span class="dot"></span> somahub</div>
-    <div class="subtitle">Platform Admin</div>
-    <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-    <label>Email</label>
-    <input type="email" name="email" required autofocus>
-    <label>Password</label>
-    <input type="password" name="password" required>
-    <button type="submit">Log In</button>
-  </form>
-  <a href="../index.php" class="back">&larr; Back to somahub.top</a>
+  <?php $navRoot = '..'; include __DIR__ . '/../_public_nav.php'; ?>
+  <div style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 65px);padding:20px;">
+    <form class="card" method="POST">
+      <div class="brand"><span class="dot"></span> somahub</div>
+      <div class="subtitle">Platform Admin</div>
+      <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
+      <label>Email</label>
+      <input type="email" name="email" required autofocus>
+      <label>Password</label>
+      <input type="password" name="password" required>
+      <button type="submit">Log In</button>
+    </form>
+  </div>
 </body>
 </html>

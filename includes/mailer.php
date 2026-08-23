@@ -6,17 +6,7 @@ require_once __DIR__ . '/../vendor/phpmailer/SMTP.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
-// ============================================================
-// IMPORTANT — fill these in with your REAL mailbox credentials
-// from cPanel's Email Accounts page before this will work.
-// Click "Connect Devices" next to no-reply@somahub.top in cPanel
-// to see the exact SMTP host/port/username Truehost gives you.
-// ============================================================
-define('SMTP_HOST', 'mail.somahub.top');        // <-- confirm exact value in cPanel
-define('SMTP_PORT', 465);                        // 465 for SSL, or 587 for TLS
-define('SMTP_USERNAME', 'no-reply@somahub.top'); // the full mailbox address
-define('SMTP_PASSWORD', '');
-define('SMTP_ENCRYPTION', PHPMailer::ENCRYPTION_SMTPS); // matches port 465; use STARTTLS for port 587
+require_once __DIR__ . '/../config/mail.php';
 
 /**
  * Sends an HTML email using PHPMailer over SMTP through your real

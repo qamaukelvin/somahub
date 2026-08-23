@@ -1,5 +1,5 @@
 <?php
-// Rafiki — Somahub's chat widget. Context-aware: shows different, relevant
+// Rafiki - Somahub's chat widget. Context-aware: shows different, relevant
 // conversation trees depending on where it's included.
 //
 // Include with, setting these BEFORE the include:
@@ -97,7 +97,7 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
   const waLink = (text) => `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
 
   // ============================================================
-  // MARKETING TREE — for the Somahub homepage. Visitor is likely
+  // MARKETING TREE - for the Somahub homepage. Visitor is likely
   // a prospective school, a curious parent, or someone comparing options.
   // ============================================================
   const marketingTree = {
@@ -109,11 +109,11 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
         { label: "I want to get my school online", next: "getstarted" },
         { label: "Check my child's results", link: "results-portal.php" },
         { label: "Is my data safe?", next: "privacy" },
-        { label: "Something else — talk to a human", wa: "Hi Somahub, I have a question about..." },
+        { label: "Something else - talk to a human", wa: "Hi Somahub, I have a question about..." },
       ]
     },
     how: {
-      msg: "We build and host a website for your school. You review it, edit it yourself from a simple dashboard, and it goes live on a free somahub.top address — no coding needed.",
+      msg: "We build and host a website for your school. You review it, edit it yourself from a simple dashboard, and it goes live on a free somahub.top address - no coding needed.",
       options: [
         { label: "What's included for free?", next: "free" },
         { label: "How long does setup take?", next: "setuptime" },
@@ -122,7 +122,7 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
       ]
     },
     free: {
-      msg: "The free plan includes a full website (Home, About, Academics, Admissions, Gallery, Contact), a free subdomain, and a self-edit dashboard — forever, at no cost.",
+      msg: "The free plan includes a full website (Home, About, Academics, Admissions, Gallery, Contact), a free subdomain, and a self-edit dashboard - forever, at no cost.",
       options: [
         { label: "What does the paid plan add?", next: "cost" },
         { label: "Back to menu", next: "root" },
@@ -136,13 +136,13 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
       ]
     },
     domain: {
-      msg: "Yes — on the paid plan, you can connect your own domain (like yourschool.ac.ke) instead of the free somahub.top subdomain. We handle the setup.",
+      msg: "Yes - on the paid plan, you can connect your own domain (like yourschool.ac.ke) instead of the free somahub.top subdomain. We handle the setup.",
       options: [
         { label: "Back to menu", next: "root" },
       ]
     },
     cost: {
-      msg: "The free plan is KSh 0, always. The paid plan is KSh 2,500 per year (about KSh 625 a term) — it adds online enrollment, results checking, and published fees. Your own domain is a separate add-on. Free for your first term.",
+      msg: "The free plan is KSh 0, always. The paid plan is KSh 2,500 per year (about KSh 625 a term) - it adds online enrollment, results checking, and published fees. Your own domain is a separate add-on. Free for your first term.",
       options: [
         { label: "What about a custom domain?", next: "domainprice" },
         { label: "Can I cancel anytime?", next: "cancel" },
@@ -152,7 +152,7 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
       ]
     },
     domainprice: {
-      msg: "A budget domain (like yourschool.top) is KSh 900/year all-in. A .co.ke domain is KSh 1,800/year all-in — both include renewal tracking and setup.",
+      msg: "A budget domain (like yourschool.top) is KSh 900/year all-in. A .co.ke domain is KSh 1,800/year all-in - both include renewal tracking and setup.",
       options: [
         { label: "See the full pricing page", link: "pricing.php" },
         { label: "Back to menu", next: "root" },
@@ -165,7 +165,7 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
       ]
     },
     getstarted: {
-      msg: "The fastest way is to message us your school's details on WhatsApp, or fill in the contact form on our homepage — we'll take it from there.",
+      msg: "The fastest way is to message us your school's details on WhatsApp, or fill in the contact form on our homepage - we'll take it from there.",
       options: [
         { label: "Message us on WhatsApp", wa: "Hi Somahub, I'd like to get my school's website set up." },
         { label: "How are schools verified?", next: "verify" },
@@ -173,13 +173,13 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
       ]
     },
     verify: {
-      msg: "Every school on Somahub signs an agreement and uploads a signed, stamped copy for our review before getting a Verified badge — this helps parents trust that the schools they find here are genuine.",
+      msg: "Every school on Somahub signs an agreement and uploads a signed, stamped copy for our review before getting a Verified badge - this helps parents trust that the schools they find here are genuine.",
       options: [
         { label: "Back to menu", next: "root" },
       ]
     },
     privacy: {
-      msg: "We take this seriously — a child's results are only ever shown to someone who enters both the admission number AND the correct name or date of birth together. There's no way to browse all students on a school's site.",
+      msg: "We take this seriously - a child's results are only ever shown to someone who enters both the admission number AND the correct name or date of birth together. There's no way to browse all students on a school's site.",
       options: [
         { label: "Read the full privacy policy", link: "privacy.php" },
         { label: "Back to menu", next: "root" },
@@ -188,7 +188,7 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
   };
 
   // ============================================================
-  // SCHOOL TREE — for an individual school's own site. Visitor is
+  // SCHOOL TREE - for an individual school's own site. Visitor is
   // almost always a parent, guardian, or prospective parent, not
   // someone shopping for a website platform.
   // ============================================================
@@ -205,7 +205,7 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
       ]
     },
     fees: {
-      msg: "Fee information, when published, is shown right on the school's site under the Fees section — scroll down or use the menu at the top of the page.",
+      msg: "Fee information, when published, is shown right on the school's site under the Fees section - scroll down or use the menu at the top of the page.",
       options: [
         { label: "Back to menu", next: "root" },
       ]
@@ -232,7 +232,7 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
   };
 
   // ============================================================
-  // DASHBOARD TREE — for logged-in school staff using their editor.
+  // DASHBOARD TREE - for logged-in school staff using their editor.
   // ============================================================
   const dashboardTree = {
     root: {
@@ -243,7 +243,7 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
         { label: "How do I add enrollment/results/fees?", next: "paidfeatures" },
         { label: "I forgot my password", next: "password" },
         { label: "How do I get verified?", next: "verify" },
-        { label: "Something's broken — talk to support", wa: "Hi Somahub, I'm having a problem in my dashboard." },
+        { label: "Something's broken - talk to support", wa: "Hi Somahub, I'm having a problem in my dashboard." },
       ]
     },
     edit: {
@@ -259,7 +259,7 @@ $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';
       ]
     },
     paidfeatures: {
-      msg: "Enrollment, Results, and Fees are part of the paid plan. If you don't see them yet, your school may still be on the free plan — message us to upgrade.",
+      msg: "Enrollment, Results, and Fees are part of the paid plan. If you don't see them yet, your school may still be on the free plan - message us to upgrade.",
       options: [
         { label: "Upgrade my plan", link: "checkout.php" },
         { label: "Back to menu", next: "root" },

@@ -7,6 +7,7 @@
 // dependency on a background job actually running.
 
 define('PLAN_GRACE_DAYS', 7); // days past promo_ends_at before features actually lock
+define('VERIFICATION_GRACE_PERIOD_DAYS', 7); // days a new school stays publicly visible before verification is required
 
 /**
  * Returns the school's REAL, currently-active plan — 'paid' or 'free' — after
@@ -46,6 +47,20 @@ function days_until_lockout(array $school): ?int {
         return null;
     }
     $deadline = strtotime($school['promo_ends_at'] . ' +' . PLAN_GRACE_DAYS . ' days');
+    $daysLeft = (int) ceil(($deadline - time()) / 86400);
+    return $daysLeft > 0 ? $daysLeft : null;
+}
+
+/**
+ * Days remaining before an unverified school's site goes offline, or null
+ * if already verified / already offline. Mirrors days_until_lockout()'s
+ * pattern for the plan side.
+ */
+function days_until_verification_deadline(array $school): ?int {
+    if (($school['verification_status'] ?? '') === 'verified' || empty($school['first_login_at'])) {
+        return null;
+    }
+    $deadline = strtotime($school['first_login_at'] . ' +' . VERIFICATION_GRACE_PERIOD_DAYS . ' days');
     $daysLeft = (int) ceil(($deadline - time()) / 86400);
     return $daysLeft > 0 ? $daysLeft : null;
 }
