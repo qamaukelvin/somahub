@@ -86,7 +86,7 @@ $recentPaid = $db->query("
 
   <h3 style="margin-top:32px;">Recently confirmed paid</h3>
   <table>
-    <tr><th>School</th><th>Reference</th><th>Amount</th><th>Paid</th><th>Code</th></tr>
+    <thead><tr><th>School</th><th>Reference</th><th>Amount</th><th>Paid</th><th>Code</th></tr></thead>
     <?php foreach ($recentPaid as $o): ?>
     <tr>
       <td data-label="School"><?= htmlspecialchars($o['school_name']) ?></td>

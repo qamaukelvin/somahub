@@ -27,7 +27,7 @@ $statusColors = ['pending' => '#8C6D1F', 'paid' => '#1B4D3E', 'refunded' => '#8C
 <main class="wrap">
   <h1>Invoices</h1>
   <table>
-    <tr><th>Reference</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr>
+    <thead><tr><th>Reference</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
     <?php foreach ($orders as $o): ?>
     <tr>
       <td data-label="Reference"><?= htmlspecialchars($o['reference_code']) ?></td>

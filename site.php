@@ -4,8 +4,7 @@ require_once __DIR__ . '/includes/plan.php';
 require_once __DIR__ . '/includes/reviews.php';
 $db = get_db();
 
-// In production, subdomain routing (.htaccess) sets this from *.somahub.top automatically.
-// Falling back to ?school=slug here so this file works standalone during setup/testing.
+// Subdomain routing sets this via .htaccess; fallback for local testing.
 $slug = $_GET['school'] ?? '';
 
 $stmt = $db->prepare("
@@ -22,21 +21,15 @@ if (!$school) {
     die('School not found. Check the address and try again.');
 }
 
-// Canonical redirect - if this school is being accessed via any URL other than
-// its real subdomain (e.g. the old somahub.top/site.php?school=X pattern that
-// existed before subdomains worked), force a 301 redirect to the real one.
-// Fixes the "duplicate without user-selected canonical" issue in Search Console.
+// Canonical redirect to the real subdomain (SEO)
 $canonicalHost = $school['slug'] . '.somahub.top';
 if (strtolower($_SERVER['HTTP_HOST']) !== $canonicalHost) {
     header("Location: https://{$canonicalHost}/", true, 301);
     exit;
 }
 
-// Gate: new schools get a grace period during which their site is live and
-// public immediately (so they can see real value and share it right away),
-// even before verification is complete. This is deliberately a grace period
-// rather than a hard block - requiring verification before anything goes
-// live discourages schools from finishing the process at all. If they don't
+// Grace period: new schools are public immediately, even before
+// verification, and lose visibility if not verified in time.
 
 require_once __DIR__ . '/includes/auth.php';
 $viewer = current_user();
@@ -47,9 +40,7 @@ $isOwnerPreview = $viewer && (
 
 $isVerified = ($school['verification_status'] ?? '') === 'verified';
 
-// Grace period counts from the owner's first login, not account creation —
-// an admin-created school shouldn't have its window run out before the
-// owner has even logged in once to see their site. No login yet means the
+// Grace period counts from first login, not account creation.
 // countdown hasn't started, so the site stays visible.
 if (empty($school['first_login_at'])) {
     $inGracePeriod = true;
@@ -107,16 +98,12 @@ $sectionsStmt = $db->prepare("
 $sectionsStmt->execute([$school['id']]);
 $sections = $sectionsStmt->fetchAll();
 
-// Kill switch: if this school's paid plan has lapsed (past the grace period with no
-// payment), quietly drop premium sections from what's rendered - same as if they'd
-// never added them. This never shows publicly as "payment overdue"; it just reverts
-// to looking like the free tier, keeping the school's public reputation intact.
+// Payment lapsed: quietly drop premium sections, no public "overdue" notice.
 if (is_premium_locked($school)) {
     $sections = array_filter($sections, fn($s) => !$s['is_premium']);
 }
 
-// Pick the best available image for social share previews: the school's own hero
-// photo if they've uploaded one, otherwise fall back to Somahub's branded default.
+// Social share image: hero photo if set, else default
 $ogImage = 'https://somahub.top/assets/og-share-image.png';
 foreach ($sections as $s) {
     if ($s['key_name'] === 'hero') {
@@ -143,15 +130,12 @@ function esc($text) {
     return htmlspecialchars($text ?? '');
 }
 function nl2p($text) {
-    // Turn plain textarea line breaks into paragraphs, since content is stored as plain text
+    // Line breaks to paragraphs
     $parts = array_filter(array_map('trim', explode("\n", $text ?? '')));
     return implode('', array_map(fn($p) => '<p>' . nl2br(esc($p)) . '</p>', $parts));
 }
 
-// Build a nav from whichever sections this school actually has, in their chosen order.
-// Related items (e.g. About + Staff + Stats, or Results + Enrollment + Fees) collapse into
-// a single dropdown group ONLY when a school actually has 2+ items in that group - a school
-// with just "About" still sees a plain link, not a one-item dropdown.
+// Nav groups related sections into a dropdown when 2+ items share a group.
 $navGroupMap = [
     'about' => 'About', 'staff' => 'About', 'testimonials' => 'About', 'reviews' => 'About', 'stats' => 'About', 'faq' => 'About',
     'results_lookup' => 'Portals', 'enrollment_form' => 'Portals', 'fees' => 'Portals',

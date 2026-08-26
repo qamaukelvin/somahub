@@ -94,11 +94,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 unset($refreshedUser['password_hash']);
                 $_SESSION['user'] = $refreshedUser;
 
+                require_once __DIR__ . '/../includes/notifications.php';
+                create_notification($db, $schoolId, 'welcome',
+                    'Welcome to Somahub!',
+                    'Your site is live. Start by editing your Website content from the dashboard.',
+                    'sections.php');
+
                 header("Location: index.php?welcome=1");
                 exit;
             } catch (Exception $e) {
                 $db->rollBack();
-                $error = 'Something went wrong. Please try again.';
+                error_log('school-setup.php failed: ' . $e->getMessage());
+                $error = 'Something went wrong: ' . $e->getMessage();
             }
         }
     }

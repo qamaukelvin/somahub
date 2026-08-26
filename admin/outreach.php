@@ -4,9 +4,30 @@ require_platform_admin();
 require_once __DIR__ . '/../includes/mailer.php';
 $db = get_db();
 
-// Premade templates — {name} and {school} get substituted before sending.
-// cta_text/cta_link are optional; leave both blank for no button.
+// Premade templates — {name}, {school}, {login_username}, {temp_password}
+// get substituted before sending. cta_text/cta_link are optional.
 $templates = [
+    'intro_who_we_are' => [
+        'label' => '1. Intro — who we are + preview',
+        'subject' => 'A free website for {school}',
+        'body' => "Hi {name},\n\nMy name is Kelvin from Somahub — we build and host free websites for Kenyan schools. Parents can find your school online, see your programs, and reach you directly, and you don't pay anything to get started.\n\nWe've already put together a sample site for {school} so you can see exactly what it looks like before deciding anything.\n\nTake a look below — no commitment, just a preview.\n\nBest,\nKelvin, Somahub",
+        'cta_text' => 'Preview Your Site',
+        'cta_link' => '',
+    ],
+    'login_details' => [
+        'label' => '2. Login link (after they like the preview)',
+        'subject' => 'Log in to make {school}\'s site yours',
+        'body' => "Hi {name},\n\nGlad you liked the preview! Tap the link below to log straight in — no password needed:\n\n{magic_link}\n\nOnce you're in, you can update photos, text, and contact details — everything is yours to edit.\n\nBest,\nKelvin, Somahub",
+        'cta_text' => 'Log In Now',
+        'cta_link' => '{magic_link}',
+    ],
+    'post_login_orientation' => [
+        'label' => '3. How everything works (after first login)',
+        'subject' => 'Getting the most out of {school}\'s Somahub account',
+        'body' => "Hi {name},\n\nNow that you're logged in, here's a quick rundown:\n\n- Edit your site anytime from the dashboard — no tech skills needed\n- Your site is live now, but ask us about verification to keep it that way long-term\n- You're on a 60-day trial with every feature unlocked, including enrollment, results, and fees\n- Questions anytime — just message us here\n\nBest,\nKelvin, Somahub",
+        'cta_text' => 'Go to Dashboard',
+        'cta_link' => 'https://somahub.top/dashboard/login.php',
+    ],
     'cold_intro' => [
         'label' => 'Cold outreach — first contact',
         'subject' => 'Getting {school} online with Somahub',
@@ -29,9 +50,9 @@ $templates = [
         'cta_link' => 'mailto:hello@somahub.top',
     ],
     'upgrade_prompt' => [
-        'label' => 'Upgrade prompt (Free to Paid)',
+        'label' => 'Upgrade prompt (Free to Premium)',
         'subject' => 'Unlock more for {school}\'s website',
-        'body' => "Hi {name},\n\nHope the website has been useful so far. Wanted to check in about our Paid plan (KSh 2,500/year, first term free), which adds:\n\n- Online enrollment applications\n- Term results checking for parents\n- Published fee structure\n\nThese tend to save admin offices real time, especially around enrollment and results season.\n\nBest,\nSomahub",
+        'body' => "Hi {name},\n\nHope the website has been useful so far. Wanted to check in about our Premium plan (KSh 3,000/year), which adds:\n\n- Online enrollment applications\n- Full report: results, attendance, position, trends & fees\n- Every premium theme\n\nThese tend to save admin offices real time, especially around enrollment and results season.\n\nBest,\nSomahub",
         'cta_text' => 'See Full Pricing',
         'cta_link' => 'https://somahub.top/pricing.php',
     ],
@@ -56,18 +77,25 @@ $schools = $db->query("SELECT name, phone, email, slug, verification_status FROM
 $sentResult = null;
 $waLink = null;
 
+// Prefill from leads-convert.php's "Go to Outreach" link, or from a POST resubmit
 $recipientName = $_POST['recipient_name'] ?? '';
-$schoolName = $_POST['school_name'] ?? '';
+$schoolName = $_POST['school_name'] ?? $_GET['school_name'] ?? '';
 $recipientEmail = $_POST['recipient_email'] ?? '';
-$recipientPhone = $_POST['recipient_phone'] ?? '';
-$templateKey = $_POST['template'] ?? 'custom';
+$recipientPhone = $_POST['recipient_phone'] ?? $_GET['phone'] ?? '';
+$magicLink = $_POST['magic_link'] ?? $_GET['magic_link'] ?? '';
+$prefillSlug = $_GET['slug'] ?? '';
+$templateKey = $_POST['template'] ?? ($prefillSlug ? 'intro_who_we_are' : 'custom');
 $subject = $_POST['subject'] ?? '';
 $message = $_POST['message'] ?? '';
 $ctaText = $_POST['cta_text'] ?? '';
-$ctaLink = $_POST['cta_link'] ?? '';
+$ctaLink = $_POST['cta_link'] ?? ($prefillSlug ? "https://{$prefillSlug}.somahub.top/" : '');
 
-function fill_placeholders(string $text, string $name, string $school): string {
-    return str_replace(['{name}', '{school}'], [$name ?: 'there', $school ?: 'your school'], $text);
+function fill_placeholders(string $text, string $name, string $school, string $magicLink = ''): string {
+    return str_replace(
+        ['{name}', '{school}', '{magic_link}'],
+        [$name ?: 'there', $school ?: 'your school', $magicLink],
+        $text
+    );
 }
 
 // Renders message text + an optional styled CTA button, ready to pass into email_wrapper()
@@ -84,9 +112,9 @@ function build_email_body(string $message, string $ctaText, string $ctaLink): st
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-    $finalSubject = fill_placeholders($subject, $recipientName, $schoolName);
-    $finalMessage = fill_placeholders($message, $recipientName, $schoolName);
-    $finalCtaLink = fill_placeholders($ctaLink, $recipientName, $schoolName);
+    $finalSubject = fill_placeholders($subject, $recipientName, $schoolName, $magicLink);
+    $finalMessage = fill_placeholders($message, $recipientName, $schoolName, $magicLink);
+    $finalCtaLink = fill_placeholders($ctaLink, $recipientName, $schoolName, $magicLink);
 
     if ($action === 'send_email') {
         if (!$recipientEmail) {
@@ -154,6 +182,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php endif; ?>
 
   <form method="POST" class="stacked" style="max-width:640px;">
+    <input type="hidden" name="magic_link" id="magic_link" value="<?= htmlspecialchars($magicLink) ?>">
+    <?php if ($magicLink): ?>
+      <div class="notice-success">Login link ready: <strong><?= htmlspecialchars($magicLink) ?></strong> — use the "Login link" template, or reference <code>{magic_link}</code> in a custom message. One tap, no password to type.</div>
+    <?php endif; ?>
     <?php if ($schools): ?>
     <div class="school-pick">
       <label>Quick-fill from existing school (optional)</label>
@@ -222,6 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script>
 const templates = <?= json_encode($templates) ?>;
+const magicLink = <?= json_encode($magicLink) ?>;
 
 function applyTemplate() {
     const key = document.getElementById('template').value;
@@ -232,6 +265,15 @@ function applyTemplate() {
     document.getElementById('cta_text').value = t.cta_text || '';
     document.getElementById('cta_link').value = t.cta_link || '';
 }
+
+// Arriving from leads-convert.php with credentials ready — load the intro
+// template automatically so the first message is one click away.
+<?php if ($prefillSlug && $templateKey === 'intro_who_we_are'): ?>
+document.addEventListener('DOMContentLoaded', () => {
+    applyTemplate();
+    document.getElementById('cta_link').value = <?= json_encode($ctaLink) ?>;
+});
+<?php endif; ?>
 
 function fillFromSchool(select) {
     if (!select.value) return;

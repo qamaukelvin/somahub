@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </p>
   <p style="margin-bottom:24px;">
     <a href="https://<?= urlencode($school['slug']) ?>.somahub.top/" target="_blank" class="btn-secondary" style="display:inline-block;background:#0F5257;color:#fff;padding:8px 18px;border-radius:6px;font-size:0.85rem;font-weight:700;text-decoration:none;">👁 Preview Site</a>
-    <span style="font-size:0.78rem;color:#888;margin-left:8px;">You'll see the real content even if it's not public yet, since you're logged in as admin.</span>
+    <span style="font-size:0.78rem;color:#888;margin-left:8px;">Admin preview — visible to you even before it's public.</span>
   </p>
 
   <?php if ($message): ?><div class="success"><?= htmlspecialchars($message) ?></div><?php endif; ?>

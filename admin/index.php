@@ -91,7 +91,7 @@ $totalCount = $db->query("SELECT COUNT(*) c FROM schools")->fetch()['c'];
     <p style="color:#888;padding:20px;text-align:center;">No schools match your search or filters.</p>
   <?php else: ?>
   <table>
-    <tr><th>School</th><th>Subdomain</th><th>Plan</th><th>Status</th><th>Enquiries</th><th></th></tr>
+    <thead><tr><th>School</th><th>Subdomain</th><th>Plan</th><th>Status</th><th>Enquiries</th><th></th></tr></thead>
     <?php foreach ($schools as $s): ?>
     <tr>
       <td><?= htmlspecialchars($s['name']) ?></td>

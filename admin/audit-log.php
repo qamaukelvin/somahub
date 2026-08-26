@@ -64,7 +64,7 @@ function summarize_diff($old, $new): string {
 
 <main class="wrap">
   <h1>Content Audit Log</h1>
-  <p style="color:#666;margin-bottom:20px;">Every content and fee change across all schools, most recent first. Fee changes are highlighted since payment details are the highest-risk field on the platform.</p>
+  <p style="color:#666;margin-bottom:20px;">Every content and fee change across all schools, most recent first. Fee changes are highlighted as the highest-risk field.</p>
 
   <form method="GET">
     <select name="school_id" onchange="this.form.submit()">

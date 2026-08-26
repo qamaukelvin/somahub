@@ -24,6 +24,7 @@
 </style>
 </head>
 <body>
+<?php $navRoot = '.'; include __DIR__ . '/_public_nav.php'; ?>
 <div class="wrap">
   <a href="index.php" class="brand"><span class="dot"></span> somahub</a>
   <h1>Terms of Service</h1>

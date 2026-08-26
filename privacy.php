@@ -23,6 +23,7 @@
 </style>
 </head>
 <body>
+<?php $navRoot = '.'; include __DIR__ . '/_public_nav.php'; ?>
 <div class="wrap">
   <a href="index.php" class="brand"><span class="dot"></span> somahub</a>
   <h1>Privacy Policy</h1>
@@ -54,7 +55,7 @@
   <ul>
     <li>A school's staff can only see and manage that school's own data, never another school's.</li>
     <li>Somahub's platform administrators can access school data as needed to provide support and keep the platform running, and will not share it outside that purpose.</li>
-    <li>Photos uploaded to a school's website are visible to anyone who visits that website, since they are part of the public site. Schools are responsible for ensuring they have appropriate permission before uploading photos, including of pupils.</li>
+    <li>Photos uploaded to a school's website are visible to anyone who visits it. Schools are responsible for having appropriate permission before uploading photos, including of pupils.</li>
   </ul>
 
   <h2>5. School and Identity Verification</h2>

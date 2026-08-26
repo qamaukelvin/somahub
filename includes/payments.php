@@ -85,8 +85,7 @@ function mark_order_paid(PDO $db, int $orderId, string $verifiedBy): void {
     $stmt = $db->prepare("UPDATE orders SET status = 'paid', paid_at = NOW(), verified_by = ? WHERE id = ?");
     $stmt->execute([$verifiedBy, $orderId]);
 
-    // Apply the effect of what was paid for — extend plan / enable domain add-on.
-    // Adjust these to match your actual schools table columns.
+    // Apply plan/add-on effects
     $items = $db->prepare("SELECT product_key FROM order_items WHERE order_id = ?");
     $items->execute([$orderId]);
     $productKeys = array_column($items->fetchAll(), 'product_key');
@@ -108,17 +107,16 @@ function mark_order_paid(PDO $db, int $orderId, string $verifiedBy): void {
            ->execute([$schoolId]);
     }
     if (in_array('content_writing', $productKeys, true)) {
-        // One-time service, not a toggle — flag it so it shows in your admin
-        // queue as a to-do (you write and add the content manually), rather
-        // than something that auto-applies itself.
+        // Manual service — tracked in the content-writing queue, not auto-applied
         $db->prepare("UPDATE orders SET status = 'paid' WHERE id = ?")->execute([$orderId]); // already set above, kept explicit for clarity
     }
 
     $schoolStmt = $db->prepare("SELECT name, email FROM schools WHERE id = ?");
     $schoolStmt->execute([$schoolId]);
     $school = $schoolStmt->fetch();
+    $itemsList = implode(', ', array_map(fn($k) => str_replace('_', ' ', $k), $productKeys));
+
     if ($school && !empty($school['email'])) {
-        $itemsList = implode(', ', array_map(fn($k) => str_replace('_', ' ', $k), $productKeys));
         $confirmBody = "
             <h2 style='color:#0F5257;margin-top:0;'>Payment Confirmed</h2>
             <p>Your payment for <strong>" . htmlspecialchars(ucwords($itemsList)) . "</strong> has been verified. The changes are live on your account now.</p>
@@ -126,6 +124,12 @@ function mark_order_paid(PDO $db, int $orderId, string $verifiedBy): void {
         ";
         send_somahub_email($school['email'], 'Your Somahub payment is confirmed', $confirmBody);
     }
+
+    require_once __DIR__ . '/notifications.php';
+    create_notification($db, $schoolId, 'payment_confirmed',
+        'Payment confirmed',
+        'Your payment for ' . ucwords($itemsList) . ' is verified and live on your account.',
+        'invoices.php');
 }
 
 /**

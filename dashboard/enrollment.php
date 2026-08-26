@@ -31,9 +31,9 @@ $apps = $apps->fetchAll();
   <p class="sub">Applications submitted through your website's enrollment form.</p>
 
   <table>
-    <tr>
+    <thead><tr>
       <th>Child</th><th>Grade</th><th>Parent</th><th>Phone</th><th>Submitted</th><th>Status</th>
-    </tr>
+    </tr></thead>
     <?php foreach ($apps as $a): ?>
     <tr>
       <td data-label="Child"><?= htmlspecialchars($a['child_name']) ?></td>

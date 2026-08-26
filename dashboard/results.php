@@ -131,7 +131,7 @@ $uploads = $uploads->fetchAll();
 
   <h3 style="margin-top:36px;">Upload History</h3>
   <table>
-    <tr><th>Term</th><th>File</th><th>Students</th><th>Status</th><th>Uploaded</th></tr>
+    <thead><tr><th>Term</th><th>File</th><th>Students</th><th>Status</th><th>Uploaded</th></tr></thead>
     <?php foreach ($uploads as $u): ?>
     <tr>
       <td data-label="Term"><?= htmlspecialchars($u['term_label']) ?></td>

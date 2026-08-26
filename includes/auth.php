@@ -29,23 +29,84 @@ function login($email, $password) {
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password_hash'])) {
-        unset($user['password_hash']); // never keep the hash in session
-        $_SESSION['user'] = $user;
-
-        $db->prepare("UPDATE users SET last_login_at = NOW() WHERE id = ?")
-           ->execute([$user['id']]);
-
-        // Verification countdown starts from first login, not account creation —
-        // an admin-created school shouldn't lose its window before the owner
-        // has even logged in once to see it.
-        if (!empty($user['school_id'])) {
-            $db->prepare("UPDATE schools SET first_login_at = NOW() WHERE id = ? AND first_login_at IS NULL")
-               ->execute([$user['school_id']]);
-        }
-
+        establish_session($db, $user);
         return true;
     }
     return false;
+}
+
+/**
+ * Shared by password login and magic-link login: sets the session, updates
+ * last_login_at, and handles first-login side effects (verification
+ * countdown start, auto-starting a lead-converted school's trial).
+ */
+function establish_session(PDO $db, array $user): void {
+    unset($user['password_hash']); // never keep the hash in session
+    $_SESSION['user'] = $user;
+
+    $db->prepare("UPDATE users SET last_login_at = NOW() WHERE id = ?")
+       ->execute([$user['id']]);
+
+    if (!empty($user['school_id'])) {
+        $db->prepare("UPDATE schools SET first_login_at = NOW() WHERE id = ? AND first_login_at IS NULL")
+           ->execute([$user['school_id']]);
+
+        $flagStmt = $db->prepare("SELECT activate_trial_on_login FROM schools WHERE id = ?");
+        $flagStmt->execute([$user['school_id']]);
+        if ($flagStmt->fetchColumn()) {
+            require_once __DIR__ . '/payments.php';
+            start_trial($db, $user['school_id'], 60);
+            $db->prepare("UPDATE schools SET activate_trial_on_login = 0 WHERE id = ?")->execute([$user['school_id']]);
+        }
+    }
+}
+
+/**
+ * Creates a one-click login link for a user — no password needed. Used for
+ * outreach so a school can log in by tapping a link instead of typing
+ * credentials. Single-use, expires after $days. Returns the raw token to
+ * build the URL with; only its hash is stored.
+ */
+function create_magic_login_token(PDO $db, int $userId, int $days = 7): string {
+    $token = bin2hex(random_bytes(24));
+    $tokenHash = hash('sha256', $token); // fast lookup hash, not a password — no bcrypt needed
+    $expiresAt = date('Y-m-d H:i:s', strtotime("+{$days} days"));
+
+    $db->prepare("INSERT INTO magic_login_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)")
+       ->execute([$userId, $tokenHash, $expiresAt]);
+
+    return $token;
+}
+
+/**
+ * Verifies and consumes a magic login token. Returns the logged-in user
+ * array on success (and establishes the session), or null if invalid,
+ * expired, or already used.
+ */
+function verify_magic_login_token(PDO $db, string $token): ?array {
+    $tokenHash = hash('sha256', $token);
+    $stmt = $db->prepare("
+        SELECT * FROM magic_login_tokens
+        WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW()
+        LIMIT 1
+    ");
+    $stmt->execute([$tokenHash]);
+    $record = $stmt->fetch();
+    if (!$record) {
+        return null;
+    }
+
+    $db->prepare("UPDATE magic_login_tokens SET used_at = NOW() WHERE id = ?")->execute([$record['id']]);
+
+    $userStmt = $db->prepare("SELECT * FROM users WHERE id = ?");
+    $userStmt->execute([$record['user_id']]);
+    $user = $userStmt->fetch();
+    if (!$user) {
+        return null;
+    }
+
+    establish_session($db, $user);
+    return $_SESSION['user'];
 }
 
 function logout() {

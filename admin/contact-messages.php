@@ -25,7 +25,7 @@ $messages = $db->query("SELECT * FROM contact_messages ORDER BY submitted_at DES
   <p style="color:#666;margin-bottom:24px;">General enquiries from the homepage contact form.</p>
 
   <table>
-    <tr><th>Email</th><th>Phone</th><th>Subject</th><th>Message</th><th>Received</th><th>Status</th></tr>
+    <thead><tr><th>Email</th><th>Phone</th><th>Subject</th><th>Message</th><th>Received</th><th>Status</th></tr></thead>
     <?php foreach ($messages as $m): ?>
     <tr>
       <td data-label="Email"><a href="mailto:<?= htmlspecialchars($m['email']) ?>"><?= htmlspecialchars($m['email']) ?></a></td>

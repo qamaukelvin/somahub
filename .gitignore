@@ -1,2 +1,3 @@
 /config/db.php
+/config/mail.php
 /includes/mailer.php

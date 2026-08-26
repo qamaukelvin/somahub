@@ -48,7 +48,7 @@ $history = $db->query("
 
 <main class="wrap">
   <h1>Refunds</h1>
-  <p style="font-size:0.85rem;color:#666;">Refunds are tracked here but sent manually via M-Pesa — marking "Sent" doesn't move any money automatically.</p>
+  <p style="font-size:0.85rem;color:#666;">Refunds are tracked here but sent manually via M-Pesa. Marking "Sent" is a record — it doesn't move any money.</p>
 
   <h3>Pending requests (<?= count($pending) ?>)</h3>
   <?php foreach ($pending as $r): ?>
@@ -70,7 +70,7 @@ $history = $db->query("
 
   <h3 style="margin-top:32px;">History</h3>
   <table>
-    <tr><th>School</th><th>Order</th><th>Amount</th><th>Status</th><th>Note</th></tr>
+    <thead><tr><th>School</th><th>Order</th><th>Amount</th><th>Status</th><th>Note</th></tr></thead>
     <?php foreach ($history as $r): ?>
     <tr>
       <td data-label="School"><?= htmlspecialchars($r['school_name']) ?></td>

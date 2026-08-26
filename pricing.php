@@ -37,7 +37,7 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
 
   /* PLANS */
   .plans-wrap{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;}
-  .plan-card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:32px;width:280px;}
+  .plan-card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:32px;width:100%;max-width:280px;}
   .plan-card.highlight{background:var(--teal);color:var(--sand);border-color:var(--teal);}
   .plan-card.trial{border-color:var(--amber);}
   .plan-name{font-size:1.05rem;font-weight:700;margin-bottom:4px;}

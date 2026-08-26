@@ -59,6 +59,7 @@ $platformAvgRating = get_average_rating($platformReviews);
     --line:#E5DFCC;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{overflow-x:hidden;}
   html{scroll-behavior:smooth;}
   body{font-family:'Manrope',sans-serif;color:var(--ink);background:var(--sand);line-height:1.65;}
   h1,h2,h3{font-family:'Manrope',sans-serif;font-weight:800;letter-spacing:-0.02em;}
@@ -131,7 +132,7 @@ $platformAvgRating = get_average_rating($platformReviews);
 
   /* PLANS - two clean cards, not a table */
   .plans-wrap{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;}
-  .plan-card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:32px;width:300px;}
+  .plan-card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:32px;width:100%;max-width:300px;}
   .plan-card.highlight{background:var(--teal);color:var(--sand);border-color:var(--teal);position:relative;}
   .plan-card.highlight .plan-note{position:absolute;top:-14px;left:36px;background:var(--amber);color:var(--teal-deep);font-size:0.7rem;font-weight:800;padding:6px 14px;border-radius:20px;text-transform:uppercase;}
   .plan-name{font-size:1.1rem;font-weight:700;margin-bottom:6px;}
@@ -292,7 +293,8 @@ $platformAvgRating = get_average_rating($platformReviews);
           <li><span class="check">＋</span> Full website with all core pages</li>
           <li><span class="check">＋</span> Free yourschool.somahub.top address</li>
           <li><span class="check">＋</span> Self service editing dashboard</li>
-          <li><span class="check">＋</span> Unlimited photo updates</li>
+          <li><span class="check">＋</span> Published fee structure</li>
+          <li><span class="check">＋</span> Term-by-term results checking</li>
         </ul>
         <a href="get-started.php" class="plan-cta">Get Started Free</a>
       </div>
@@ -304,19 +306,19 @@ $platformAvgRating = get_average_rating($platformReviews);
           <li><span class="check">＋</span> Everything in Free</li>
           <li><span class="check">＋</span> Every premium theme</li>
           <li><span class="check">＋</span> Online enrollment applications</li>
-          <li><span class="check">＋</span> Term results checking & fee publishing</li>
+          <li><span class="check">＋</span> Full report: results, attendance, position, trends & fees</li>
         </ul>
         <a href="get-started.php" class="plan-cta" style="background:var(--amber);color:var(--teal-deep);">Start Free Trial</a>
       </div>
       <div class="plan-card highlight">
-        <div class="plan-name">Paid</div>
-        <div class="plan-price">KSh 2,500 <span>per year</span></div>
-        <div class="plan-desc">About KSh 625 a term. Everything the Trial unlocks, permanently.</div>
+        <div class="plan-name">Premium</div>
+        <div class="plan-price">KSh 3,000 <span>per year</span></div>
+        <div class="plan-desc">About KSh 750 a term. Everything the Trial unlocks, permanently.</div>
         <ul>
           <li><span class="check">＋</span> Everything in Free</li>
+          <li><span class="check">＋</span> Every premium theme</li>
           <li><span class="check">＋</span> Online enrollment applications</li>
-          <li><span class="check">＋</span> Term results checking for parents</li>
-          <li><span class="check">＋</span> Published fee structure</li>
+          <li><span class="check">＋</span> Full report: results, attendance, position, trends & fees</li>
         </ul>
         <a href="get-started.php" class="plan-cta">Get Started</a>
       </div>

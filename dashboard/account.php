@@ -15,10 +15,10 @@ $success = '';
 $isImpersonating = !empty($user['is_admin_impersonating']);
 
 // A lead converted straight to a school (see admin/leads.php) gets a
-// placeholder email like slug@leads.somahub.top since most leads only
-// have a phone number on file. This lets them set their real one once —
-// after that it's a normal login email again, locked like any other.
-$hasPlaceholderEmail = str_ends_with($currentUser['email'] ?? '', '@leads.somahub.top');
+// Phone-based login (no real email yet) — detect by checking if the
+// stored login value isn't a valid email at all, since phone numbers
+// are now used directly as the login when a lead has no email on file.
+$hasPlaceholderEmail = !filter_var($currentUser['email'] ?? '', FILTER_VALIDATE_EMAIL);
 
 function store_avatar($fileKey, $userId, &$error) {
     if (empty($_FILES[$fileKey]['tmp_name'])) return null;
@@ -61,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isImpersonating) {
         if (!$error) {
             $avatarPath = store_avatar('avatar', $user['id'], $error);
             if (!$error) {
+                $wasPlaceholder = $hasPlaceholderEmail;
                 $finalEmail = ($hasPlaceholderEmail && $newEmail) ? $newEmail : $currentUser['email'];
                 if ($avatarPath) {
                     $db->prepare("UPDATE users SET name = ?, phone = ?, email = ?, avatar_path = ? WHERE id = ?")
@@ -73,7 +74,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isImpersonating) {
                 $currentUser['name'] = $name;
                 $currentUser['phone'] = $phone;
                 $currentUser['email'] = $finalEmail;
-                $hasPlaceholderEmail = str_ends_with($finalEmail, '@leads.somahub.top');
+                $hasPlaceholderEmail = !filter_var($finalEmail, FILTER_VALIDATE_EMAIL);
+
+                if ($wasPlaceholder && !$hasPlaceholderEmail) {
+                    require_once __DIR__ . '/../includes/mailer.php';
+                    $welcomeBody = "
+                        <h2 style='color:#0F5257;margin-top:0;'>Welcome to Somahub, {$name}!</h2>
+                        <p>Your email is now saved and you're all set. You can use it to log in and reset your password going forward.</p>
+                    ";
+                    send_somahub_email($finalEmail, 'Welcome to Somahub', $welcomeBody);
+                }
                 $success = ($finalEmail !== $currentUser['email']) ? 'Profile updated — your login email is now ' . htmlspecialchars($finalEmail) . '.' : 'Profile updated.';
             }
         }
@@ -81,24 +91,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isImpersonating) {
         $currentPassword = $_POST['current_password'] ?? '';
         $newPassword = $_POST['new_password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
+        $skipCurrentCheck = !empty($currentUser['password_is_temp']);
 
-        if (!password_verify($currentPassword, $currentUser['password_hash'])) {
+        if (!$skipCurrentCheck && !password_verify($currentPassword, $currentUser['password_hash'])) {
             $error = 'Current password is incorrect.';
         } elseif ($newPassword !== $confirmPassword) {
             $error = 'New passwords do not match.';
         } elseif (strlen($newPassword) < 6) {
             $error = 'New password must be at least 6 characters.';
         } else {
-            $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?")
+            $db->prepare("UPDATE users SET password_hash = ?, password_is_temp = 0 WHERE id = ?")
                ->execute([password_hash($newPassword, PASSWORD_DEFAULT), $user['id']]);
-            $success = 'Password updated successfully.';
+            $currentUser['password_is_temp'] = 0;
+            $success = 'Password set successfully.';
 
-            $changeBody = "
-                <h2 style='color:#0F5257;margin-top:0;'>Your Password Was Changed</h2>
-                <p>This confirms your Somahub password was just changed from your account settings.</p>
-                <p>If this wasn't you, message us immediately.</p>
-            ";
-            send_somahub_email($currentUser['email'], 'Your Somahub password was changed', $changeBody);
+            if (filter_var($currentUser['email'], FILTER_VALIDATE_EMAIL)) {
+                $changeBody = "
+                    <h2 style='color:#0F5257;margin-top:0;'>Your Password Was Changed</h2>
+                    <p>This confirms your Somahub password was just changed from your account settings.</p>
+                    <p>If this wasn't you, message us immediately.</p>
+                ";
+                send_somahub_email($currentUser['email'], 'Your Somahub password was changed', $changeBody);
+            }
         }
     } elseif ($action === 'request_removal') {
         $reason = trim($_POST['removal_reason'] ?? '');
@@ -176,9 +190,9 @@ $pendingRemoval = $pendingRemoval->fetch();
       <label>Phone</label>
       <input type="text" name="phone" value="<?= htmlspecialchars($currentUser['phone'] ?? '') ?>" placeholder="07XXXXXXXX">
       <?php if ($hasPlaceholderEmail): ?>
-        <label>Email <span style="color:#8C3B2E;font-weight:400;">— please add your real one</span></label>
+        <label>Email <span style="color:#8C3B2E;font-weight:400;">— add yours to finish setup</span></label>
         <input type="email" name="email" value="" placeholder="you@example.com">
-        <p style="font-size:0.78rem;color:#8C6D1F;margin-top:-10px;margin-bottom:14px;">Your account was set up with a placeholder email. Add your real one so you can log in normally and receive updates from us.</p>
+        <p style="font-size:0.78rem;color:#8C6D1F;margin-top:-10px;margin-bottom:14px;">You're currently logging in with your phone number. Add your email to finish setting up your account.</p>
       <?php else: ?>
         <label>Email</label>
         <input type="email" value="<?= htmlspecialchars($currentUser['email']) ?>" disabled style="background:#f4f4f4;color:#888;">
@@ -191,16 +205,21 @@ $pendingRemoval = $pendingRemoval->fetch();
   </div>
 
   <div class="box">
-    <h3 style="margin-bottom:16px;">Change Password</h3>
+    <h3 style="margin-bottom:16px;"><?= !empty($currentUser['password_is_temp']) ? 'Set a Password' : 'Change Password' ?></h3>
+    <?php if (!empty($currentUser['password_is_temp'])): ?>
+      <p style="font-size:0.85rem;color:#8C6D1F;margin-bottom:14px;">You logged in via a one-time link. Set a password now so you can log in normally next time.</p>
+    <?php endif; ?>
     <form method="POST">
       <input type="hidden" name="action" value="change_password">
+      <?php if (empty($currentUser['password_is_temp'])): ?>
       <label>Current Password</label>
       <input type="password" name="current_password" required>
+      <?php endif; ?>
       <label>New Password</label>
       <input type="password" name="new_password" required minlength="6">
       <label>Confirm New Password</label>
       <input type="password" name="confirm_password" required minlength="6">
-      <button type="submit" class="btn">Update Password</button>
+      <button type="submit" class="btn"><?= !empty($currentUser['password_is_temp']) ? 'Set Password' : 'Update Password' ?></button>
     </form>
   </div>
 
@@ -209,12 +228,12 @@ $pendingRemoval = $pendingRemoval->fetch();
     <?php if ($pendingRemoval): ?>
       <p style="font-size:0.88rem;color:#666;">A removal request is pending review, submitted <?= date('d M Y', strtotime($pendingRemoval['requested_at'])) ?>. We'll reach out before anything is deleted.</p>
     <?php else: ?>
-      <p style="font-size:0.85rem;color:#666;margin-bottom:14px;">This submits a request for review — nothing is deleted automatically. We'll confirm with you before removing your school's account and data.</p>
+      <p style="font-size:0.85rem;color:#666;margin-bottom:14px;">Nothing is deleted automatically. We'll confirm with you before removing your account and data.</p>
       <form method="POST">
         <input type="hidden" name="action" value="request_removal">
         <label>Reason (optional)</label>
         <textarea name="removal_reason" rows="3" placeholder="Let us know why, so we can improve"></textarea>
-        <button type="submit" class="btn-danger" onclick="return confirm('Submit a request to remove your account? This starts a review process, nothing is deleted immediately.')">Request Account Removal</button>
+        <button type="submit" class="btn-danger" onclick="return confirm('Submit a removal request? Nothing is deleted right away — we\'ll follow up first.')">Request Account Removal</button>
       </form>
     <?php endif; ?>
   </div>

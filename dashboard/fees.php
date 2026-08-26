@@ -93,7 +93,7 @@ $fees = $fees->fetchAll();
   </form>
 
   <table>
-    <tr><th>Grade</th><th>Term</th><th>Amount</th><th>Paybill</th><th></th></tr>
+    <thead><tr><th>Grade</th><th>Term</th><th>Amount</th><th>Paybill</th><th></th></tr></thead>
     <?php foreach ($fees as $f): $pd = json_decode($f['payment_details_json'], true); ?>
     <tr>
       <td data-label="Grade"><?= htmlspecialchars($f['grade']) ?></td>

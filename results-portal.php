@@ -51,6 +51,7 @@ if ($query !== '') {
 </style>
 </head>
 <body>
+<?php $navRoot = '.'; include __DIR__ . '/_public_nav.php'; ?>
 <div class="wrap">
   <div class="brand"><span class="dot"></span> somahub</div>
   <h1>Check your child's results</h1>

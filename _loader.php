@@ -29,10 +29,10 @@
   function hideLoader() {
     document.getElementById('somahubLoader').classList.remove('active');
   }
-  // Any form with class="loader-on-submit" shows the loader automatically  - 
-  // no per-form JS needed, just add the class.
+  // Every POST form shows the loader on submit by default. Add
+  // class="no-loader" to opt a specific form out (e.g. instant AJAX toggles).
   document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('form.loader-on-submit').forEach(form => {
+    document.querySelectorAll('form[method="POST" i]:not(.no-loader), form[method="post"]:not(.no-loader)').forEach(form => {
       form.addEventListener('submit', () => showLoader());
     });
   });

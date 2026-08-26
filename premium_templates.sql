@@ -8,7 +8,7 @@
 INSERT INTO themes (name, css_variables_json, custom_css, is_premium, is_active) VALUES
 
 ('Editorial', '{
-  "primary": "#1c1610",
+  "primary": "#2B2118",
   "accent": "#B5482A",
   "bg": "#F5EEE1",
   "font_display": "Playfair Display",

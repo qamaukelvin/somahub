@@ -29,10 +29,11 @@ if ($slug) {
   .sig-block{flex:1;min-width:220px;}
   .sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px;}
   .print-btn{background:#0F5257;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-weight:700;cursor:pointer;margin-top:24px;}
-  @media print { .print-btn, .no-print { display:none; } body{background:#fff;} }
+  @media print { .print-btn, .no-print, .somahub-public-header { display:none; } body{background:#fff;} }
 </style>
 </head>
 <body>
+<?php $navRoot = '.'; include __DIR__ . '/_public_nav.php'; ?>
 <div class="wrap">
   <div class="doc">
     <div class="doc-header">
