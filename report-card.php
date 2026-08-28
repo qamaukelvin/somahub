@@ -16,8 +16,8 @@ $school = $schoolStmt->fetch();
 
 if (!$school) { http_response_code(404); die('School not found.'); }
 if (is_premium_locked($school)) {
-    http_response_code(403);
-    die('This feature is not currently available for this school. Please contact the school directly.');
+    require_once __DIR__ . '/includes/feature-locked.php';
+    render_feature_locked_page($school, 'Full Report');
 }
 
 $theme = json_decode($school['css_variables_json'], true);

@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/mailer.php';
 // can't be triggered by anyone who finds the URL. Skip this check entirely
 // when run from the command line (php-cli has no $_SERVER['HTTP_HOST']).
 if (php_sapi_name() !== 'cli') {
-    define('CRON_SECRET', 'CHANGE_THIS_TO_A_REAL_RANDOM_STRING');
+    define('CRON_SECRET', '675ytdydytdyt76r');
     if (($_GET['key'] ?? '') !== CRON_SECRET) {
         http_response_code(403);
         die('Forbidden');

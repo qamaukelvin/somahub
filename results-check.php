@@ -24,10 +24,8 @@ if (!$school) {
     die('School not found.');
 }
 
-if (is_premium_locked($school)) {
-    http_response_code(403);
-    die('This feature is not currently available for this school. Please contact the school directly, or use the results method they currently provide.');
-}
+// Results checking is a Free-tier feature — no premium gate here.
+// (report-card.php's combined multi-term report is the Premium version.)
 
 $theme = json_decode($school['css_variables_json'], true);
 if (!empty($school['accent_override'])) $theme['accent'] = $school['accent_override'];

@@ -1,15 +1,10 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/plan.php';
 $user = require_school_login();
 $db = get_db();
 
-$schoolStmt = $db->prepare("SELECT plan, promo_ends_at FROM schools WHERE id = ?");
-$schoolStmt->execute([$user['school_id']]);
-$schoolPlanRow = $schoolStmt->fetch();
-if (is_premium_locked($schoolPlanRow)) {
-    die('Results checking is a paid-plan feature, or your paid term has ended. <a href="checkout.php">Upgrade now</a> to reactivate.');
-}
+// Results checking is a Free-tier feature — no premium gate here.
+// (Attendance and the combined multi-term report remain Premium-only.)
 
 $error = '';
 $success = '';
