@@ -14,19 +14,22 @@
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/plan.php';
 require_once __DIR__ . '/includes/mailer.php';
+require_once __DIR__ . '/includes/settings.php';
+
+$db = get_db();
 
 // If accessed over the web (URL-based cron), require a shared secret so this
 // can't be triggered by anyone who finds the URL. Skip this check entirely
 // when run from the command line (php-cli has no $_SERVER['HTTP_HOST']).
+// Secret is managed in admin/settings.php now, not hardcoded here.
 if (php_sapi_name() !== 'cli') {
-    define('CRON_SECRET', '675ytdydytdyt76r');
-    if (($_GET['key'] ?? '') !== CRON_SECRET) {
+    $cronSecret = get_setting($db, 'cron_secret', 'CHANGE_THIS_TO_A_REAL_RANDOM_STRING');
+    if (($_GET['key'] ?? '') !== $cronSecret) {
         http_response_code(403);
         die('Forbidden');
     }
 }
 
-$db = get_db();
 $sentCount = 0;
 
 $schools = $db->query("SELECT * FROM schools")->fetchAll();

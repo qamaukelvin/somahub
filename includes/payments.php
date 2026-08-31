@@ -11,14 +11,21 @@
  */
 
 require_once __DIR__ . '/mailer.php';
+require_once __DIR__ . '/settings.php';
 
-// Your payment details — update these once (e.g. after registering the business name)
-const PAYMENT_TILL_NUMBER = '4567050';
-const PAYMENT_POCHI_NUMBER = '254707306888';
-const PAYMENT_SEND_MONEY_NUMBER = '254707306888';
-const PAYMENT_EQUITY_PAYBILL = '247247';          // Equity Bank's standard paybill number (same for all Equity account holders)
-const PAYMENT_EQUITY_ACCOUNT_NUMBER = 'XXXXXXXXXXX'; // not in use yet — bank option hidden until this is set
-const PAYMENT_DISPLAY_NAME = 'Kelvin Njehia';    // <-- shown to schools so they can confirm the name matches
+// Payment details now live in admin/settings.php, not hardcoded here.
+// Defined as constants (not variables) so every existing usage elsewhere
+// in the codebase — PAYMENT_TILL_NUMBER etc, used as bare words in
+// dashboard/checkout.php's template — keeps working unchanged.
+if (!defined('PAYMENT_TILL_NUMBER')) {
+    $settingsDb = get_db();
+    define('PAYMENT_TILL_NUMBER', get_setting($settingsDb, 'payment_till_number', '4567050'));
+    define('PAYMENT_POCHI_NUMBER', get_setting($settingsDb, 'payment_pochi_number', '254707306888'));
+    define('PAYMENT_SEND_MONEY_NUMBER', get_setting($settingsDb, 'payment_send_money_number', '254707306888'));
+    define('PAYMENT_EQUITY_PAYBILL', get_setting($settingsDb, 'payment_equity_paybill', '247247'));
+    define('PAYMENT_EQUITY_ACCOUNT_NUMBER', get_setting($settingsDb, 'payment_equity_account_number', ''));
+    define('PAYMENT_DISPLAY_NAME', get_setting($settingsDb, 'payment_display_name', 'Kelvin Njehia'));
+}
 
 function generate_order_reference(PDO $db): string {
     do {

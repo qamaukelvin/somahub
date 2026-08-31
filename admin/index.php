@@ -8,6 +8,9 @@ $search = trim($_GET['q'] ?? '');
 $planFilter = $_GET['plan'] ?? '';
 $statusFilter = $_GET['status'] ?? '';
 $verificationFilter = $_GET['verification'] ?? '';
+$sort = $_GET['sort'] ?? 'newest';
+$page = max(1, (int)($_GET['page'] ?? 1));
+$perPage = 25;
 
 $where = [];
 $params = [];
@@ -33,17 +36,39 @@ if ($verificationFilter !== '') {
 
 $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
+$sortOptions = [
+    'newest' => 's.created_at DESC',
+    'oldest' => 's.created_at ASC',
+    'name_asc' => 's.name ASC',
+    'name_desc' => 's.name DESC',
+    'enrollments' => 'new_enrollments DESC',
+];
+$orderBy = $sortOptions[$sort] ?? $sortOptions['newest'];
+
+$countStmt = $db->prepare("SELECT COUNT(*) FROM schools s $whereSql");
+$countStmt->execute($params);
+$matchingCount = (int)$countStmt->fetchColumn();
+$totalPages = max(1, ceil($matchingCount / $perPage));
+$page = min($page, $totalPages);
+$offset = ($page - 1) * $perPage;
+
 $stmt = $db->prepare("
     SELECT s.*,
         (SELECT COUNT(*) FROM enrollment_applications e WHERE e.school_id = s.id AND e.status='new') as new_enrollments
     FROM schools s
     $whereSql
-    ORDER BY s.created_at DESC
+    ORDER BY $orderBy
+    LIMIT $perPage OFFSET $offset
 ");
 $stmt->execute($params);
 $schools = $stmt->fetchAll();
 
 $totalCount = $db->query("SELECT COUNT(*) c FROM schools")->fetch()['c'];
+
+// Preserves current filters/sort when changing page or clicking column headers
+function qs_with($overrides) {
+    return htmlspecialchars('index.php?' . http_build_query(array_merge($_GET, $overrides)));
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -51,13 +76,18 @@ $totalCount = $db->query("SELECT COUNT(*) c FROM schools")->fetch()['c'];
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Somahub Admin</title>
 <?php include __DIR__ . '/_styles.php'; ?>
+<style>
+  .pagination{display:flex;gap:6px;justify-content:center;margin-top:20px;flex-wrap:wrap;}
+  .pagination a, .pagination span{padding:6px 12px;border-radius:5px;font-size:0.85rem;text-decoration:none;color:#0F5257;background:#F4F1E6;}
+  .pagination .current{background:#0F5257;color:#fff;font-weight:700;}
+</style>
 </head>
 <body>
 <?php include __DIR__ . '/_nav.php'; ?>
 
 <main class="wrap">
   <div class="header-row">
-    <h1>All Schools (<?= count($schools) ?><?= $totalCount != count($schools) ? ' of ' . $totalCount : '' ?>)</h1>
+    <h1>All Schools (<?= $matchingCount ?><?= $totalCount != $matchingCount ? ' of ' . $totalCount : '' ?>)</h1>
     <a href="school-new.php" class="btn">+ Add School</a>
   </div>
 
@@ -66,8 +96,8 @@ $totalCount = $db->query("SELECT COUNT(*) c FROM schools")->fetch()['c'];
     <select name="plan" style="padding:9px;border:1px solid #ddd;border-radius:4px;">
       <option value="">All Plans</option>
       <option value="free" <?= $planFilter === 'free' ? 'selected' : '' ?>>Free</option>
-      <option value="promo_paid" <?= $planFilter === 'promo_paid' ? 'selected' : '' ?>>Paid (Promo)</option>
-      <option value="paid" <?= $planFilter === 'paid' ? 'selected' : '' ?>>Paid (Full)</option>
+      <option value="promo_paid" <?= $planFilter === 'promo_paid' ? 'selected' : '' ?>>Trial</option>
+      <option value="paid" <?= $planFilter === 'paid' ? 'selected' : '' ?>>Premium</option>
     </select>
     <select name="status" style="padding:9px;border:1px solid #ddd;border-radius:4px;">
       <option value="">All Statuses</option>
@@ -81,8 +111,15 @@ $totalCount = $db->query("SELECT COUNT(*) c FROM schools")->fetch()['c'];
       <option value="verified" <?= $verificationFilter === 'verified' ? 'selected' : '' ?>>Verified</option>
       <option value="rejected" <?= $verificationFilter === 'rejected' ? 'selected' : '' ?>>Needs Attention</option>
     </select>
+    <select name="sort" style="padding:9px;border:1px solid #ddd;border-radius:4px;">
+      <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Newest First</option>
+      <option value="oldest" <?= $sort === 'oldest' ? 'selected' : '' ?>>Oldest First</option>
+      <option value="name_asc" <?= $sort === 'name_asc' ? 'selected' : '' ?>>Name A-Z</option>
+      <option value="name_desc" <?= $sort === 'name_desc' ? 'selected' : '' ?>>Name Z-A</option>
+      <option value="enrollments" <?= $sort === 'enrollments' ? 'selected' : '' ?>>Most New Enquiries</option>
+    </select>
     <button type="submit" class="btn">Filter</button>
-    <?php if ($search || $planFilter || $statusFilter || $verificationFilter): ?>
+    <?php if ($search || $planFilter || $statusFilter || $verificationFilter || $sort !== 'newest'): ?>
       <a href="index.php" class="btn" style="background:#888;">Clear</a>
     <?php endif; ?>
   </form>
@@ -94,9 +131,9 @@ $totalCount = $db->query("SELECT COUNT(*) c FROM schools")->fetch()['c'];
     <thead><tr><th>School</th><th>Subdomain</th><th>Plan</th><th>Status</th><th>Enquiries</th><th></th></tr></thead>
     <?php foreach ($schools as $s): ?>
     <tr>
-      <td><?= htmlspecialchars($s['name']) ?></td>
-      <td><?= htmlspecialchars($s['slug']) ?>.somahub.top</td>
-      <td>
+      <td data-label="School"><?= htmlspecialchars($s['name']) ?></td>
+      <td data-label="Subdomain"><?= htmlspecialchars($s['slug']) ?>.somahub.top</td>
+      <td data-label="Plan">
         <span class="plan-badge plan-<?= $s['plan'] ?>"><?= ucfirst(str_replace('_',' ',$s['plan'])) ?></span>
         <?php if (is_premium_locked($s) && $s['plan'] === 'promo_paid'): ?>
           <span class="plan-badge" style="background:#FBE8E4;color:#8C3B2E;">Overdue</span>
@@ -104,12 +141,23 @@ $totalCount = $db->query("SELECT COUNT(*) c FROM schools")->fetch()['c'];
           <br><small>until <?= date('d M Y', strtotime($s['promo_ends_at'])) ?></small>
         <?php endif; ?>
       </td>
-      <td><?= ucfirst($s['status']) ?></td>
-      <td><?= $s['new_enrollments'] > 0 ? '<strong>'.$s['new_enrollments'].' new</strong>' : '—' ?></td>
-      <td><a href="school-edit.php?id=<?= $s['id'] ?>">Manage</a></td>
+      <td data-label="Status"><?= ucfirst($s['status']) ?></td>
+      <td data-label="Enquiries"><?= $s['new_enrollments'] > 0 ? '<strong>'.$s['new_enrollments'].' new</strong>' : '—' ?></td>
+      <td data-label=""><a href="school-edit.php?id=<?= $s['id'] ?>">Manage</a></td>
     </tr>
     <?php endforeach; ?>
   </table>
+
+  <?php if ($totalPages > 1): ?>
+    <div class="pagination">
+      <?php if ($page > 1): ?><a href="<?= qs_with(['page' => $page - 1]) ?>">← Prev</a><?php endif; ?>
+      <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+        <?php if ($p == $page): ?><span class="current"><?= $p ?></span>
+        <?php else: ?><a href="<?= qs_with(['page' => $p]) ?>"><?= $p ?></a><?php endif; ?>
+      <?php endfor; ?>
+      <?php if ($page < $totalPages): ?><a href="<?= qs_with(['page' => $page + 1]) ?>">Next →</a><?php endif; ?>
+    </div>
+  <?php endif; ?>
   <?php endif; ?>
 </main>
 </body>

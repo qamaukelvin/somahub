@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/settings.php';
 $db = get_db();
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/mailer.php';
@@ -64,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </table>
                     <p style='color:#6E6A5C;'>No school attached yet - they're mid signup.</p>
                 ";
-                send_somahub_email('admin@somahub.top', "New signup: {$name}", $adminBody, $email);
+                send_somahub_email(get_setting($db, 'admin_notify_email', 'admin@somahub.top'), "New signup: {$name}", $adminBody, $email);
 
                 login($email, $password);
                 header('Location: dashboard/school-setup.php');

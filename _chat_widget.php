@@ -10,7 +10,15 @@
 //
 // If not set, defaults to 'marketing' context.
 
-$SOMAHUB_WHATSAPP_NUMBER = '254707306888';
+$SOMAHUB_WHATSAPP_NUMBER = '254707306888'; // fallback if settings lookup below fails
+try {
+    if (function_exists('get_db')) {
+        require_once __DIR__ . '/includes/settings.php';
+        $SOMAHUB_WHATSAPP_NUMBER = get_setting(get_db(), 'whatsapp_outreach_number', $SOMAHUB_WHATSAPP_NUMBER);
+    }
+} catch (\Throwable $e) {
+    // keep the hardcoded fallback above
+}
 $context = $SOMAHUB_CHAT_CONTEXT ?? 'marketing';
 $schoolName = $SOMAHUB_CHAT_SCHOOL_NAME ?? '';
 $schoolSlug = $SOMAHUB_CHAT_SCHOOL_SLUG ?? '';

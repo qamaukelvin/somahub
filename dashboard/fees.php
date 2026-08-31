@@ -1,10 +1,15 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/plan.php';
 require_once __DIR__ . '/../includes/audit.php';
 $user = require_school_login();
 $db = get_db();
 
-// Fee publishing is a Free-tier feature — no premium gate here.
+$schoolStmt = $db->prepare("SELECT plan, promo_ends_at FROM schools WHERE id = ?");
+$schoolStmt->execute([$user['school_id']]);
+if (is_premium_locked($schoolStmt->fetch())) {
+    die('Fee publishing is a paid-plan feature, or your paid term has ended. <a href="checkout.php">Upgrade now</a> to reactivate.');
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['delete_id'])) {

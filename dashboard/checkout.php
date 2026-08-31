@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/settings.php';
 $user = require_school_login();
 require_once __DIR__ . '/../includes/payments.php';
 require_once __DIR__ . '/../includes/mailer.php';
@@ -50,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </table>
                 <p><a href='https://somahub.top/admin/payments.php' style='color:#0F5257;font-weight:700;'>Verify in Admin &rarr;</a></p>
             ";
-            send_somahub_email('admin@somahub.top', "Payment code submitted: {$schoolName}", $adminBody);
+            send_somahub_email(get_setting($db, 'admin_notify_email', 'admin@somahub.top'), "Payment code submitted: {$schoolName}", $adminBody);
 
             header("Location: checkout.php?submitted=1");
             exit;
@@ -144,7 +145,7 @@ if ($order) {
         Amount: KSh <?= number_format($order['total_amount'], 2) ?><br>
         Name shown: <?= htmlspecialchars(PAYMENT_DISPLAY_NAME) ?>
       </div>
-      <?php if (PAYMENT_EQUITY_ACCOUNT_NUMBER !== 'XXXXXXXXXXX'): ?>
+      <?php if (PAYMENT_EQUITY_ACCOUNT_NUMBER !== ''): ?>
       <div class="pay-option">
         <strong>Option 4 — Bank Deposit (Equity Paybill)</strong>
         Paybill No: <strong><?= htmlspecialchars(PAYMENT_EQUITY_PAYBILL) ?></strong><br>
@@ -164,7 +165,7 @@ if ($order) {
           <option value="till">Till Number</option>
           <option value="pochi">Pochi la Biashara</option>
           <option value="send_money">Send Money</option>
-          <?php if (PAYMENT_EQUITY_ACCOUNT_NUMBER !== 'XXXXXXXXXXX'): ?>
+          <?php if (PAYMENT_EQUITY_ACCOUNT_NUMBER !== ''): ?>
           <option value="equity_paybill">Bank Deposit (Equity Paybill)</option>
           <?php endif; ?>
         </select>

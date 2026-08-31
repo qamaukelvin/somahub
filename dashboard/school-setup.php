@@ -153,19 +153,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   .plan-price{font-size:0.78rem;color:var(--muted);margin-top:2px;}
   .plan-desc{font-size:0.78rem;color:var(--muted);margin-top:6px;line-height:1.4;}
 
-  .theme-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:6px;}
+  .theme-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:8px;margin-bottom:6px;max-height:280px;overflow-y:auto;padding:2px;}
   .theme-option{position:relative;}
   .theme-option input{position:absolute;opacity:0;}
-  .theme-option label{display:block;border:2px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;background:#fff;}
+  .theme-option label{display:block;border:2px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;background:#fff;}
   .theme-option input:checked + label{border-color:var(--teal);box-shadow:0 0 0 2px rgba(15,82,87,0.15);}
-  .theme-preview{height:70px;position:relative;overflow:hidden;}
-  .theme-preview .tp-bar{height:16px;display:flex;align-items:center;padding:0 6px;gap:3px;}
-  .theme-preview .tp-dot{width:5px;height:5px;border-radius:50%;}
-  .theme-preview .tp-body{padding:6px;}
-  .theme-preview .tp-line{height:5px;border-radius:2px;margin-bottom:4px;}
-  .theme-meta{padding:8px 10px;}
-  .theme-option-name{font-size:0.78rem;font-weight:700;}
-  .premium-tag{display:inline-block;background:#F2A65A;color:#0A3A3E;font-size:0.62rem;font-weight:800;padding:1px 6px;border-radius:8px;margin-left:4px;vertical-align:middle;}
+  .theme-preview{height:38px;position:relative;overflow:hidden;}
+  .theme-preview .tp-bar{height:9px;display:flex;align-items:center;padding:0 4px;gap:2px;}
+  .theme-preview .tp-dot{width:3px;height:3px;border-radius:50%;}
+  .theme-preview .tp-body{padding:4px;}
+  .theme-preview .tp-line{height:3px;border-radius:2px;margin-bottom:2px;}
+  .theme-meta{padding:5px 7px;}
+  .theme-option-name{font-size:0.68rem;font-weight:700;line-height:1.2;display:block;}
+  .premium-tag{display:inline-block;background:#F2A65A;color:#0A3A3E;font-size:0.56rem;font-weight:800;padding:0 4px;border-radius:6px;margin-top:2px;}
   .theme-option.locked label{opacity:0.55;}
 </style>
 </head>

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/settings.php';
 require_once __DIR__ . '/includes/mailer.php';
 $db = get_db();
 
@@ -37,7 +38,7 @@ $body = "
     </table>
     <p style='color:#6E6A5C;'>Message:</p><p>" . nl2br(htmlspecialchars($message)) . "</p>
 ";
-send_somahub_email('admin@somahub.top', "New contact message: {$subject}", $body, $email);
+send_somahub_email(get_setting($db, 'admin_notify_email', 'admin@somahub.top'), "New contact message: {$subject}", $body, $email);
 ?>
 <!DOCTYPE html>
 <html lang="en">

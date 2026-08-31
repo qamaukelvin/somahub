@@ -26,6 +26,14 @@ function get_school_content_presets(): array {
                 'admissions' => [
                     'body' => "Admissions are open throughout the year, subject to space availability.\n\nContact the school office to arrange a visit and learn more about enrolling your child.",
                 ],
+                'faq' => [
+                    'question_1' => 'How do I enroll my child at {school}?',
+                    'answer_1' => 'Contact the school office directly by phone or visit us in person to learn about enrollment requirements and available spaces.',
+                    'question_2' => 'What are the school fees?',
+                    'answer_2' => 'Please see our Fees section above for the current published fee structure, or contact the office for details.',
+                    'question_3' => 'What are your school hours?',
+                    'answer_3' => 'Contact the school office for our current term dates and daily schedule.',
+                ],
             ],
         ],
         'secondary' => [
@@ -45,6 +53,14 @@ function get_school_content_presets(): array {
                 ],
                 'admissions' => [
                     'body' => "We welcome applications from students transitioning from primary school as well as transfers.\n\nContact the school office for entry requirements and available slots.",
+                ],
+                'faq' => [
+                    'question_1' => 'How do I enroll my child at {school}?',
+                    'answer_1' => 'Contact the school office directly by phone or visit us in person to learn about enrollment requirements and available spaces.',
+                    'question_2' => 'What are the school fees?',
+                    'answer_2' => 'Please see our Fees section above for the current published fee structure, or contact the office for details.',
+                    'question_3' => 'What are your school hours?',
+                    'answer_3' => 'Contact the school office for our current term dates and daily schedule.',
                 ],
             ],
         ],
@@ -66,6 +82,14 @@ function get_school_content_presets(): array {
                 'admissions' => [
                     'body' => "We accept children on a rolling basis throughout the year. Contact us to arrange a visit and discuss enrollment.",
                 ],
+                'faq' => [
+                    'question_1' => 'How do I enroll my child at {school}?',
+                    'answer_1' => 'Contact the school office directly by phone or visit us in person to learn about enrollment requirements and available spaces.',
+                    'question_2' => 'What are the school fees?',
+                    'answer_2' => 'Please see our Fees section above for the current published fee structure, or contact the office for details.',
+                    'question_3' => 'What are your school hours?',
+                    'answer_3' => 'Contact the school office for our current term dates and daily schedule.',
+                ],
             ],
         ],
         'boarding' => [
@@ -86,6 +110,14 @@ function get_school_content_presets(): array {
                 'admissions' => [
                     'body' => "Boarding places are limited and offered on a first-come basis. Contact the school office for entry requirements, fees, and available slots.",
                 ],
+                'faq' => [
+                    'question_1' => 'How do I enroll my child at {school}?',
+                    'answer_1' => 'Contact the school office directly by phone or visit us in person to learn about enrollment requirements and available spaces.',
+                    'question_2' => 'What are the school fees?',
+                    'answer_2' => 'Please see our Fees section above for the current published fee structure, or contact the office for details.',
+                    'question_3' => 'What are your school hours?',
+                    'answer_3' => 'Contact the school office for our current term dates and daily schedule.',
+                ],
             ],
         ],
         'mixed_day_boarding' => [
@@ -105,6 +137,14 @@ function get_school_content_presets(): array {
                 ],
                 'admissions' => [
                     'body' => "We welcome applications for both day and boarding places. Contact the school office to discuss options, fees, and availability.",
+                ],
+                'faq' => [
+                    'question_1' => 'How do I enroll my child at {school}?',
+                    'answer_1' => 'Contact the school office directly by phone or visit us in person to learn about enrollment requirements and available spaces.',
+                    'question_2' => 'What are the school fees?',
+                    'answer_2' => 'Please see our Fees section above for the current published fee structure, or contact the office for details.',
+                    'question_3' => 'What are your school hours?',
+                    'answer_3' => 'Contact the school office for our current term dates and daily schedule.',
                 ],
             ],
         ],

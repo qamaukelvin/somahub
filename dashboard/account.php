@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/settings.php';
 require_once __DIR__ . '/../includes/mailer.php';
 $user = require_school_login();
 $db = get_db();
@@ -128,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isImpersonating) {
             </table>
             <p><a href='https://somahub.top/admin/account-requests.php' style='color:#0F5257;font-weight:700;'>Review in Admin &rarr;</a></p>
         ";
-        send_somahub_email('admin@somahub.top', 'Account removal requested', $adminBody, $currentUser['email']);
+        send_somahub_email(get_setting($db, 'admin_notify_email', 'admin@somahub.top'), 'Account removal requested', $adminBody, $currentUser['email']);
     }
 }
 

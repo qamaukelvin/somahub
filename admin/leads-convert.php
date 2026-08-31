@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
         $userId = $db->lastInsertId();
 
         $presetContent = $contentPresets[$presetKey]['content'] ?? [];
-        $defaultSectionKeys = ['hero','about','academics','admissions','gallery','contact'];
+        $defaultSectionKeys = ['hero','about','academics','admissions','faq','gallery','contact'];
         $typeStmt = $db->prepare("SELECT id, schema_json FROM section_types WHERE key_name = ?");
         $insertSection = $db->prepare("
             INSERT INTO site_sections (school_id, section_type_id, position, is_visible, content_json)
@@ -76,6 +76,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
                         }
                     }
                 }
+
+                // Contact section: prefill whatever we already know from the
+                // lead itself, so the school doesn't have to re-type it.
+                if ($key === 'contact') {
+                    if (array_key_exists('phone', $content) && !empty($lead['phone'])) {
+                        $content['phone'] = $lead['phone'];
+                    }
+                    if (array_key_exists('email', $content) && !empty($realEmail)) {
+                        $content['email'] = $realEmail;
+                    }
+                    if (array_key_exists('address', $content) && !empty($lead['county'])) {
+                        $content['address'] = $lead['county'] . ' County';
+                    }
+                }
+
                 $insertSection->execute([$schoolId, $type['id'], $idx, json_encode($content)]);
             }
         }

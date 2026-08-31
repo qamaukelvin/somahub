@@ -46,6 +46,20 @@ function somahub_notify_fatal_error(string $message, string $file, int $line): v
           . "URL: {$url}\n"
           . "Time: " . date('Y-m-d H:i:s') . " UTC\n";
 
+    // Admin email defaults to the hardcoded address below — this file must
+    // survive even if the database itself is the thing that's broken, so
+    // it only overrides from settings if that lookup succeeds quietly.
+    $adminEmail = 'admin@somahub.top';
+    try {
+        $settingsPath = __DIR__ . '/settings.php';
+        if (function_exists('get_db') && file_exists($settingsPath)) {
+            require_once $settingsPath;
+            $adminEmail = get_setting(get_db(), 'admin_notify_email', $adminEmail);
+        }
+    } catch (\Throwable $e) {
+        // ignore — keep the hardcoded fallback
+    }
+
     // Try the site's own mailer if it's loadable; fall back to PHP's raw
     // mail() so a broken mailer.php doesn't also silence this alert.
     try {
@@ -53,7 +67,7 @@ function somahub_notify_fatal_error(string $message, string $file, int $line): v
         if (file_exists($mailerPath)) {
             require_once $mailerPath;
             if (function_exists('send_somahub_email')) {
-                send_somahub_email('admin@somahub.top', '⚠️ Somahub error: ' . mb_strimwidth($message, 0, 60, '…'), nl2br(htmlspecialchars($body)));
+                send_somahub_email($adminEmail, '⚠️ Somahub error: ' . mb_strimwidth($message, 0, 60, '…'), nl2br(htmlspecialchars($body)));
                 return;
             }
         }
@@ -61,7 +75,7 @@ function somahub_notify_fatal_error(string $message, string $file, int $line): v
         // fall through to raw mail()
     }
 
-    @mail('admin@somahub.top', 'Somahub error (fallback alert)', $body);
+    @mail($adminEmail, 'Somahub error (fallback alert)', $body);
 }
 
 register_shutdown_function(function () {

@@ -34,6 +34,8 @@
         <div class="nav-dropdown">
           <a href="account-requests.php">Account Requests</a>
           <a href="audit-log.php">Audit Log</a>
+          <a href="archived-schools.php">Archived Schools</a>
+          <a href="settings.php">Settings</a>
           <a href="../index.php" target="_blank">Main Site ↗</a>
         </div>
       </div>

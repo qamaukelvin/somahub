@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/settings.php';
 $db = get_db();
 $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium ASC, name ASC")->fetchAll();
 ?>
@@ -53,11 +54,13 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
   .plan-card.trial .plan-cta{background:var(--amber);color:var(--teal-deep);}
 
   /* ADD-ONS TABLE */
-  .addon-table{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;border:1px solid var(--line);}
-  .addon-table th{background:var(--teal);color:var(--sand);text-align:left;padding:14px 18px;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.04em;}
-  .addon-table td{padding:16px 18px;border-bottom:1px solid var(--line);font-size:0.9rem;}
-  .addon-table tr:last-child td{border-bottom:none;}
-  .addon-table .price{font-weight:700;color:var(--teal);white-space:nowrap;}
+  .addon-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+  .addon-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;}
+  .addon-name{font-weight:700;font-size:0.95rem;margin-bottom:2px;}
+  .addon-example{font-size:0.78rem;color:var(--muted);margin-bottom:8px;}
+  .addon-desc{font-size:0.85rem;color:var(--muted);margin-bottom:16px;line-height:1.5;}
+  .addon-price{font-size:1.1rem;font-weight:800;color:var(--teal);}
+  .addon-price span{font-size:0.75rem;font-weight:500;color:var(--muted);}
 
   /* CUSTOM BUILD CARDS */
   .build-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;}
@@ -95,13 +98,7 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
 
 <?php $navRoot = '.'; include __DIR__ . '/_public_nav.php'; ?>
 
-<section class="hero">
-  <span class="kicker">Pricing</span>
-  <h1>No hidden fees. Ever.</h1>
-  <p>Every price we charge, published right here. If you ever see a number anywhere else that doesn't match this page, this page is the correct one.</p>
-</section>
-
-<section id="plans">
+<section id="plans" style="padding-top:60px;">
   <div class="section-head" style="text-align:center;margin-left:auto;margin-right:auto;">
     <h2>Website plans</h2>
     <p>Start on Free anytime, or try everything free for 60 days on Trial - no card required either way.</p>
@@ -182,29 +179,30 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
       <h2>Add-ons</h2>
       <p>Optional extras, purchased anytime from your dashboard once your site is set up.</p>
     </div>
-    <table class="addon-table">
-      <tr><th>Add-on</th><th>What's included</th><th>Price</th></tr>
-      <tr>
-        <td>Custom Domain - Budget<br><span style="color:var(--muted);font-size:0.8rem;">e.g. yourschool.top</span></td>
-        <td>Registration, renewal tracking, DNS setup and support</td>
-        <td class="price">KSh 900 / year</td>
-      </tr>
-      <tr>
-        <td>Custom Domain - .co.ke<br><span style="color:var(--muted);font-size:0.8rem;">e.g. yourschool.co.ke</span></td>
-        <td>Registration, renewal tracking, DNS setup and support</td>
-        <td class="price">KSh 1,800 / year</td>
-      </tr>
-      <tr>
-        <td>Content Writing</td>
-        <td>We write your About, Academics, and Admissions text for you, tailored to your actual school - not the generic starter content</td>
-        <td class="price">KSh 1,500 one-time</td>
-      </tr>
-      <tr>
-        <td>Google Business Profile Setup</td>
-        <td>We create and verify your school on Google Business Profile using your exact location - shows up on Google Maps and local search</td>
-        <td class="price">KSh 1,200 one-time</td>
-      </tr>
-    </table>
+    <div class="addon-grid">
+      <div class="addon-card">
+        <div class="addon-name">Custom Domain — Budget</div>
+        <div class="addon-example">e.g. yourschool.top</div>
+        <p class="addon-desc">Registration, renewal tracking, DNS setup and support</p>
+        <div class="addon-price">KSh 900 <span>/ year</span></div>
+      </div>
+      <div class="addon-card">
+        <div class="addon-name">Custom Domain — .co.ke</div>
+        <div class="addon-example">e.g. yourschool.co.ke</div>
+        <p class="addon-desc">Registration, renewal tracking, DNS setup and support</p>
+        <div class="addon-price">KSh 1,800 <span>/ year</span></div>
+      </div>
+      <div class="addon-card">
+        <div class="addon-name">Content Writing</div>
+        <p class="addon-desc">We write your About, Academics, and Admissions text for you, tailored to your actual school — not the generic starter content</p>
+        <div class="addon-price">KSh 1,500 <span>one-time</span></div>
+      </div>
+      <div class="addon-card">
+        <div class="addon-name">Google Business Profile Setup</div>
+        <p class="addon-desc">We create and verify your school on Google Business Profile using your exact location — shows up on Google Maps and local search</p>
+        <div class="addon-price">KSh 1,200 <span>one-time</span></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -234,7 +232,7 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
 <div class="cta-band">
   <h2>Questions about pricing?</h2>
   <p>Ask Rafiki using the chat button in the corner, or message us directly.</p>
-  <a href="https://wa.me/254707306888?text=<?= urlencode('Hi Somahub, I have a question about pricing.') ?>" class="btn-primary">Chat on WhatsApp</a>
+  <a href="https://wa.me/<?= htmlspecialchars(get_setting($db, 'whatsapp_outreach_number', '254707306888')) ?>?text=<?= urlencode('Hi Somahub, I have a question about pricing.') ?>" class="btn-primary">Chat on WhatsApp</a>
 </div>
 
 <footer>

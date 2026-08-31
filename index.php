@@ -67,19 +67,19 @@ $platformAvgRating = get_average_rating($platformReviews);
   a{color:inherit;text-decoration:none;}
   .wrap{max-width:1120px;margin:0 auto;padding:0 24px;}
 
-  header{position:sticky;top:0;z-index:50;background:rgba(247,242,231,0.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);}
-  .navbar{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;max-width:1120px;margin:0 auto;}
-  .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.2rem;}
+  header{position:sticky;top:0;z-index:1000;background:rgba(247,242,231,0.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);}
+  .navbar{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;max-width:1120px;margin:0 auto;width:100%;box-sizing:border-box;}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.2rem;flex-shrink:0;}
   .brand .dot{width:10px;height:10px;background:var(--amber);border-radius:50%;}
-  nav ul{list-style:none;display:flex;gap:28px;}
+  nav ul{list-style:none;display:flex;gap:28px;margin:0;padding:0;align-items:center;}
   nav a{font-size:0.9rem;font-weight:600;}
   nav a:hover{color:var(--teal);}
   .navcta{background:var(--teal);color:var(--sand)!important;padding:10px 20px;border-radius:24px;font-size:0.85rem;font-weight:700;}
-  .menu-toggle{display:none;background:none;border:none;font-size:1.5rem;cursor:pointer;}
+  .menu-toggle{display:none;background:none;border:none;font-size:1.4rem;line-height:1;padding:4px 6px;cursor:pointer;color:var(--teal-deep);flex-shrink:0;}
   @media(max-width:820px){
     nav ul{display:none;}
     .menu-toggle{display:block;}
-    nav ul.open{display:flex;flex-direction:column;position:absolute;top:60px;left:0;right:0;background:var(--sand);padding:20px 24px;border-bottom:1px solid var(--line);gap:16px;}
+    nav ul.open{display:flex;flex-direction:column;position:absolute;top:60px;left:0;right:0;background:var(--sand);padding:20px 24px;border-bottom:1px solid var(--line);gap:16px;align-items:flex-start;z-index:2000;}
   }
 
   /* HERO */
@@ -192,7 +192,7 @@ $platformAvgRating = get_average_rating($platformReviews);
       <li><a href="dashboard/login.php">School Login</a></li>
       <li><a href="get-started.php" class="navcta">Get Started</a></li>
     </ul></nav>
-    <button class="menu-toggle" onclick="document.getElementById('navlinks').classList.toggle('open')">☰</button>
+    <button class="menu-toggle" id="indexMenuToggle" aria-label="Menu" aria-expanded="false">☰</button>
   </div>
 </header>
 
@@ -202,8 +202,7 @@ $platformAvgRating = get_average_rating($platformReviews);
     <h1>Your school deserves a <span class="accent">real website</span>, at no cost to you</h1>
     <p>Somahub builds and hosts your school's site. You review it, edit it from a simple dashboard, and it goes live in days, not months.</p>
     <div class="hero-ctas">
-      <a href="get-started.php" class="btn-primary">Get Started</a>
-      <a href="dashboard/login.php" class="btn-ghost">Log In</a>
+      <a href="get-started.php" class="btn-primary">Get Started / Log In</a>
       <a href="#portfolio" class="btn-ghost">View Schools</a>
     </div>
 
@@ -478,6 +477,38 @@ if (portfolioSearch) {
         document.getElementById('portfolioNoResults').style.display = visibleCount === 0 ? 'block' : 'none';
     });
 }
+
+(function() {
+  var toggleBtn = document.getElementById('indexMenuToggle');
+  var menu = document.getElementById('navlinks');
+  if (!toggleBtn || !menu) return;
+
+  function closeMenu() {
+    menu.classList.remove('open');
+    toggleBtn.textContent = '☰';
+    toggleBtn.setAttribute('aria-expanded', 'false');
+  }
+  function openMenu() {
+    menu.classList.add('open');
+    toggleBtn.textContent = '✕';
+    toggleBtn.setAttribute('aria-expanded', 'true');
+  }
+
+  toggleBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    menu.classList.contains('open') ? closeMenu() : openMenu();
+  });
+
+  document.addEventListener('click', function(e) {
+    if (menu.classList.contains('open') && !menu.contains(e.target) && !toggleBtn.contains(e.target)) {
+      closeMenu();
+    }
+  });
+
+  menu.querySelectorAll('a').forEach(function(link) {
+    link.addEventListener('click', closeMenu);
+  });
+})();
 </script>
 
 <?php include __DIR__ . '/_loader.php'; ?>

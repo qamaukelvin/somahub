@@ -123,6 +123,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $owner['id_verified_at'] = date('Y-m-d H:i:s');
     }
 
+    if (isset($_POST['action']) && $_POST['action'] === 'start_trial_now') {
+        require_once __DIR__ . '/../includes/payments.php';
+        start_trial($db, $id, 60);
+        $message = '60-day trial started manually.';
+        $school['plan'] = 'promo_paid';
+    }
+
     if (isset($_POST['action']) && $_POST['action'] === 'reset_password' && $owner) {
         $newTempPassword = bin2hex(random_bytes(4));
         $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?")
@@ -145,22 +152,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($confirmName !== $school['name']) {
             $message = 'School name did not match exactly — nothing was deleted.';
         } else {
-            // Database cascade handles site_sections, media, users, enrollment_applications,
-            // result_uploads/rows, fee_structures, and content_audit_log automatically.
-            // Physical uploaded files need explicit cleanup since they're not DB-managed.
-            $uploadDir = __DIR__ . '/../uploads/schools/' . $id . '/';
-            if (is_dir($uploadDir)) {
-                $files = glob($uploadDir . '*');
-                foreach ($files as $file) {
-                    if (is_file($file)) unlink($file);
+            require_once __DIR__ . '/../includes/school-archive.php';
+            require_once __DIR__ . '/../includes/mailer.php';
+
+            $db->beginTransaction();
+            try {
+                // Archive everything worth keeping before any of it is deleted.
+                $export = build_school_export($db, $id);
+                $admin = current_user();
+                $db->prepare("
+                    INSERT INTO archived_schools (original_school_id, school_name, slug, county, phone, email, export_json, archived_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ")->execute([
+                    $id, $school['name'], $school['slug'], $school['county'],
+                    $school['phone'], $school['email'], json_encode($export),
+                    $admin['name'] ?? $admin['email'] ?? 'admin',
+                ]);
+
+                $userIds = $db->prepare("SELECT id FROM users WHERE school_id = ?");
+                $userIds->execute([$id]);
+                $userIds = array_column($userIds->fetchAll(), 'id');
+
+                if ($userIds) {
+                    $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+                    $db->prepare("DELETE FROM magic_login_tokens WHERE user_id IN ($placeholders)")->execute($userIds);
+                    $db->prepare("DELETE FROM password_resets WHERE user_id IN ($placeholders)")->execute($userIds);
                 }
-                rmdir($uploadDir);
+
+                $orderIds = $db->prepare("SELECT id FROM orders WHERE school_id = ?");
+                $orderIds->execute([$id]);
+                $orderIds = array_column($orderIds->fetchAll(), 'id');
+
+                if ($orderIds) {
+                    $placeholders = implode(',', array_fill(0, count($orderIds), '?'));
+                    $db->prepare("DELETE FROM order_items WHERE order_id IN ($placeholders)")->execute($orderIds);
+                    $db->prepare("DELETE FROM refunds WHERE order_id IN ($placeholders)")->execute($orderIds);
+                    $db->prepare("DELETE FROM service_requests WHERE order_id IN ($placeholders)")->execute($orderIds);
+                }
+
+                $attUploadIds = $db->prepare("SELECT id FROM attendance_uploads WHERE school_id = ?");
+                $attUploadIds->execute([$id]);
+                $attUploadIds = array_column($attUploadIds->fetchAll(), 'id');
+                if ($attUploadIds) {
+                    $placeholders = implode(',', array_fill(0, count($attUploadIds), '?'));
+                    $db->prepare("DELETE FROM attendance_rows WHERE attendance_upload_id IN ($placeholders)")->execute($attUploadIds);
+                }
+
+                $resultUploadIds = $db->prepare("SELECT id FROM result_uploads WHERE school_id = ?");
+                $resultUploadIds->execute([$id]);
+                $resultUploadIds = array_column($resultUploadIds->fetchAll(), 'id');
+                if ($resultUploadIds) {
+                    $placeholders = implode(',', array_fill(0, count($resultUploadIds), '?'));
+                    $db->prepare("DELETE FROM result_rows WHERE result_upload_id IN ($placeholders)")->execute($resultUploadIds);
+                }
+
+                $tablesByColumn = [
+                    'orders' => 'school_id', 'attendance_uploads' => 'school_id',
+                    'result_uploads' => 'school_id', 'fee_structures' => 'school_id',
+                    'enrollment_applications' => 'school_id', 'content_audit_log' => 'school_id',
+                    'site_sections' => 'school_id', 'notifications' => 'school_id',
+                    'account_removal_requests' => 'school_id', 'reviews' => 'reviewable_id',
+                ];
+                foreach ($tablesByColumn as $table => $col) {
+                    if ($table === 'reviews') {
+                        $db->prepare("DELETE FROM reviews WHERE reviewable_type = 'school' AND reviewable_id = ?")->execute([$id]);
+                    } else {
+                        $db->prepare("DELETE FROM {$table} WHERE {$col} = ?")->execute([$id]);
+                    }
+                }
+
+                // Users last — everything above that referenced user_id is already gone
+                $db->prepare("DELETE FROM users WHERE school_id = ?")->execute([$id]);
+
+                $db->prepare("DELETE FROM schools WHERE id = ?")->execute([$id]);
+
+                // Courtesy summary email — only if they have a real email on
+                // file (phone-only logins from lead conversion have nothing
+                // to send this to, which is fine, not an error).
+                if (!empty($school['email']) && filter_var($school['email'], FILTER_VALIDATE_EMAIL)) {
+                    $summaryHtml = build_school_export_summary_html($export);
+                    send_somahub_email($school['email'], 'Your Somahub account has been removed', $summaryHtml);
+                }
+
+                // Physical uploaded files aren't DB-managed — clean up separately
+                $uploadDir = __DIR__ . '/../uploads/schools/' . $id . '/';
+                if (is_dir($uploadDir)) {
+                    foreach (glob($uploadDir . '*') as $file) {
+                        if (is_file($file)) unlink($file);
+                    }
+                    rmdir($uploadDir);
+                }
+
+                $db->commit();
+                header("Location: index.php?deleted=1");
+                exit;
+            } catch (Exception $e) {
+                $db->rollBack();
+                error_log('School deletion failed: ' . $e->getMessage());
+                $message = 'Deletion failed: ' . $e->getMessage();
             }
-
-            $db->prepare("DELETE FROM schools WHERE id = ?")->execute([$id]);
-
-            header("Location: index.php?deleted=1");
-            exit;
         }
     }
 }
@@ -228,6 +318,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <option value="promo_paid" <?= $school['plan'] === 'promo_paid' ? 'selected' : '' ?>>Paid (Promo / Free Term)</option>
         <option value="paid" <?= $school['plan'] === 'paid' ? 'selected' : '' ?>>Paid (Full)</option>
       </select>
+      <?php if ($school['plan'] === 'free'): ?>
+        <p style="font-size:0.78rem;color:#888;margin-top:-10px;margin-bottom:16px;">
+          Converted before the auto-trial feature existed, or the automatic 60-day trial didn't fire on first login? Start it manually:
+        </p>
+        <form method="POST" style="margin-bottom:16px;">
+          <input type="hidden" name="action" value="start_trial_now">
+          <button type="submit" class="btn-secondary" style="background:#F2A65A;color:#0A3A3E;border:none;padding:8px 16px;border-radius:6px;font-size:0.82rem;font-weight:700;cursor:pointer;">Start 60-Day Trial Now</button>
+        </form>
+      <?php endif; ?>
 
       <label>Status</label>
       <select name="status">
@@ -358,7 +457,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="box" style="border:1.5px solid #F5C6C0;">
     <h3 style="margin-bottom:8px;color:#C0392B;">Danger Zone</h3>
     <p style="color:var(--muted);font-size:0.88rem;margin-bottom:16px;">
-      This permanently deletes <strong><?= htmlspecialchars($school['name']) ?></strong>, including their website, all uploaded photos, enrollment applications, results, and fee records. This cannot be undone.
+      This permanently deletes <strong><?= htmlspecialchars($school['name']) ?></strong>, including their website, all uploaded photos, enrollment applications, results, and fee records. A full data backup is automatically saved to <a href="archived-schools.php">Archived Schools</a> first, and a summary is emailed to them if they have a real email on file. The live account itself cannot be restored.
     </p>
     <form method="POST" onsubmit="return confirm('Are you absolutely sure? This cannot be undone.')">
       <input type="hidden" name="action" value="delete_school">

@@ -54,9 +54,13 @@ function establish_session(PDO $db, array $user): void {
         $flagStmt = $db->prepare("SELECT activate_trial_on_login FROM schools WHERE id = ?");
         $flagStmt->execute([$user['school_id']]);
         if ($flagStmt->fetchColumn()) {
-            require_once __DIR__ . '/payments.php';
-            start_trial($db, $user['school_id'], 60);
-            $db->prepare("UPDATE schools SET activate_trial_on_login = 0 WHERE id = ?")->execute([$user['school_id']]);
+            try {
+                require_once __DIR__ . '/payments.php';
+                start_trial($db, $user['school_id'], 60);
+                $db->prepare("UPDATE schools SET activate_trial_on_login = 0 WHERE id = ?")->execute([$user['school_id']]);
+            } catch (\Throwable $e) {
+                error_log('Trial auto-start failed for school ' . $user['school_id'] . ': ' . $e->getMessage());
+            }
         }
     }
 }

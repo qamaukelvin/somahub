@@ -6,14 +6,14 @@ $query = trim($_GET['q'] ?? '');
 $matches = [];
 
 if ($query !== '') {
+    // Search all schools directly — results-check.php works via admission
+    // number regardless of whether a school has added a "Results Lookup"
+    // section to their public site, so search shouldn't require that either.
     $stmt = $db->prepare("
-        SELECT s.name, s.slug, s.county
-        FROM schools s
-        JOIN site_sections ss ON ss.school_id = s.id
-        JOIN section_types st ON st.id = ss.section_type_id
-        WHERE st.key_name = 'results_lookup' AND ss.is_visible = 1
-          AND s.name LIKE ?
-        GROUP BY s.id
+        SELECT name, slug, county
+        FROM schools
+        WHERE status IN ('active','trial') AND name LIKE ?
+        ORDER BY name ASC
         LIMIT 10
     ");
     $stmt->execute(['%' . $query . '%']);

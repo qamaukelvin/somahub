@@ -20,8 +20,8 @@ if (!$school) {
 }
 
 if (is_premium_locked($school)) {
-    require_once __DIR__ . '/includes/feature-locked.php';
-    render_feature_locked_page($school, 'Online Enrollment');
+    http_response_code(403);
+    die('Online applications are not currently available for this school. Please contact the school directly to apply.');
 }
 
 $theme = json_decode($school['css_variables_json'], true);
