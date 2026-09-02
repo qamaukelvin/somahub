@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
             }
         }
 
-        $db->prepare("UPDATE leads SET status = 'converted' WHERE id = ?")->execute([$leadId]);
+        $db->prepare("UPDATE leads SET status = 'converted', converted_school_id = ? WHERE id = ?")->execute([$schoolId, $leadId]);
         $db->commit();
 
         require_once __DIR__ . '/../includes/notifications.php';

@@ -7,6 +7,45 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
 require_once __DIR__ . '/../config/mail.php';
+require_once __DIR__ . '/settings.php';
+
+/**
+ * Resolves the real SMTP values to use: whatever's set in admin/settings.php
+ * takes priority; config/mail.php's constants are the fallback if a setting
+ * is left blank (or if the settings table/DB isn't reachable for some
+ * reason). This is why these are local variables, not constants — you can't
+ * redefine SMTP_HOST etc twice, so config/mail.php keeps its original
+ * values as the safety net instead of being overwritten.
+ */
+function resolve_smtp_config(): array {
+    $config = [
+        'host' => SMTP_HOST,
+        'port' => SMTP_PORT,
+        'username' => SMTP_USERNAME,
+        'password' => SMTP_PASSWORD,
+        'encryption' => SMTP_ENCRYPTION,
+    ];
+
+    try {
+        if (function_exists('get_db')) {
+            $db = get_db();
+            $config['host'] = get_setting($db, 'smtp_host', $config['host']);
+            $config['port'] = (int)get_setting($db, 'smtp_port', (string)$config['port']);
+            $config['username'] = get_setting($db, 'smtp_username', $config['username']);
+            $config['password'] = get_setting($db, 'smtp_password', $config['password']);
+            $encryptionSetting = get_setting($db, 'smtp_encryption', '');
+            if ($encryptionSetting === 'tls') {
+                $config['encryption'] = PHPMailer::ENCRYPTION_STARTTLS;
+            } elseif ($encryptionSetting === 'ssl') {
+                $config['encryption'] = PHPMailer::ENCRYPTION_SMTPS;
+            }
+        }
+    } catch (\Throwable $e) {
+        // keep config/mail.php's values — this must never block sending
+    }
+
+    return $config;
+}
 
 /**
  * Sends an HTML email using PHPMailer over SMTP through your real
@@ -24,23 +63,17 @@ function send_somahub_email(string $to, string $subject, string $bodyHtml, strin
         return false;
     }
 
+    $smtp = resolve_smtp_config();
     $mail = new PHPMailer(true);
 
     try {
         $mail->isSMTP();
-        $mail->Host = SMTP_HOST;
+        $mail->Host = $smtp['host'];
         $mail->SMTPAuth = true;
-        $mail->Username = SMTP_USERNAME;
-        $mail->Password = SMTP_PASSWORD;
-        $mail->SMTPSecure = SMTP_ENCRYPTION;
-        $mail->Port = SMTP_PORT;
-
-        // --- TEMPORARY DEBUG: remove once the issue is found ---
-        $mail->SMTPDebug = 2; // prints the full SMTP conversation
-        $mail->Debugoutput = function ($str, $level) {
-            error_log("Somahub SMTP debug: $str");
-        };
-        // ---------------------------------------------------------
+        $mail->Username = $smtp['username'];
+        $mail->Password = $smtp['password'];
+        $mail->SMTPSecure = $smtp['encryption'];
+        $mail->Port = $smtp['port'];
 
         $mail->setFrom('no-reply@somahub.top', 'Somahub');
         $mail->addAddress($to);
@@ -57,7 +90,7 @@ function send_somahub_email(string $to, string $subject, string $bodyHtml, strin
         // Log quietly rather than breaking the page the user is on —
         // a failed email should never be the reason a form submission fails
         error_log('Somahub mail failed: ' . $mail->ErrorInfo);
-        error_log('Somahub SMTP config: Host=' . SMTP_HOST . ' Port=' . SMTP_PORT . ' User=' . SMTP_USERNAME);
+        error_log('Somahub SMTP config: Host=' . $smtp['host'] . ' Port=' . $smtp['port'] . ' User=' . $smtp['username']);
         return false;
     }
 }

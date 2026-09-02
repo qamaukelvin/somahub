@@ -15,4 +15,9 @@ INSERT IGNORE INTO platform_settings (setting_key, setting_value) VALUES
   ('payment_display_name', 'Kelvin Njehia'),
   ('admin_notify_email', 'admin@somahub.top'),
   ('whatsapp_outreach_number', '254707306888'),
-  ('cron_secret', 'CHANGE_THIS_TO_A_REAL_RANDOM_STRING');
+  ('cron_secret', 'CHANGE_THIS_TO_A_REAL_RANDOM_STRING'),
+  ('smtp_host', ''),
+  ('smtp_port', ''),
+  ('smtp_username', ''),
+  ('smtp_password', ''),
+  ('smtp_encryption', '');
