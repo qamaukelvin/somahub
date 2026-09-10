@@ -2,17 +2,13 @@
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/plan.php';
 require_once __DIR__ . '/includes/reviews.php';
+require_once __DIR__ . '/includes/appearance.php';
 $db = get_db();
 
 // Subdomain routing sets this via .htaccess; fallback for local testing.
 $slug = $_GET['school'] ?? '';
 
-$stmt = $db->prepare("
-    SELECT s.*, t.css_variables_json, t.custom_css, t.name AS theme_name
-    FROM schools s
-    JOIN themes t ON t.id = s.theme_id
-    WHERE s.slug = ?
-");
+$stmt = $db->prepare("SELECT * FROM schools WHERE slug = ?");
 $stmt->execute([$slug]);
 $school = $stmt->fetch();
 
@@ -82,11 +78,9 @@ if (!$sitePubliclyVisible && !$isOwnerPreview) {
     exit;
 }
 
-$theme = json_decode($school['css_variables_json'], true);
-$theme_custom_css = $school['custom_css'] ?? '';
-if (!empty($school['accent_override'])) $theme['accent'] = $school['accent_override'];
-if (!empty($school['primary_override'])) $theme['primary'] = $school['primary_override'];
-if (!empty($school['bg_override'])) $theme['bg'] = $school['bg_override'];
+$appearance = resolve_school_appearance($db, $school);
+$theme = $appearance['theme'];
+$theme_custom_css = $appearance['custom_css'];
 
 $sectionsStmt = $db->prepare("
     SELECT ss.*, st.key_name, st.label, st.is_premium

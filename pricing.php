@@ -2,7 +2,9 @@
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/settings.php';
 $db = get_db();
-$themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium ASC, name ASC")->fetchAll();
+require_once __DIR__ . '/includes/appearance.php';
+$templates = get_active_templates($db);
+$palettes = get_active_palettes($db);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -123,7 +125,7 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
       <div class="plan-desc">Everything unlocked, free, so you can see the real value before deciding.</div>
       <ul>
         <li><span class="check">＋</span> Everything in Free</li>
-        <li><span class="check">＋</span> Every premium theme</li>
+        <li><span class="check">＋</span> Every premium template</li>
         <li><span class="check">＋</span> Online enrollment applications</li>
         <li><span class="check">＋</span> Full report: results, attendance, position, trends & fees</li>
       </ul>
@@ -135,7 +137,7 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
       <div class="plan-desc">About KSh 750 a term. Everything the Trial unlocks, permanently.</div>
       <ul>
         <li><span class="check">＋</span> Everything in Free</li>
-        <li><span class="check">＋</span> Every premium theme</li>
+        <li><span class="check">＋</span> Every premium template</li>
         <li><span class="check">＋</span> Online enrollment applications</li>
         <li><span class="check">＋</span> Full report: results, attendance, position, trends & fees</li>
       </ul>
@@ -147,11 +149,26 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
 <section style="background:#fff;">
   <div class="wrap">
     <div class="section-head">
-      <h2>See our themes</h2>
-      <p>Every school picks a theme at signup - change it anytime from your dashboard. Premium themes are included with the Premium plan and the 60-Day Trial.</p>
+      <h2>See our templates</h2>
+      <p>Every school picks a template at signup - change it anytime from your dashboard. Premium templates are included with the Premium plan and the 60-Day Trial. Any color palette below can be paired with any template, on any plan.</p>
     </div>
     <div class="theme-gallery">
-      <?php foreach ($themes as $t): $vars = json_decode($t['css_variables_json'], true); $isPremium = !empty($t['is_premium']); ?>
+      <?php foreach ($templates as $t): $isPremium = !empty($t['is_premium']); ?>
+        <div class="theme-card">
+          <div class="theme-card-meta">
+            <span class="theme-card-name"><?= htmlspecialchars($t['name']) ?></span>
+            <?php if ($isPremium): ?><span class="premium-tag">Premium</span><?php endif; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+
+    <div class="section-head" style="margin-top:40px;">
+      <h2>Color palettes</h2>
+      <p>Free to choose and change anytime - no plan or premium restriction on color.</p>
+    </div>
+    <div class="theme-gallery">
+      <?php foreach ($palettes as $p): $vars = json_decode($p['css_variables_json'], true); ?>
         <div class="theme-card">
           <div class="theme-preview" style="background:<?= htmlspecialchars($vars['bg'] ?? '#f4f4f4') ?>;">
             <div class="tp-bar" style="background:<?= htmlspecialchars($vars['primary'] ?? '#333') ?>;">
@@ -164,8 +181,7 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
             </div>
           </div>
           <div class="theme-card-meta">
-            <span class="theme-card-name"><?= htmlspecialchars($t['name']) ?></span>
-            <?php if ($isPremium): ?><span class="premium-tag">Premium</span><?php endif; ?>
+            <span class="theme-card-name"><?= htmlspecialchars($p['name']) ?></span>
           </div>
         </div>
       <?php endforeach; ?>
@@ -217,7 +233,7 @@ $themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium
         <div class="build-name">Standard Build</div>
         <div class="build-price">Free</div>
         <span class="build-time">2–3 days</span>
-        <p>Uses our existing themes. You provide your content and photos, we set it up and you review it before it goes live.</p>
+        <p>Uses our existing templates and color palettes. You provide your content and photos, we set it up and you review it before it goes live.</p>
       </div>
       <div class="build-card featured">
         <div class="build-name">Fully Custom Design</div>

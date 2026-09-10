@@ -19,7 +19,9 @@ $owner = $db->prepare("SELECT * FROM users WHERE school_id = ? AND role = 'schoo
 $owner->execute([$id]);
 $owner = $owner->fetch();
 
-$themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY name")->fetchAll();
+require_once __DIR__ . '/../includes/appearance.php';
+$templates = get_active_templates($db);
+$palettes = get_active_palettes($db);
 
 $message = '';
 $newTempPassword = '';
@@ -60,12 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action']) && $_POST['action'] === 'update_details') {
         $stmt = $db->prepare("
             UPDATE schools
-            SET name=?, theme_id=?, accent_override=?, primary_override=?, bg_override=?, plan=?, status=?, promo_ends_at=?, county=?, town=?, phone=?, email=?
+            SET name=?, template_id=?, palette_id=?, accent_override=?, primary_override=?, bg_override=?, plan=?, status=?, promo_ends_at=?, county=?, town=?, phone=?, email=?
             WHERE id=?
         ");
         $stmt->execute([
             trim($_POST['name']),
-            (int)$_POST['theme_id'],
+            (int)$_POST['template_id'],
+            (int)$_POST['palette_id'],
             trim($_POST['accent_override']) ?: null,
             trim($_POST['primary_override']) ?: null,
             trim($_POST['bg_override']) ?: null,
@@ -300,11 +303,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <label>School Name</label>
       <input type="text" name="name" value="<?= htmlspecialchars($school['name']) ?>" required>
 
-      <label>Theme</label>
-      <?php $selectedThemeId = $school['theme_id']; include __DIR__ . '/_theme_picker.php'; ?>
+      <label>Template</label>
+      <?php $selectedTemplateId = $school['template_id']; include __DIR__ . '/_template_picker.php'; ?>
+
+      <label>Color Palette</label>
+      <?php $selectedPaletteId = $school['palette_id']; include __DIR__ . '/_palette_picker.php'; ?>
 
       <label>Accent Color Override (optional)</label>
-      <input type="text" name="accent_override" value="<?= htmlspecialchars($school['accent_override'] ?? '') ?>" placeholder="e.g. #C9A227 — leave blank to use the theme's default">
+      <input type="text" name="accent_override" value="<?= htmlspecialchars($school['accent_override'] ?? '') ?>" placeholder="e.g. #C9A227 — leave blank to use the palette's default">
 
       <label>Primary Color Override (optional)</label>
       <input type="text" name="primary_override" value="<?= htmlspecialchars($school['primary_override'] ?? '') ?>" placeholder="e.g. #1F3D2F — for schools whose real brand colors don't match any preset theme">

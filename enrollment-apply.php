@@ -2,15 +2,11 @@
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/mailer.php';
 require_once __DIR__ . '/includes/plan.php';
+require_once __DIR__ . '/includes/appearance.php';
 $db = get_db();
 
 $slug = $_GET['school'] ?? '';
-$schoolStmt = $db->prepare("
-    SELECT s.id, s.name, s.slug, s.plan, s.promo_ends_at, s.email, s.accent_override, s.primary_override, s.bg_override, t.css_variables_json
-    FROM schools s
-    JOIN themes t ON t.id = s.theme_id
-    WHERE s.slug = ?
-");
+$schoolStmt = $db->prepare("SELECT * FROM schools WHERE slug = ?");
 $schoolStmt->execute([$slug]);
 $school = $schoolStmt->fetch();
 
@@ -24,10 +20,7 @@ if (is_premium_locked($school)) {
     die('Online applications are not currently available for this school. Please contact the school directly to apply.');
 }
 
-$theme = json_decode($school['css_variables_json'], true);
-if (!empty($school['accent_override'])) $theme['accent'] = $school['accent_override'];
-if (!empty($school['primary_override'])) $theme['primary'] = $school['primary_override'];
-if (!empty($school['bg_override'])) $theme['bg'] = $school['bg_override'];
+$theme = resolve_school_appearance($db, $school)['theme'];
 
 $success = false;
 
@@ -100,7 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </style>
 </head>
 <body>
-<?php $navRoot = '.'; include __DIR__ . '/_public_nav.php'; ?>
 <header class="school-header">
   <a href="site.php?school=<?= urlencode($school['slug']) ?>" class="school-brand"><?= htmlspecialchars($school['name']) ?></a>
 </header>

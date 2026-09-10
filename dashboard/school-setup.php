@@ -15,7 +15,9 @@ if (!empty($user['school_id'])) {
     exit;
 }
 
-$themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY is_premium ASC, name ASC")->fetchAll();
+require_once __DIR__ . '/../includes/appearance.php';
+$templates = get_active_templates($db);
+$palettes = get_active_palettes($db);
 $contentPresets = get_school_content_presets();
 $error = '';
 
@@ -23,20 +25,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $schoolName = trim($_POST['school_name'] ?? '');
     $slug = strtolower(preg_replace('/[^a-z0-9]/', '', strtolower($_POST['slug'] ?? '')));
     $county = trim($_POST['county'] ?? '');
-    $themeId = (int)($_POST['theme_id'] ?? 0);
+    $templateId = (int)($_POST['template_id'] ?? 0);
+    $paletteId = (int)($_POST['palette_id'] ?? 0);
     $presetKey = $_POST['content_preset'] ?? 'blank';
     $planChoice = $_POST['plan_choice'] ?? 'free'; // 'free' or 'trial'
 
-    // A premium theme requires the Trial (which unlocks everything temporarily)
-    // - free accounts can't pick a premium theme at signup.
-    $chosenTheme = null;
-    foreach ($themes as $t) { if ($t['id'] == $themeId) { $chosenTheme = $t; break; } }
-    $themeIsPremium = $chosenTheme && !empty($chosenTheme['is_premium']);
+    // A premium template requires the Trial (which unlocks everything temporarily)
+    // - free accounts can't pick a premium template at signup. Color palettes are
+    // always free to pick, on any plan, with any template.
+    $chosenTemplate = null;
+    foreach ($templates as $t) { if ($t['id'] == $templateId) { $chosenTemplate = $t; break; } }
+    $templateIsPremium = $chosenTemplate && !empty($chosenTemplate['is_premium']);
 
     if (!$schoolName || !$slug) {
         $error = 'Please fill in all required fields.';
-    } elseif ($themeIsPremium && $planChoice !== 'trial') {
-        $error = 'That theme is a premium template - choose the Trial plan to unlock it, or pick a free theme for now.';
+    } elseif ($templateIsPremium && $planChoice !== 'trial') {
+        $error = 'That template is a premium template - choose the Trial plan to unlock it, or pick a free template for now.';
     } else {
         $check = $db->prepare("SELECT id FROM schools WHERE slug = ?");
         $check->execute([$slug]);
@@ -46,10 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->beginTransaction();
             try {
                 $insertSchool = $db->prepare("
-                    INSERT INTO schools (name, slug, theme_id, plan, status, verification_status, county, phone, email, first_login_at)
-                    VALUES (?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?, NOW())
+                    INSERT INTO schools (name, slug, template_id, palette_id, plan, status, verification_status, county, phone, email, first_login_at)
+                    VALUES (?, ?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?, NOW())
                 ");
-                $insertSchool->execute([$schoolName, $slug, $themeId, $county, $user['phone'] ?? '', $user['email']]);
+                $insertSchool->execute([$schoolName, $slug, $templateId, $paletteId, $county, $user['phone'] ?? '', $user['email']]);
                 $schoolId = $db->lastInsertId();
 
                 if ($planChoice === 'trial') {
@@ -188,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <label for="plan_free">
             <div class="plan-name">Free</div>
             <div class="plan-price">KSh 0</div>
-            <div class="plan-desc">Full website, free themes. Enrollment, results & fees tools locked.</div>
+            <div class="plan-desc">Full website, free templates, any color palette. Enrollment, results & fees tools locked.</div>
           </label>
         </div>
         <div class="plan-option">
@@ -215,15 +219,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <label>County</label>
       <input type="text" name="county" placeholder="e.g. Nyandarua">
 
-      <label>Theme</label>
+      <label>Template</label>
       <div class="theme-picker" id="themePicker">
-        <?php foreach ($themes as $t):
-          $vars = json_decode($t['css_variables_json'], true);
-          $isPremium = !empty($t['is_premium']);
-        ?>
+        <?php foreach ($templates as $t): $isPremium = !empty($t['is_premium']); ?>
           <div class="theme-option<?= $isPremium ? ' locked' : '' ?>" data-premium="<?= $isPremium ? '1' : '0' ?>">
-            <input type="radio" name="theme_id" id="theme_<?= $t['id'] ?>" value="<?= $t['id'] ?>" required>
-            <label for="theme_<?= $t['id'] ?>">
+            <input type="radio" name="template_id" id="template_<?= $t['id'] ?>" value="<?= $t['id'] ?>" required>
+            <label for="template_<?= $t['id'] ?>">
+              <div class="theme-meta">
+                <span class="theme-option-name"><?= htmlspecialchars($t['name']) ?></span>
+                <?php if ($isPremium): ?><span class="premium-tag">Trial+</span><?php endif; ?>
+              </div>
+            </label>
+          </div>
+        <?php endforeach; ?>
+      </div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-top:-2px;margin-bottom:14px;" id="themeHint">Premium templates (marked "Trial+") need the Trial plan or Custom Templates add-on.</p>
+
+      <label>Color Palette</label>
+      <div class="theme-picker" id="palettePicker">
+        <?php foreach ($palettes as $p): $vars = json_decode($p['css_variables_json'], true); ?>
+          <div class="theme-option">
+            <input type="radio" name="palette_id" id="palette_<?= $p['id'] ?>" value="<?= $p['id'] ?>" required>
+            <label for="palette_<?= $p['id'] ?>">
               <div class="theme-preview" style="background:<?= htmlspecialchars($vars['bg'] ?? '#f4f4f4') ?>;">
                 <div class="tp-bar" style="background:<?= htmlspecialchars($vars['primary'] ?? '#333') ?>;">
                   <span class="tp-dot" style="background:<?= htmlspecialchars($vars['accent'] ?? '#fff') ?>;"></span>
@@ -235,14 +252,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
               </div>
               <div class="theme-meta">
-                <span class="theme-option-name"><?= htmlspecialchars($t['name']) ?></span>
-                <?php if ($isPremium): ?><span class="premium-tag">Trial+</span><?php endif; ?>
+                <span class="theme-option-name"><?= htmlspecialchars($p['name']) ?></span>
               </div>
             </label>
           </div>
         <?php endforeach; ?>
       </div>
-      <p style="font-size:0.78rem;color:var(--muted);margin-top:-2px;margin-bottom:14px;" id="themeHint">Premium themes (marked "Trial+") need the Trial plan or Custom Templates add-on.</p>
+      <p style="font-size:0.78rem;color:var(--muted);margin-top:-2px;margin-bottom:14px;">Any palette can be used with any template, on any plan.</p>
 
       <label>Starting Content</label>
       <select name="content_preset">
@@ -308,7 +324,7 @@ document.getElementById('schoolSetupForm').addEventListener('submit', (e) => {
 const planRadios = document.querySelectorAll('input[name="plan_choice"]');
 function updateThemeLocking() {
     const trialSelected = document.getElementById('plan_trial').checked;
-    document.querySelectorAll('.theme-option').forEach(opt => {
+    document.querySelectorAll('#themePicker .theme-option').forEach(opt => {
         const isPremium = opt.dataset.premium === '1';
         opt.classList.toggle('locked', isPremium && !trialSelected);
     });

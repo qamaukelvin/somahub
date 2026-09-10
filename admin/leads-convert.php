@@ -11,14 +11,17 @@ $lead = $leadStmt->fetch();
 
 if (!$lead) { die('Lead not found.'); }
 
-$themes = $db->query("SELECT * FROM themes WHERE is_active = 1 ORDER BY is_premium ASC, name ASC")->fetchAll();
+require_once __DIR__ . '/../includes/appearance.php';
+$templates = get_active_templates($db);
+$palettes = get_active_palettes($db);
 $contentPresets = get_school_content_presets();
 $created = null;
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create_school') {
     $schoolName = trim($_POST['school_name'] ?: $lead['school_name']);
-    $themeId = (int)$_POST['theme_id'];
+    $templateId = (int)$_POST['template_id'];
+    $paletteId = (int)$_POST['palette_id'];
     $presetKey = $_POST['content_preset'] ?? 'blank';
 
     $baseSlug = strtolower(preg_replace('/[^a-z0-9]/', '', strtolower($schoolName)));
@@ -43,10 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
     $db->beginTransaction();
     try {
         $insertSchool = $db->prepare("
-            INSERT INTO schools (name, slug, theme_id, plan, status, verification_status, county, phone, email, activate_trial_on_login)
-            VALUES (?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?, 1)
+            INSERT INTO schools (name, slug, template_id, palette_id, plan, status, verification_status, county, phone, email, activate_trial_on_login)
+            VALUES (?, ?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?, 1)
         ");
-        $insertSchool->execute([$schoolName, $slug, $themeId, $lead['county'], $lead['phone'], $realEmail ?: null]);
+        $insertSchool->execute([$schoolName, $slug, $templateId, $paletteId, $lead['county'], $lead['phone'], $realEmail ?: null]);
         $schoolId = $db->lastInsertId();
 
         $insertUser = $db->prepare("
@@ -160,8 +163,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
         <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">School Name</label>
         <input type="text" name="school_name" value="<?= htmlspecialchars($lead['school_name']) ?>" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:4px;margin-bottom:16px;" required>
 
-        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Theme</label>
-        <?php $selectedThemeId = $themes[0]['id'] ?? 0; include __DIR__ . '/_theme_picker.php'; ?>
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Template</label>
+        <?php $selectedTemplateId = $templates[0]['id'] ?? 0; include __DIR__ . '/_template_picker.php'; ?>
+
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Color Palette</label>
+        <?php $selectedPaletteId = $palettes[0]['id'] ?? 0; include __DIR__ . '/_palette_picker.php'; ?>
 
         <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Starting Content</label>
         <select name="content_preset" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:4px;margin-bottom:16px;">

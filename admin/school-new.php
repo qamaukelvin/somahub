@@ -4,14 +4,17 @@ require_once __DIR__ . '/../includes/mailer.php';
 require_platform_admin();
 $db = get_db();
 
-$themes = $db->query("SELECT * FROM themes WHERE is_active=1 ORDER BY name")->fetchAll();
+require_once __DIR__ . '/../includes/appearance.php';
+$templates = get_active_templates($db);
+$palettes = get_active_palettes($db);
 $defaultSectionKeys = ['hero','about','academics','admissions','gallery','contact']; // sensible starter set
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name']);
     $slug = strtolower(preg_replace('/[^a-z0-9]/', '', strtolower($_POST['slug'])));
-    $themeId = (int)$_POST['theme_id'];
+    $templateId = (int)$_POST['template_id'];
+    $paletteId = (int)$_POST['palette_id'];
     $ownerEmail = trim($_POST['owner_email']);
     $ownerName = trim($_POST['owner_name']);
     $jobTitle = trim($_POST['job_title'] ?? '');
@@ -31,10 +34,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // 1. Create the school (starts on free plan + promo window, per the free-first-term strategy)
                 $promoEnds = date('Y-m-d', strtotime('+1 term', strtotime('+4 months')));
                 $insertSchool = $db->prepare("
-                    INSERT INTO schools (name, slug, theme_id, plan, promo_ends_at, status, phone, email)
-                    VALUES (?, ?, ?, 'promo_paid', ?, 'trial', ?, ?)
+                    INSERT INTO schools (name, slug, template_id, palette_id, plan, promo_ends_at, status, phone, email)
+                    VALUES (?, ?, ?, ?, 'promo_paid', ?, 'trial', ?, ?)
                 ");
-                $insertSchool->execute([$name, $slug, $themeId, $promoEnds, $ownerPhone, $ownerEmail]);
+                $insertSchool->execute([$name, $slug, $templateId, $paletteId, $promoEnds, $ownerPhone, $ownerEmail]);
                 $schoolId = $db->lastInsertId();
 
                 // 2. Create the owner login
@@ -114,8 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <input type="text" name="slug" required placeholder="e.g. kinangoppride">
     <p style="font-size:0.78rem;color:#888;margin-top:-10px;margin-bottom:16px;">Will be: [subdomain].somahub.top</p>
 
-    <label>Theme</label>
-    <?php $selectedThemeId = $themes[0]['id'] ?? 0; include __DIR__ . '/_theme_picker.php'; ?>
+    <label>Template</label>
+    <?php $selectedTemplateId = $templates[0]['id'] ?? 0; include __DIR__ . '/_template_picker.php'; ?>
+
+    <label>Color Palette</label>
+    <?php $selectedPaletteId = $palettes[0]['id'] ?? 0; include __DIR__ . '/_palette_picker.php'; ?>
 
     <label>Contact Person's Name</label>
     <input type="text" name="owner_name" required>
