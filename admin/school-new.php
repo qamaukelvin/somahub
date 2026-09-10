@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/mailer.php';
+require_once __DIR__ . '/../includes/blog.php';
 require_platform_admin();
 $db = get_db();
 
@@ -68,18 +69,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $db->commit();
 
+                // Everything below this point runs AFTER commit — the school
+                // is already safely saved, so nothing here may call
+                // $db->rollBack() (nothing left to roll back, and calling it
+                // anyway throws a fatal "no active transaction" error that
+                // would otherwise strand the admin with no confirmation page,
+                // even though the school was actually created).
+
+                try {
+                    generate_school_joined_post($db, [
+                        'id' => $schoolId,
+                        'name' => $name,
+                        'slug' => $slug,
+                        'county' => null,
+                    ]);
+                    $totalSchools = (int)$db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
+                    maybe_generate_milestone_post($db, $totalSchools);
+                } catch (\Throwable $e) {
+                    error_log('Auto blog draft failed for school ' . $schoolId . ': ' . $e->getMessage());
+                }
+
                 // Welcome email — deliberately doesn't include the password itself,
                 // that's sent separately via WhatsApp, matching existing practice
-                if ($ownerEmail) {
-                    $welcomeBody = "
-                        <h2 style='color:#0F5257;margin-top:0;'>Welcome to Somahub, {$ownerName}!</h2>
-                        <p><strong>" . htmlspecialchars($name) . "</strong>'s website is ready.</p>
-                        <p>Your site: <a href='https://{$slug}.somahub.top' style='color:#0F5257;'>{$slug}.somahub.top</a></p>
-                        <p>Your login details will be sent to you separately on WhatsApp. Once you have them, log in here to start editing your site:</p>
-                        <p><a href='https://somahub.top/dashboard/login.php' style='color:#0F5257;font-weight:700;'>Go to your dashboard →</a></p>
-                        <p style='margin-top:20px;color:#6E6A5C;'>Questions? Just reply to this email or message us on WhatsApp.</p>
-                    ";
-                    send_somahub_email($ownerEmail, "Welcome to Somahub — {$name} is ready", $welcomeBody);
+                try {
+                    if ($ownerEmail) {
+                        $welcomeBody = "
+                            <h2 style='color:#0F5257;margin-top:0;'>Welcome to Somahub, {$ownerName}!</h2>
+                            <p><strong>" . htmlspecialchars($name) . "</strong>'s website is ready.</p>
+                            <p>Your site: <a href='https://{$slug}.somahub.top' style='color:#0F5257;'>{$slug}.somahub.top</a></p>
+                            <p>Your login details will be sent to you separately on WhatsApp. Once you have them, log in here to start editing your site:</p>
+                            <p><a href='https://somahub.top/dashboard/login.php' style='color:#0F5257;font-weight:700;'>Go to your dashboard →</a></p>
+                            <p style='margin-top:20px;color:#6E6A5C;'>Questions? Just reply to this email or message us on WhatsApp.</p>
+                        ";
+                        send_somahub_email($ownerEmail, "Welcome to Somahub — {$name} is ready", $welcomeBody);
+                    }
+                } catch (\Throwable $e) {
+                    error_log('Welcome email failed for school ' . $schoolId . ': ' . $e->getMessage());
                 }
 
                 header("Location: school-created.php?id=$schoolId&pw=" . urlencode($tempPassword));

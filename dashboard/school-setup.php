@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/content-presets.php';
 require_once __DIR__ . '/../includes/payments.php';
+require_once __DIR__ . '/../includes/blog.php';
 $db = get_db();
 
 $user = current_user();
@@ -89,20 +90,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $db->commit();
 
-                // Refresh the session so $_SESSION['user']['school_id'] reflects
-                // the school just attached - every other dashboard page reads
-                // school_id straight from the session.
-                $refreshed = $db->prepare("SELECT * FROM users WHERE id = ?");
-                $refreshed->execute([$user['id']]);
-                $refreshedUser = $refreshed->fetch();
-                unset($refreshedUser['password_hash']);
-                $_SESSION['user'] = $refreshedUser;
+                // Everything below this point runs AFTER the transaction has
+                // committed — the school and its school_id are already safely
+                // saved. None of these steps may call $db->rollBack() (there is
+                // nothing left to roll back, and calling it anyway throws a
+                // fatal "no active transaction" error) or the user gets stuck:
+                // silently dropped with no redirect, even though their school
+                // was actually created. Each step is wrapped individually so
+                // one failing (e.g. a notification insert) can never block the
+                // others or the final redirect.
 
-                require_once __DIR__ . '/../includes/notifications.php';
-                create_notification($db, $schoolId, 'welcome',
-                    'Welcome to Somahub!',
-                    'Your site is live. Start by editing your Website content from the dashboard.',
-                    'sections.php');
+                try {
+                    generate_school_joined_post($db, [
+                        'id' => $schoolId,
+                        'name' => $schoolName,
+                        'slug' => $slug,
+                        'county' => $county,
+                    ]);
+                    $totalSchools = (int)$db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
+                    maybe_generate_milestone_post($db, $totalSchools);
+                } catch (\Throwable $e) {
+                    error_log('Auto blog draft failed for school ' . $schoolId . ': ' . $e->getMessage());
+                }
+
+                try {
+                    // Refresh the session so $_SESSION['user']['school_id'] reflects
+                    // the school just attached - every other dashboard page reads
+                    // school_id straight from the session.
+                    $refreshed = $db->prepare("SELECT * FROM users WHERE id = ?");
+                    $refreshed->execute([$user['id']]);
+                    $refreshedUser = $refreshed->fetch();
+                    unset($refreshedUser['password_hash']);
+                    $_SESSION['user'] = $refreshedUser;
+                } catch (\Throwable $e) {
+                    error_log('Session refresh failed after creating school ' . $schoolId . ': ' . $e->getMessage());
+                }
+
+                try {
+                    require_once __DIR__ . '/../includes/notifications.php';
+                    create_notification($db, $schoolId, 'welcome',
+                        'Welcome to Somahub!',
+                        'Your site is live. Start by editing your Website content from the dashboard.',
+                        'sections.php');
+                } catch (\Throwable $e) {
+                    error_log('Welcome notification failed for school ' . $schoolId . ': ' . $e->getMessage());
+                }
 
                 header("Location: index.php?welcome=1");
                 exit;

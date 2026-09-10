@@ -24,6 +24,7 @@ function resolve_smtp_config(): array {
         'username' => SMTP_USERNAME,
         'password' => SMTP_PASSWORD,
         'encryption' => SMTP_ENCRYPTION,
+        'from_email' => 'info@somahub.top',
     ];
 
     try {
@@ -33,6 +34,7 @@ function resolve_smtp_config(): array {
             $config['port'] = (int)get_setting($db, 'smtp_port', (string)$config['port']);
             $config['username'] = get_setting($db, 'smtp_username', $config['username']);
             $config['password'] = get_setting($db, 'smtp_password', $config['password']);
+            $config['from_email'] = get_setting($db, 'sending_email', $config['from_email']);
             $encryptionSetting = get_setting($db, 'smtp_encryption', '');
             if ($encryptionSetting === 'tls') {
                 $config['encryption'] = PHPMailer::ENCRYPTION_STARTTLS;
@@ -49,8 +51,10 @@ function resolve_smtp_config(): array {
 
 /**
  * Sends an HTML email using PHPMailer over SMTP through your real
- * no-reply@somahub.top mailbox. Far more reliable than native mail()
- * on shared hosting, and won't hang or silently fail the same way.
+ * info@somahub.top mailbox by default (configurable via the Sending
+ * Email Address setting in admin/settings.php). Far more reliable than
+ * native mail() on shared hosting, and won't hang or silently fail the
+ * same way.
  *
  * @param string $to
  * @param string $subject
@@ -75,7 +79,7 @@ function send_somahub_email(string $to, string $subject, string $bodyHtml, strin
         $mail->SMTPSecure = $smtp['encryption'];
         $mail->Port = $smtp['port'];
 
-        $mail->setFrom('no-reply@somahub.top', 'Somahub');
+        $mail->setFrom($smtp['from_email'], 'Somahub');
         $mail->addAddress($to);
         $mail->addReplyTo($replyTo);
 

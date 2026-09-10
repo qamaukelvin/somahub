@@ -18,9 +18,10 @@ $fields = [
     'Email (SMTP)' => [
         'smtp_host' => ['label' => 'SMTP Host', 'placeholder' => 'e.g. mail.somahub.top — leave blank to use config/mail.php'],
         'smtp_port' => ['label' => 'SMTP Port', 'placeholder' => '465 or 587 — leave blank to use config/mail.php'],
-        'smtp_username' => ['label' => 'SMTP Username', 'placeholder' => 'e.g. no-reply@somahub.top — leave blank to use config/mail.php'],
+        'smtp_username' => ['label' => 'SMTP Username', 'placeholder' => 'e.g. info@somahub.top — leave blank to use config/mail.php'],
         'smtp_password' => ['label' => 'SMTP Password', 'type' => 'password', 'placeholder' => 'Leave blank to keep using config/mail.php'],
         'smtp_encryption' => ['label' => 'SMTP Encryption', 'type' => 'select', 'options' => ['' => 'Use config/mail.php default', 'ssl' => 'SSL (port 465)', 'tls' => 'STARTTLS (port 587)']],
+        'sending_email' => ['label' => 'Sending Email Address (From)', 'placeholder' => 'e.g. info@somahub.top — shown as the From address on every outgoing email'],
     ],
     'Notifications' => [
         'admin_notify_email' => ['label' => 'Admin Notification Email'],

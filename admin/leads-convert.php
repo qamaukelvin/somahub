@@ -12,6 +12,7 @@ $lead = $leadStmt->fetch();
 if (!$lead) { die('Lead not found.'); }
 
 require_once __DIR__ . '/../includes/appearance.php';
+require_once __DIR__ . '/../includes/blog.php';
 $templates = get_active_templates($db);
 $palettes = get_active_palettes($db);
 $contentPresets = get_school_content_presets();
@@ -101,16 +102,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
         $db->prepare("UPDATE leads SET status = 'converted', converted_school_id = ? WHERE id = ?")->execute([$schoolId, $leadId]);
         $db->commit();
 
-        require_once __DIR__ . '/../includes/notifications.php';
-        create_notification($db, $schoolId, 'welcome',
-            'Welcome to Somahub!',
-            'Your site is set up. Log in to review and edit your content.',
-            'sections.php');
+        // Everything below runs AFTER commit — the school is already safely
+        // saved, so nothing here may call $db->rollBack() (there's nothing
+        // left to roll back, and calling it anyway throws a fatal "no active
+        // transaction" error that would otherwise silently kill this page
+        // with the school created but no confirmation screen ever shown).
+
+        try {
+            generate_school_joined_post($db, [
+                'id' => $schoolId,
+                'name' => $schoolName,
+                'slug' => $slug,
+                'county' => $lead['county'] ?? null,
+            ]);
+            $totalSchools = (int)$db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
+            maybe_generate_milestone_post($db, $totalSchools);
+        } catch (\Throwable $e) {
+            error_log('Auto blog draft failed for school ' . $schoolId . ': ' . $e->getMessage());
+        }
+
+        try {
+            require_once __DIR__ . '/../includes/notifications.php';
+            create_notification($db, $schoolId, 'welcome',
+                'Welcome to Somahub!',
+                'Your site is set up. Log in to review and edit your content.',
+                'sections.php');
+        } catch (\Throwable $e) {
+            error_log('Welcome notification failed for school ' . $schoolId . ': ' . $e->getMessage());
+        }
 
         // Magic login link — the school taps this, no credentials to type.
         // Falls back to a real password only if this link expires unused.
-        $magicToken = create_magic_login_token($db, $userId, 14);
-        $magicLink = "https://somahub.top/dashboard/magic-login.php?token={$magicToken}";
+        $magicLink = null;
+        try {
+            $magicToken = create_magic_login_token($db, $userId, 14);
+            $magicLink = "https://somahub.top/dashboard/magic-login.php?token={$magicToken}";
+        } catch (\Throwable $e) {
+            error_log('Magic login link generation failed for school ' . $schoolId . ': ' . $e->getMessage());
+        }
 
         $created = [
             'school_name' => $schoolName,
@@ -148,10 +177,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
       <p>Site: <strong><?= htmlspecialchars($created['slug']) ?>.somahub.top</strong></p>
       <div class="creds">
         One-tap login link (valid 14 days, single use):<br>
-        <?= htmlspecialchars($created['magic_link']) ?>
+        <?= $created['magic_link'] ? htmlspecialchars($created['magic_link']) : '⚠️ Link generation failed — use "Forgot password" on dashboard/login.php to get this school in instead.' ?>
       </div>
       <p style="font-size:0.85rem;color:#666;">Now go to Outreach to send them the intro, then this login link.</p>
-      <a href="outreach.php?school_name=<?= urlencode($created['school_name']) ?>&phone=<?= urlencode($created['phone']) ?>&magic_link=<?= urlencode($created['magic_link']) ?>&slug=<?= urlencode($created['slug']) ?>" class="next-btn">Go to Outreach →</a>
+      <a href="outreach.php?school_name=<?= urlencode($created['school_name']) ?>&phone=<?= urlencode($created['phone']) ?>&magic_link=<?= urlencode($created['magic_link'] ?? '') ?>&slug=<?= urlencode($created['slug']) ?>" class="next-btn">Go to Outreach →</a>
     </div>
   <?php else: ?>
     <div class="box">
