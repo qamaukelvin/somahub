@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/app_log.php';
 require_once __DIR__ . '/../includes/content-presets.php';
 require_once __DIR__ . '/../includes/payments.php';
 require_once __DIR__ . '/../includes/blog.php';
@@ -27,7 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $slug = strtolower(preg_replace('/[^a-z0-9]/', '', strtolower($_POST['slug'] ?? '')));
     $county = trim($_POST['county'] ?? '');
     $templateId = (int)($_POST['template_id'] ?? 0);
-    $paletteId = (int)($_POST['palette_id'] ?? 0);
+    $colorMode = ($_POST['color_mode'] ?? 'preset') === 'custom' ? 'custom' : 'preset';
+    $paletteId = $colorMode === 'preset' ? (int)($_POST['palette_id'] ?? 0) : null;
+    $primaryOverride = $colorMode === 'custom' ? (trim($_POST['primary_override'] ?? '') ?: null) : null;
+    $secondaryOverride = $colorMode === 'custom' ? (trim($_POST['secondary_override'] ?? '') ?: null) : null;
+    $accentOverride = $colorMode === 'custom' ? (trim($_POST['accent_override'] ?? '') ?: null) : null;
+    $bgOverride = $colorMode === 'custom' ? (trim($_POST['bg_override'] ?? '') ?: null) : null;
     $presetKey = $_POST['content_preset'] ?? 'blank';
     $planChoice = $_POST['plan_choice'] ?? 'free'; // 'free' or 'trial'
 
@@ -51,10 +57,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->beginTransaction();
             try {
                 $insertSchool = $db->prepare("
-                    INSERT INTO schools (name, slug, template_id, palette_id, plan, status, verification_status, county, phone, email, first_login_at)
-                    VALUES (?, ?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?, NOW())
+                    INSERT INTO schools (name, slug, template_id, palette_id, color_mode, primary_override, secondary_override, accent_override, bg_override, plan, status, verification_status, county, phone, email, first_login_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?, NOW())
                 ");
-                $insertSchool->execute([$schoolName, $slug, $templateId, $paletteId, $county, $user['phone'] ?? '', $user['email']]);
+                $insertSchool->execute([$schoolName, $slug, $templateId, $paletteId, $colorMode, $primaryOverride, $secondaryOverride, $accentOverride, $bgOverride, $county, $user['phone'] ?? '', $user['email']]);
                 $schoolId = $db->lastInsertId();
 
                 if ($planChoice === 'trial') {
@@ -110,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $totalSchools = (int)$db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
                     maybe_generate_milestone_post($db, $totalSchools);
                 } catch (\Throwable $e) {
-                    error_log('Auto blog draft failed for school ' . $schoolId . ': ' . $e->getMessage());
+                    app_log('Auto blog draft failed for school ' . $schoolId . ': ' . $e->getMessage());
                 }
 
                 try {
@@ -123,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     unset($refreshedUser['password_hash']);
                     $_SESSION['user'] = $refreshedUser;
                 } catch (\Throwable $e) {
-                    error_log('Session refresh failed after creating school ' . $schoolId . ': ' . $e->getMessage());
+                    app_log('Session refresh failed after creating school ' . $schoolId . ': ' . $e->getMessage());
                 }
 
                 try {
@@ -133,14 +139,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'Your site is live. Start by editing your Website content from the dashboard.',
                         'sections.php');
                 } catch (\Throwable $e) {
-                    error_log('Welcome notification failed for school ' . $schoolId . ': ' . $e->getMessage());
+                    app_log('Welcome notification failed for school ' . $schoolId . ': ' . $e->getMessage());
                 }
 
                 header("Location: index.php?welcome=1");
                 exit;
             } catch (Exception $e) {
                 $db->rollBack();
-                error_log('school-setup.php failed: ' . $e->getMessage());
+                app_log('school-setup.php failed: ' . $e->getMessage());
                 $error = 'Something went wrong: ' . $e->getMessage();
             }
         }
@@ -252,45 +258,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="text" name="county" placeholder="e.g. Nyandarua">
 
       <label>Template</label>
-      <div class="theme-picker" id="themePicker">
-        <?php foreach ($templates as $t): $isPremium = !empty($t['is_premium']); ?>
-          <div class="theme-option<?= $isPremium ? ' locked' : '' ?>" data-premium="<?= $isPremium ? '1' : '0' ?>">
-            <input type="radio" name="template_id" id="template_<?= $t['id'] ?>" value="<?= $t['id'] ?>" required>
-            <label for="template_<?= $t['id'] ?>">
-              <div class="theme-meta">
-                <span class="theme-option-name"><?= htmlspecialchars($t['name']) ?></span>
-                <?php if ($isPremium): ?><span class="premium-tag">Trial+</span><?php endif; ?>
-              </div>
-            </label>
-          </div>
-        <?php endforeach; ?>
-      </div>
-      <p style="font-size:0.78rem;color:var(--muted);margin-top:-2px;margin-bottom:14px;" id="themeHint">Premium templates (marked "Trial+") need the Trial plan or Custom Templates add-on.</p>
+      <?php $selectedTemplateId = 0; include __DIR__ . '/../admin/_template_picker.php'; ?>
+      <p style="font-size:0.78rem;color:var(--muted);margin-top:-2px;margin-bottom:14px;" id="themeHint">Premium templates need the Trial plan or Custom Templates add-on.</p>
 
-      <label>Color Palette</label>
-      <div class="theme-picker" id="palettePicker">
-        <?php foreach ($palettes as $p): $vars = json_decode($p['css_variables_json'], true); ?>
-          <div class="theme-option">
-            <input type="radio" name="palette_id" id="palette_<?= $p['id'] ?>" value="<?= $p['id'] ?>" required>
-            <label for="palette_<?= $p['id'] ?>">
-              <div class="theme-preview" style="background:<?= htmlspecialchars($vars['bg'] ?? '#f4f4f4') ?>;">
-                <div class="tp-bar" style="background:<?= htmlspecialchars($vars['primary'] ?? '#333') ?>;">
-                  <span class="tp-dot" style="background:<?= htmlspecialchars($vars['accent'] ?? '#fff') ?>;"></span>
-                </div>
-                <div class="tp-body">
-                  <div class="tp-line" style="width:70%;background:<?= htmlspecialchars($vars['primary'] ?? '#333') ?>;opacity:0.8;"></div>
-                  <div class="tp-line" style="width:90%;background:<?= htmlspecialchars($vars['accent'] ?? '#333') ?>;opacity:0.5;"></div>
-                  <div class="tp-line" style="width:50%;background:<?= htmlspecialchars($vars['accent'] ?? '#333') ?>;opacity:0.5;"></div>
-                </div>
-              </div>
-              <div class="theme-meta">
-                <span class="theme-option-name"><?= htmlspecialchars($p['name']) ?></span>
-              </div>
-            </label>
-          </div>
-        <?php endforeach; ?>
-      </div>
-      <p style="font-size:0.78rem;color:var(--muted);margin-top:-2px;margin-bottom:14px;">Any palette can be used with any template, on any plan.</p>
+      <label>Colors</label>
+      <?php
+        $selectedPaletteId = 0;
+        $selectedColorMode = 'preset';
+        $customColors = ['primary' => '#0F5257', 'secondary' => '#1C1C16', 'accent' => '#F2A65A', 'bg' => '#F7F2E7'];
+        include __DIR__ . '/../admin/_palette_picker.php';
+      ?>
+      <p style="font-size:0.78rem;color:var(--muted);margin-top:-2px;margin-bottom:14px;">Any palette (or your own custom colors) can be used with any template, on any plan.</p>
 
       <label>Starting Content</label>
       <select name="content_preset">
@@ -356,7 +334,7 @@ document.getElementById('schoolSetupForm').addEventListener('submit', (e) => {
 const planRadios = document.querySelectorAll('input[name="plan_choice"]');
 function updateThemeLocking() {
     const trialSelected = document.getElementById('plan_trial').checked;
-    document.querySelectorAll('#themePicker .theme-option').forEach(opt => {
+    document.querySelectorAll('#templatePickerScroll .tpl-card').forEach(opt => {
         const isPremium = opt.dataset.premium === '1';
         opt.classList.toggle('locked', isPremium && !trialSelected);
     });

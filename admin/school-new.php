@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/app_log.php';
 require_once __DIR__ . '/../includes/mailer.php';
 require_once __DIR__ . '/../includes/blog.php';
 require_platform_admin();
@@ -15,7 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name']);
     $slug = strtolower(preg_replace('/[^a-z0-9]/', '', strtolower($_POST['slug'])));
     $templateId = (int)$_POST['template_id'];
-    $paletteId = (int)$_POST['palette_id'];
+    $colorMode = ($_POST['color_mode'] ?? 'preset') === 'custom' ? 'custom' : 'preset';
+    $paletteId = $colorMode === 'preset' ? (int)$_POST['palette_id'] : null;
+    $primaryOverride = $colorMode === 'custom' ? (trim($_POST['primary_override'] ?? '') ?: null) : null;
+    $secondaryOverride = $colorMode === 'custom' ? (trim($_POST['secondary_override'] ?? '') ?: null) : null;
+    $accentOverride = $colorMode === 'custom' ? (trim($_POST['accent_override'] ?? '') ?: null) : null;
+    $bgOverride = $colorMode === 'custom' ? (trim($_POST['bg_override'] ?? '') ?: null) : null;
     $ownerEmail = trim($_POST['owner_email']);
     $ownerName = trim($_POST['owner_name']);
     $jobTitle = trim($_POST['job_title'] ?? '');
@@ -35,10 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // 1. Create the school (starts on free plan + promo window, per the free-first-term strategy)
                 $promoEnds = date('Y-m-d', strtotime('+1 term', strtotime('+4 months')));
                 $insertSchool = $db->prepare("
-                    INSERT INTO schools (name, slug, template_id, palette_id, plan, promo_ends_at, status, phone, email)
-                    VALUES (?, ?, ?, ?, 'promo_paid', ?, 'trial', ?, ?)
+                    INSERT INTO schools (name, slug, template_id, palette_id, color_mode, primary_override, secondary_override, accent_override, bg_override, plan, promo_ends_at, status, phone, email)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'promo_paid', ?, 'trial', ?, ?)
                 ");
-                $insertSchool->execute([$name, $slug, $templateId, $paletteId, $promoEnds, $ownerPhone, $ownerEmail]);
+                $insertSchool->execute([$name, $slug, $templateId, $paletteId, $colorMode, $primaryOverride, $secondaryOverride, $accentOverride, $bgOverride, $promoEnds, $ownerPhone, $ownerEmail]);
                 $schoolId = $db->lastInsertId();
 
                 // 2. Create the owner login
@@ -86,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $totalSchools = (int)$db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
                     maybe_generate_milestone_post($db, $totalSchools);
                 } catch (\Throwable $e) {
-                    error_log('Auto blog draft failed for school ' . $schoolId . ': ' . $e->getMessage());
+                    app_log('Auto blog draft failed for school ' . $schoolId . ': ' . $e->getMessage());
                 }
 
                 // Welcome email — deliberately doesn't include the password itself,
@@ -104,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         send_somahub_email($ownerEmail, "Welcome to Somahub — {$name} is ready", $welcomeBody);
                     }
                 } catch (\Throwable $e) {
-                    error_log('Welcome email failed for school ' . $schoolId . ': ' . $e->getMessage());
+                    app_log('Welcome email failed for school ' . $schoolId . ': ' . $e->getMessage());
                 }
 
                 header("Location: school-created.php?id=$schoolId&pw=" . urlencode($tempPassword));
@@ -145,8 +151,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <label>Template</label>
     <?php $selectedTemplateId = $templates[0]['id'] ?? 0; include __DIR__ . '/_template_picker.php'; ?>
 
-    <label>Color Palette</label>
-    <?php $selectedPaletteId = $palettes[0]['id'] ?? 0; include __DIR__ . '/_palette_picker.php'; ?>
+    <label>Colors</label>
+    <?php
+      $selectedPaletteId = $palettes[0]['id'] ?? 0;
+      $selectedColorMode = 'preset';
+      $firstVars = json_decode($palettes[0]['css_variables_json'] ?? '{}', true) ?: [];
+      $customColors = [
+          'primary' => $firstVars['primary'] ?? '#0F5257',
+          'secondary' => $firstVars['secondary'] ?? '#1C1C16',
+          'accent' => $firstVars['accent'] ?? '#F2A65A',
+          'bg' => $firstVars['bg'] ?? '#F7F2E7',
+      ];
+      include __DIR__ . '/_palette_picker.php';
+    ?>
 
     <label>Contact Person's Name</label>
     <input type="text" name="owner_name" required>

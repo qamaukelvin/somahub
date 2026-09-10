@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/app_log.php';
 require_platform_admin();
 require_once __DIR__ . '/../includes/content-presets.php';
 $db = get_db();
@@ -22,7 +23,12 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create_school') {
     $schoolName = trim($_POST['school_name'] ?: $lead['school_name']);
     $templateId = (int)$_POST['template_id'];
-    $paletteId = (int)$_POST['palette_id'];
+    $colorMode = ($_POST['color_mode'] ?? 'preset') === 'custom' ? 'custom' : 'preset';
+    $paletteId = $colorMode === 'preset' ? (int)$_POST['palette_id'] : null;
+    $primaryOverride = $colorMode === 'custom' ? (trim($_POST['primary_override'] ?? '') ?: null) : null;
+    $secondaryOverride = $colorMode === 'custom' ? (trim($_POST['secondary_override'] ?? '') ?: null) : null;
+    $accentOverride = $colorMode === 'custom' ? (trim($_POST['accent_override'] ?? '') ?: null) : null;
+    $bgOverride = $colorMode === 'custom' ? (trim($_POST['bg_override'] ?? '') ?: null) : null;
     $presetKey = $_POST['content_preset'] ?? 'blank';
 
     $baseSlug = strtolower(preg_replace('/[^a-z0-9]/', '', strtolower($schoolName)));
@@ -47,10 +53,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
     $db->beginTransaction();
     try {
         $insertSchool = $db->prepare("
-            INSERT INTO schools (name, slug, template_id, palette_id, plan, status, verification_status, county, phone, email, activate_trial_on_login)
-            VALUES (?, ?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?, 1)
+            INSERT INTO schools (name, slug, template_id, palette_id, color_mode, primary_override, secondary_override, accent_override, bg_override, plan, status, verification_status, county, phone, email, activate_trial_on_login)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?, 1)
         ");
-        $insertSchool->execute([$schoolName, $slug, $templateId, $paletteId, $lead['county'], $lead['phone'], $realEmail ?: null]);
+        $insertSchool->execute([$schoolName, $slug, $templateId, $paletteId, $colorMode, $primaryOverride, $secondaryOverride, $accentOverride, $bgOverride, $lead['county'], $lead['phone'], $realEmail ?: null]);
         $schoolId = $db->lastInsertId();
 
         $insertUser = $db->prepare("
@@ -118,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
             $totalSchools = (int)$db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
             maybe_generate_milestone_post($db, $totalSchools);
         } catch (\Throwable $e) {
-            error_log('Auto blog draft failed for school ' . $schoolId . ': ' . $e->getMessage());
+            app_log('Auto blog draft failed for school ' . $schoolId . ': ' . $e->getMessage());
         }
 
         try {
@@ -128,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
                 'Your site is set up. Log in to review and edit your content.',
                 'sections.php');
         } catch (\Throwable $e) {
-            error_log('Welcome notification failed for school ' . $schoolId . ': ' . $e->getMessage());
+            app_log('Welcome notification failed for school ' . $schoolId . ': ' . $e->getMessage());
         }
 
         // Magic login link — the school taps this, no credentials to type.
@@ -138,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
             $magicToken = create_magic_login_token($db, $userId, 14);
             $magicLink = "https://somahub.top/dashboard/magic-login.php?token={$magicToken}";
         } catch (\Throwable $e) {
-            error_log('Magic login link generation failed for school ' . $schoolId . ': ' . $e->getMessage());
+            app_log('Magic login link generation failed for school ' . $schoolId . ': ' . $e->getMessage());
         }
 
         $created = [
@@ -195,8 +201,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
         <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Template</label>
         <?php $selectedTemplateId = $templates[0]['id'] ?? 0; include __DIR__ . '/_template_picker.php'; ?>
 
-        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Color Palette</label>
-        <?php $selectedPaletteId = $palettes[0]['id'] ?? 0; include __DIR__ . '/_palette_picker.php'; ?>
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Colors</label>
+        <?php
+          $selectedPaletteId = $palettes[0]['id'] ?? 0;
+          $selectedColorMode = 'preset';
+          $firstVars = json_decode($palettes[0]['css_variables_json'] ?? '{}', true) ?: [];
+          $customColors = [
+              'primary' => $firstVars['primary'] ?? '#0F5257',
+              'secondary' => $firstVars['secondary'] ?? '#1C1C16',
+              'accent' => $firstVars['accent'] ?? '#F2A65A',
+              'bg' => $firstVars['bg'] ?? '#F7F2E7',
+          ];
+          include __DIR__ . '/_palette_picker.php';
+        ?>
 
         <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Starting Content</label>
         <select name="content_preset" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:4px;margin-bottom:16px;">

@@ -60,17 +60,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (isset($_POST['action']) && $_POST['action'] === 'update_details') {
+        $colorMode = ($_POST['color_mode'] ?? 'preset') === 'custom' ? 'custom' : 'preset';
         $stmt = $db->prepare("
             UPDATE schools
-            SET name=?, template_id=?, palette_id=?, accent_override=?, primary_override=?, bg_override=?, plan=?, status=?, promo_ends_at=?, county=?, town=?, phone=?, email=?
+            SET name=?, template_id=?, palette_id=?, color_mode=?, accent_override=?, primary_override=?, secondary_override=?, bg_override=?, plan=?, status=?, promo_ends_at=?, county=?, town=?, phone=?, email=?
             WHERE id=?
         ");
         $stmt->execute([
             trim($_POST['name']),
             (int)$_POST['template_id'],
-            (int)$_POST['palette_id'],
+            $colorMode === 'preset' ? (int)$_POST['palette_id'] : null,
+            $colorMode,
             trim($_POST['accent_override']) ?: null,
             trim($_POST['primary_override']) ?: null,
+            trim($_POST['secondary_override']) ?: null,
             trim($_POST['bg_override']) ?: null,
             $_POST['plan'],
             $_POST['status'],
@@ -306,17 +309,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <label>Template</label>
       <?php $selectedTemplateId = $school['template_id']; include __DIR__ . '/_template_picker.php'; ?>
 
-      <label>Color Palette</label>
-      <?php $selectedPaletteId = $school['palette_id']; include __DIR__ . '/_palette_picker.php'; ?>
-
-      <label>Accent Color Override (optional)</label>
-      <input type="text" name="accent_override" value="<?= htmlspecialchars($school['accent_override'] ?? '') ?>" placeholder="e.g. #C9A227 — leave blank to use the palette's default">
-
-      <label>Primary Color Override (optional)</label>
-      <input type="text" name="primary_override" value="<?= htmlspecialchars($school['primary_override'] ?? '') ?>" placeholder="e.g. #1F3D2F — for schools whose real brand colors don't match any preset theme">
-
-      <label>Background Color Override (optional)</label>
-      <input type="text" name="bg_override" value="<?= htmlspecialchars($school['bg_override'] ?? '') ?>" placeholder="e.g. #FBF8F2 — usually fine to leave blank">
+      <label>Colors</label>
+      <?php
+        $selectedPaletteId = $school['palette_id'];
+        $selectedColorMode = $school['color_mode'] ?? 'preset';
+        $customColors = [
+            'primary' => $school['primary_override'] ?: '#0F5257',
+            'secondary' => $school['secondary_override'] ?: '#1C1C16',
+            'accent' => $school['accent_override'] ?: '#F2A65A',
+            'bg' => $school['bg_override'] ?: '#F7F2E7',
+        ];
+        include __DIR__ . '/_palette_picker.php';
+      ?>
 
       <label>Plan</label>
       <select name="plan">

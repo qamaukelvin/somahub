@@ -66,10 +66,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'gener
 
     <form method="POST">
       <input type="hidden" name="action" value="generate_blog_post">
-      <button type="submit" class="btn-secondary">Generate "Welcome" Blog Post</button>
+      <button type="submit" class="btn-secondary">Regenerate "Welcome" Blog Post</button>
     </form>
     <p style="font-size:0.78rem;color:#888;margin-top:6px;">
-      Best used once the school has added their hero photo and About text — the post pulls those in automatically. Creates a draft only; review and publish in the Blog admin.
+      A draft is now created automatically when the school is set up. This button is just a safety net in case that failed silently — it won't do anything (or create a duplicate) if a draft already exists for this school.
     </p>
 
     <?php if ($blogResult === 'created'): ?>
