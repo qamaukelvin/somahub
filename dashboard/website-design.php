@@ -39,6 +39,7 @@ $variantOptions = [
 ];
 
 $error = '';
+$isFirstTime = isset($_GET['welcome']);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $db->beginTransaction();
@@ -84,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $db->commit();
-        header('Location: index.php?welcome=1');
+        header('Location: index.php' . ($isFirstTime ? '?welcome=1' : ''));
         exit;
     } catch (\Throwable $e) {
         $db->rollBack();
@@ -122,8 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="wizard-wrap">
   <div class="wizard-head">
-    <h1>Design Your Website</h1>
-    <p>Pick a starting look, or skip straight to customizing sections yourself. You can change any of this later from your dashboard.</p>
+    <h1><?= $isFirstTime ? 'Design Your Website' : 'Website Design' ?></h1>
+    <p><?php if ($isFirstTime): ?>Pick a starting look, or skip straight to customizing sections yourself. You can change any of this later from your dashboard.<?php else: ?>Change your template, colors, or which sections appear on your site.<?php endif; ?></p>
   </div>
 
   <?php if ($error): ?><p style="background:#FBE8E4;color:#8C3B2E;padding:10px 16px;border-radius:8px;margin-bottom:16px;"><?= htmlspecialchars($error) ?></p><?php endif; ?>
@@ -170,8 +171,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <div class="wizard-actions">
-      <button type="submit" class="btn-primary">Continue to Dashboard</button>
-      <a href="index.php" class="btn-skip">Skip for now</a>
+      <button type="submit" class="btn-primary"><?= $isFirstTime ? 'Continue to Dashboard' : 'Save Changes' ?></button>
+      <a href="index.php" class="btn-skip"><?= $isFirstTime ? 'Skip for now' : 'Cancel' ?></a>
     </div>
   </form>
 </div>

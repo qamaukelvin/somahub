@@ -27,27 +27,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $schoolName = trim($_POST['school_name'] ?? '');
     $slug = strtolower(preg_replace('/[^a-z0-9]/', '', strtolower($_POST['slug'] ?? '')));
     $county = trim($_POST['county'] ?? '');
-    $templateId = (int)($_POST['template_id'] ?? 0);
-    $colorMode = ($_POST['color_mode'] ?? 'preset') === 'custom' ? 'custom' : 'preset';
-    $paletteId = $colorMode === 'preset' ? (int)($_POST['palette_id'] ?? 0) : null;
-    $primaryOverride = $colorMode === 'custom' ? (trim($_POST['primary_override'] ?? '') ?: null) : null;
-    $secondaryOverride = $colorMode === 'custom' ? (trim($_POST['secondary_override'] ?? '') ?: null) : null;
-    $accentOverride = $colorMode === 'custom' ? (trim($_POST['accent_override'] ?? '') ?: null) : null;
-    $bgOverride = $colorMode === 'custom' ? (trim($_POST['bg_override'] ?? '') ?: null) : null;
     $presetKey = $_POST['content_preset'] ?? 'blank';
     $planChoice = $_POST['plan_choice'] ?? 'free'; // 'free' or 'trial'
 
-    // A premium template requires the Trial (which unlocks everything temporarily)
-    // - free accounts can't pick a premium template at signup. Color palettes are
-    // always free to pick, on any plan, with any template.
-    $chosenTemplate = null;
-    foreach ($templates as $t) { if ($t['id'] == $templateId) { $chosenTemplate = $t; break; } }
-    $templateIsPremium = $chosenTemplate && !empty($chosenTemplate['is_premium']);
+    // Template/colors are no longer chosen here - that used to be duplicated
+    // with the Website Design step (step 3) that immediately follows. This
+    // page assigns a sensible free default (first active free template,
+    // first active palette) and step 3 is the one real place to pick/change
+    // it, both right after signup and any time later.
+    $defaultTemplate = null;
+    foreach ($templates as $t) { if (empty($t['is_premium'])) { $defaultTemplate = $t; break; } }
+    $templateId = $defaultTemplate['id'] ?? ($templates[0]['id'] ?? null);
+    $colorMode = 'preset';
+    $paletteId = $palettes[0]['id'] ?? null;
+    $primaryOverride = $secondaryOverride = $accentOverride = $bgOverride = null;
 
     if (!$schoolName || !$slug) {
         $error = 'Please fill in all required fields.';
-    } elseif ($templateIsPremium && $planChoice !== 'trial') {
-        $error = 'That template is a premium template - choose the Trial plan to unlock it, or pick a free template for now.';
     } else {
         $check = $db->prepare("SELECT id FROM schools WHERE slug = ?");
         $check->execute([$slug]);
@@ -257,18 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <label>County</label>
       <input type="text" name="county" placeholder="e.g. Nyandarua">
 
-      <label>Template</label>
-      <?php $selectedTemplateId = 0; include __DIR__ . '/../admin/_template_picker.php'; ?>
-      <p style="font-size:0.78rem;color:var(--muted);margin-top:-2px;margin-bottom:14px;" id="themeHint">Premium templates need the Trial plan or Custom Templates add-on.</p>
-
-      <label>Colors</label>
-      <?php
-        $selectedPaletteId = 0;
-        $selectedColorMode = 'preset';
-        $customColors = ['primary' => '#0F5257', 'secondary' => '#1C1C16', 'accent' => '#F2A65A', 'bg' => '#F7F2E7'];
-        include __DIR__ . '/../admin/_palette_picker.php';
-      ?>
-      <p style="font-size:0.78rem;color:var(--muted);margin-top:-2px;margin-bottom:14px;">Any palette (or your own custom colors) can be used with any template, on any plan.</p>
+      <p style="font-size:0.85rem;color:var(--muted);background:#F4F8F6;padding:10px 14px;border-radius:8px;">You'll pick your template and colors in the next step, right after this.</p>
 
       <label>Starting Content</label>
       <select name="content_preset">
@@ -331,16 +316,6 @@ document.getElementById('schoolSetupForm').addEventListener('submit', (e) => {
     }
 });
 
-const planRadios = document.querySelectorAll('input[name="plan_choice"]');
-function updateThemeLocking() {
-    const trialSelected = document.getElementById('plan_trial').checked;
-    document.querySelectorAll('#templatePickerScroll .tpl-card').forEach(opt => {
-        const isPremium = opt.dataset.premium === '1';
-        opt.classList.toggle('locked', isPremium && !trialSelected);
-    });
-}
-planRadios.forEach(r => r.addEventListener('change', updateThemeLocking));
-updateThemeLocking();
 </script>
 <?php include __DIR__ . '/../_loader.php'; ?>
 </body>

@@ -55,6 +55,10 @@ $newEnrollments = $enrollCount->fetch()['c'];
       <h3>Edit Website</h3>
       <p>Manage your site's sections — reorder, edit, duplicate, or hide.</p>
     </a>
+    <a href="website-design.php" class="card-link">
+      <h3>Website Design</h3>
+      <p>Change your template, colors, and which sections appear on your site.</p>
+    </a>
     <a href="enrollment.php" class="card-link">
       <h3>Enrollment Enquiries</h3>
       <p><?= $newEnrollments ?> new application<?= $newEnrollments == 1 ? '' : 's' ?> waiting for review.</p>
