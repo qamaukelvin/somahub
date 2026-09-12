@@ -20,7 +20,7 @@
     <div class="desktop-actions">
       <button type="button" onclick="toggleAccordion(<?= $s['id'] ?>)">Edit</button>
       <?php if ($hasDesignOptions): ?>
-        <button type="button" class="icon-btn" onclick="toggleDesignAccordion(<?= $s['id'] ?>)" title="Design"><span class="material-symbols-outlined" style="font-family:'Material Symbols Outlined';font-size:20px;">palette</span></button>
+        <button type="button" onclick="toggleDesignAccordion(<?= $s['id'] ?>)">Design</button>
       <?php endif; ?>
       <button type="button" onclick="duplicateSection(<?= $s['id'] ?>)">Duplicate</button>
       <button type="button" onclick="toggleVisibility(<?= $s['id'] ?>)"><?= $s['is_visible'] ? 'Hide' : 'Show' ?></button>

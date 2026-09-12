@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/app_log.php';
 $user = require_school_login();
 $db = get_db();
 
@@ -37,7 +38,13 @@ if (!in_array($posted, $allowed, true)) {
     exit;
 }
 
-$update = $db->prepare("UPDATE site_sections SET layout_variant = ? WHERE id = ? AND school_id = ?");
-$update->execute([$posted, $id, $user['school_id']]);
+try {
+    $update = $db->prepare("UPDATE site_sections SET layout_variant = ? WHERE id = ? AND school_id = ?");
+    $update->execute([$posted, $id, $user['school_id']]);
+} catch (\Throwable $e) {
+    app_log('section-design-save-ajax.php failed for section ' . $id . ': ' . $e->getMessage());
+    echo json_encode(['ok' => false, 'errors' => ['_' => 'Could not save. Please try again or contact support.']]);
+    exit;
+}
 
 echo json_encode(['ok' => true]);
