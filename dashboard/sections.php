@@ -21,14 +21,6 @@ $stmt = $db->prepare("SELECT * FROM schools WHERE id=?");
 $stmt->execute([$schoolId]);
 $school = $stmt->fetch();
 
-require_once __DIR__ . '/../includes/appearance.php';
-require_once __DIR__ . '/../includes/plan.php';
-$templates = get_active_templates($db);
-$palettes = get_active_palettes($db);
-$locked = is_premium_locked($school);
-$designSaved = isset($_GET['design_saved']);
-$autoOpenDesign = isset($_GET['design']) || $designSaved;
-
 $availableTypes = $db->query("SELECT * FROM section_types ORDER BY category, label")->fetchAll();
 $groupedTypes = [];
 foreach ($availableTypes as $t) {
@@ -103,39 +95,8 @@ foreach ($availableTypes as $t) {
 <?php include __DIR__ . '/_nav.php'; ?>
 
 <main class="wrap">
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-    <div>
-      <h1>Edit Your Website</h1>
-      <p class="sub">Drag <span class="drag-handle" style="display:inline;padding:0;">☰</span> to reorder. On desktop, click Edit. On mobile, tap ✎ to edit inline.</p>
-    </div>
-    <button type="button" class="btn" style="white-space:nowrap;" onclick="document.getElementById('designPanel').classList.toggle('open');">🎨 Design</button>
-  </div>
-
-  <?php if ($designSaved): ?>
-    <div style="background:#E8F3EC;color:#1B4D3E;padding:12px 16px;border-radius:6px;margin-bottom:16px;font-size:0.88rem;">Your design changes have been saved.</div>
-  <?php endif; ?>
-
-  <div id="designPanel" class="accordion-panel design-panel<?= $autoOpenDesign ? ' open' : '' ?>">
-    <form method="POST" action="design-save.php">
-      <label style="font-weight:700;display:block;margin-bottom:10px;">Template</label>
-      <?php $selectedTemplateId = $school['template_id'] ?: 0; include __DIR__ . '/../admin/_template_picker.php'; ?>
-
-      <label style="font-weight:700;display:block;margin:16px 0 10px;">Colors</label>
-      <?php
-        $selectedPaletteId = $school['palette_id'] ?: 0;
-        $selectedColorMode = $school['color_mode'] ?? 'preset';
-        $customColors = [
-            'primary' => $school['primary_override'] ?: '#0F5257',
-            'secondary' => $school['secondary_override'] ?: '#1C1C16',
-            'accent' => $school['accent_override'] ?: '#F2A65A',
-            'bg' => $school['bg_override'] ?: '#F7F2E7',
-        ];
-        include __DIR__ . '/../admin/_palette_picker.php';
-      ?>
-
-      <button type="submit" class="btn" style="margin-top:8px;">Save Design</button>
-    </form>
-  </div>
+  <h1>Edit Your Website</h1>
+  <p class="sub">Drag <span class="drag-handle" style="display:inline;padding:0;">☰</span> to reorder. On desktop, click Edit. On mobile, tap ✎ to edit inline. The palette icon opens layout options for sections that support them.</p>
 
   <?php if (isset($_GET['error']) && $_GET['error'] === 'upgrade_required'): ?>
     <div style="background:#FBE8E4;color:#8C3B2E;padding:12px 16px;border-radius:6px;margin-bottom:16px;font-size:0.88rem;">
@@ -232,6 +193,7 @@ function saveOrder() {
 
 /* ---------- Mobile inline accordion editor ---------- */
 let openAccordionId = null;
+let openDesignAccordionId = null;
 
 function toggleAccordion(id) {
     const panel = document.getElementById('accordion-' + id);
@@ -297,6 +259,72 @@ function submitInlineForm(form, id) {
             msg.classList.add('error');
         });
 }
+
+function toggleDesignAccordion(id) {
+    const panel = document.getElementById('design-accordion-' + id);
+
+    if (openDesignAccordionId !== null && openDesignAccordionId !== id) {
+        const prev = document.getElementById('design-accordion-' + openDesignAccordionId);
+        if (prev) { prev.classList.remove('open'); prev.innerHTML = ''; }
+    }
+
+    if (panel.classList.contains('open')) {
+        panel.classList.remove('open');
+        panel.innerHTML = '';
+        openDesignAccordionId = null;
+        return;
+    }
+
+    panel.innerHTML = '<div class="accordion-loading">Loading…</div>';
+    panel.classList.add('open');
+    openDesignAccordionId = id;
+
+    fetch('section-design-fragment.php?id=' + id)
+        .then(res => res.text())
+        .then(html => {
+            panel.innerHTML = html;
+            const form = panel.querySelector('.inline-design-form');
+            if (!form) return;
+            form.addEventListener('submit', e => {
+                e.preventDefault();
+                submitDesignForm(form, id);
+            });
+        });
+}
+
+function submitDesignForm(form, id) {
+    const msg = form.querySelector('.inline-form-msg');
+    const btn = form.querySelector('button[type=submit]');
+    msg.textContent = '';
+    msg.className = 'inline-form-msg';
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    const formData = new FormData(form);
+    formData.append('section_id', id);
+
+    fetch('section-design-save-ajax.php', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.textContent = 'Save Design';
+            if (data.ok) {
+                msg.textContent = 'Saved.';
+                msg.classList.add('success');
+            } else {
+                const firstError = Object.values(data.errors)[0] || 'Something went wrong.';
+                msg.textContent = firstError;
+                msg.classList.add('error');
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.textContent = 'Save Design';
+            msg.textContent = 'Network error — please try again.';
+            msg.classList.add('error');
+        });
+}
+
 
 /* ---------- Shared actions (both desktop buttons and mobile menu use these) ---------- */
 function duplicateSection(id) {

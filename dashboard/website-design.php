@@ -1,10 +1,9 @@
 <?php
-// Retired as a standalone page - template/color/section design now lives
-// directly in sections.php (the "🎨 Design" button + panel), matching the
-// same accordion/inline-edit patterns as the rest of content editing,
-// instead of a separate page duplicating the same choices.
+// Retired as a standalone page. Template/color selection is deferred for
+// now (auto-assigned a sensible default at signup); per-section design
+// options (currently just Hero's layout) live directly in sections.php,
+// via the palette icon on each eligible section row.
 require_once __DIR__ . '/../includes/auth.php';
 require_school_login();
-$firstTime = isset($_GET['welcome']);
-header('Location: sections.php?design=1' . ($firstTime ? '&welcome=1' : ''));
+header('Location: sections.php');
 exit;

@@ -83,14 +83,8 @@ if ($errors) {
     exit;
 }
 
-$update = $db->prepare("UPDATE site_sections SET content_json = ?, layout_variant = ? WHERE id = ? AND school_id = ?");
-$validHeroVariants = ['default', 'background', 'carousel'];
-$newVariant = $section['layout_variant'] ?? 'default';
-if ($section['key_name'] === 'hero') {
-    $posted = trim($_POST['layout_variant'] ?? 'default');
-    $newVariant = in_array($posted, $validHeroVariants, true) ? $posted : 'default';
-}
-$update->execute([json_encode($newContent), $newVariant, $section['id'], $user['school_id']]);
+$update = $db->prepare("UPDATE site_sections SET content_json = ? WHERE id = ? AND school_id = ?");
+$update->execute([json_encode($newContent), $section['id'], $user['school_id']]);
 
 log_content_change($db, $user['school_id'], $user['id'], 'section', $section['id'], 'update', $content, $newContent);
 
