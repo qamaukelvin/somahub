@@ -81,7 +81,6 @@ if (!$sitePubliclyVisible && !$isOwnerPreview) {
 $appearance = resolve_school_appearance($db, $school);
 $theme = $appearance['theme'];
 $theme_custom_css = $appearance['custom_css'];
-$layout = $appearance['layout'] ?? [];
 
 $sectionsStmt = $db->prepare("
     SELECT ss.*, st.key_name, st.label, st.is_premium
@@ -370,7 +369,7 @@ foreach ($sections as $s) {
 <?php if ($key === 'hero'):
     $heroPhotos = array_filter([$c['hero_photo'] ?? '', $c['hero_photo_2'] ?? '', $c['hero_photo_3'] ?? '']);
     $heroPhotos = array_values($heroPhotos);
-    $heroVariant = $layout['hero_variant'] ?? 'default';
+    $heroVariant = $s['layout_variant'] ?? 'default';
     if ($heroVariant === 'carousel' && count($heroPhotos) < 2) $heroVariant = 'default'; // carousel needs 2+ photos, fall back gracefully
     if ($heroVariant === 'background' && empty($heroPhotos)) $heroVariant = 'default'; // background needs at least 1 photo
 ?>

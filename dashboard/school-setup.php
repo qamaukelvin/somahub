@@ -142,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     app_log('Welcome notification failed for school ' . $schoolId . ': ' . $e->getMessage());
                 }
 
-                header("Location: index.php?welcome=1");
+                header("Location: website-design.php?welcome=1");
                 exit;
             } catch (Exception $e) {
                 $db->rollBack();
