@@ -21,6 +21,14 @@ $stmt = $db->prepare("SELECT * FROM schools WHERE id=?");
 $stmt->execute([$schoolId]);
 $school = $stmt->fetch();
 
+require_once __DIR__ . '/../includes/appearance.php';
+require_once __DIR__ . '/../includes/plan.php';
+$templates = get_active_templates($db);
+$palettes = get_active_palettes($db);
+$locked = is_premium_locked($school);
+$designSaved = isset($_GET['design_saved']);
+$autoOpenDesign = isset($_GET['design']) || $designSaved;
+
 $availableTypes = $db->query("SELECT * FROM section_types ORDER BY category, label")->fetchAll();
 $groupedTypes = [];
 foreach ($availableTypes as $t) {
@@ -95,8 +103,39 @@ foreach ($availableTypes as $t) {
 <?php include __DIR__ . '/_nav.php'; ?>
 
 <main class="wrap">
-  <h1>Edit Your Website</h1>
-  <p class="sub">Drag <span class="drag-handle" style="display:inline;padding:0;">☰</span> to reorder. On desktop, click Edit. On mobile, tap ✎ to edit inline.</p>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    <div>
+      <h1>Edit Your Website</h1>
+      <p class="sub">Drag <span class="drag-handle" style="display:inline;padding:0;">☰</span> to reorder. On desktop, click Edit. On mobile, tap ✎ to edit inline.</p>
+    </div>
+    <button type="button" class="btn" style="white-space:nowrap;" onclick="document.getElementById('designPanel').classList.toggle('open');">🎨 Design</button>
+  </div>
+
+  <?php if ($designSaved): ?>
+    <div style="background:#E8F3EC;color:#1B4D3E;padding:12px 16px;border-radius:6px;margin-bottom:16px;font-size:0.88rem;">Your design changes have been saved.</div>
+  <?php endif; ?>
+
+  <div id="designPanel" class="accordion-panel design-panel<?= $autoOpenDesign ? ' open' : '' ?>">
+    <form method="POST" action="design-save.php">
+      <label style="font-weight:700;display:block;margin-bottom:10px;">Template</label>
+      <?php $selectedTemplateId = $school['template_id'] ?: 0; include __DIR__ . '/../admin/_template_picker.php'; ?>
+
+      <label style="font-weight:700;display:block;margin:16px 0 10px;">Colors</label>
+      <?php
+        $selectedPaletteId = $school['palette_id'] ?: 0;
+        $selectedColorMode = $school['color_mode'] ?? 'preset';
+        $customColors = [
+            'primary' => $school['primary_override'] ?: '#0F5257',
+            'secondary' => $school['secondary_override'] ?: '#1C1C16',
+            'accent' => $school['accent_override'] ?: '#F2A65A',
+            'bg' => $school['bg_override'] ?: '#F7F2E7',
+        ];
+        include __DIR__ . '/../admin/_palette_picker.php';
+      ?>
+
+      <button type="submit" class="btn" style="margin-top:8px;">Save Design</button>
+    </form>
+  </div>
 
   <?php if (isset($_GET['error']) && $_GET['error'] === 'upgrade_required'): ?>
     <div style="background:#FBE8E4;color:#8C3B2E;padding:12px 16px;border-radius:6px;margin-bottom:16px;font-size:0.88rem;">

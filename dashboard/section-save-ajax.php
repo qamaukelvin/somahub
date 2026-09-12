@@ -9,7 +9,7 @@ header('Content-Type: application/json');
 $id = (int)($_POST['section_id'] ?? 0);
 
 $stmt = $db->prepare("
-    SELECT ss.*, st.schema_json
+    SELECT ss.*, st.key_name, st.schema_json
     FROM site_sections ss
     JOIN section_types st ON st.id = ss.section_type_id
     WHERE ss.id = ? AND ss.school_id = ?
@@ -83,8 +83,14 @@ if ($errors) {
     exit;
 }
 
-$update = $db->prepare("UPDATE site_sections SET content_json = ? WHERE id = ? AND school_id = ?");
-$update->execute([json_encode($newContent), $section['id'], $user['school_id']]);
+$update = $db->prepare("UPDATE site_sections SET content_json = ?, layout_variant = ? WHERE id = ? AND school_id = ?");
+$validHeroVariants = ['default', 'background', 'carousel'];
+$newVariant = $section['layout_variant'] ?? 'default';
+if ($section['key_name'] === 'hero') {
+    $posted = trim($_POST['layout_variant'] ?? 'default');
+    $newVariant = in_array($posted, $validHeroVariants, true) ? $posted : 'default';
+}
+$update->execute([json_encode($newContent), $newVariant, $section['id'], $user['school_id']]);
 
 log_content_change($db, $user['school_id'], $user['id'], 'section', $section['id'], 'update', $content, $newContent);
 

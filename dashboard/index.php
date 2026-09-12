@@ -55,7 +55,7 @@ $newEnrollments = $enrollCount->fetch()['c'];
       <h3>Edit Website</h3>
       <p>Manage your site's sections — reorder, edit, duplicate, or hide.</p>
     </a>
-    <a href="website-design.php" class="card-link">
+    <a href="sections.php?design=1" class="card-link">
       <h3>Website Design</h3>
       <p>Change your template, colors, and which sections appear on your site.</p>
     </a>
