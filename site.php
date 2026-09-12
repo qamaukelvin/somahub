@@ -81,6 +81,7 @@ if (!$sitePubliclyVisible && !$isOwnerPreview) {
 $appearance = resolve_school_appearance($db, $school);
 $theme = $appearance['theme'];
 $theme_custom_css = $appearance['custom_css'];
+$layout = $appearance['layout'] ?? [];
 
 $sectionsStmt = $db->prepare("
     SELECT ss.*, st.key_name, st.label, st.is_premium
@@ -241,6 +242,18 @@ foreach ($sections as $s) {
   .hero-mosaic img{width:100%;height:100%;object-fit:cover;}
   .hero-mosaic .m-main{grid-row:1/3;}
   .hero-mosaic.two-photos{grid-template-rows:1fr;}
+
+  /* Hero variants: background (full-bleed photo + overlay) and carousel (auto-rotating photos) */
+  .hero-bg-variant, .hero-carousel-variant{position:relative;padding:0;overflow:hidden;min-height:420px;display:flex;align-items:flex-end;}
+  .hero-bg-photo, .hero-carousel-track{position:absolute;inset:0;}
+  .hero-bg-photo img{width:100%;height:100%;object-fit:cover;}
+  .hero-carousel-slide{position:absolute;inset:0;opacity:0;transition:opacity 1s ease;}
+  .hero-carousel-slide.active{opacity:1;}
+  .hero-carousel-slide img{width:100%;height:100%;object-fit:cover;}
+  .hero-bg-overlay{position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.7));}
+  .hero-bg-content{position:relative;z-index:2;padding:60px 6% 50px;color:#fff;max-width:720px;}
+  .hero-bg-content h1{color:#fff;}
+  .hero-bg-content p{color:rgba(255,255,255,0.88);}
   .hero-mosaic.two-photos .m-main{grid-row:1/2;}
 
   /* Theme-specific signature styling, injected per school's theme */
@@ -328,16 +341,16 @@ foreach ($sections as $s) {
     <nav><ul id="navlinks">
       <?php foreach ($navSequence as $item): ?>
         <?php if ($item['type'] === 'link'): ?>
-          <li><a href="#<?= esc($item['key']) ?>"><?= esc($item['label']) ?></a></li>
+          <li><a href="#<?= esc($item['key']) ?>" data-key="<?= esc($item['key']) ?>" data-label="<?= esc($item['label']) ?>"><?= esc($item['label']) ?></a></li>
         <?php elseif (count($item['items']) === 1): ?>
-          <li><a href="#<?= esc($item['items'][0]['key']) ?>"><?= esc($item['items'][0]['label']) ?></a></li>
+          <li><a href="#<?= esc($item['items'][0]['key']) ?>" data-key="<?= esc($item['items'][0]['key']) ?>" data-label="<?= esc($item['items'][0]['label']) ?>"><?= esc($item['items'][0]['label']) ?></a></li>
         <?php else: ?>
           <li>
             <details class="nav-group">
-              <summary><?= esc($item['label']) ?> ▾</summary>
+              <summary data-label="<?= esc($item['label']) ?>"><?= esc($item['label']) ?> ▾</summary>
               <div class="nav-dropdown">
                 <?php foreach ($item['items'] as $sub): ?>
-                  <a href="#<?= esc($sub['key']) ?>"><?= esc($sub['label']) ?></a>
+                  <a href="#<?= esc($sub['key']) ?>" data-key="<?= esc($sub['key']) ?>" data-label="<?= esc($sub['label']) ?>"><?= esc($sub['label']) ?></a>
                 <?php endforeach; ?>
               </div>
             </details>
@@ -357,7 +370,48 @@ foreach ($sections as $s) {
 <?php if ($key === 'hero'):
     $heroPhotos = array_filter([$c['hero_photo'] ?? '', $c['hero_photo_2'] ?? '', $c['hero_photo_3'] ?? '']);
     $heroPhotos = array_values($heroPhotos);
+    $heroVariant = $layout['hero_variant'] ?? 'default';
+    if ($heroVariant === 'carousel' && count($heroPhotos) < 2) $heroVariant = 'default'; // carousel needs 2+ photos, fall back gracefully
+    if ($heroVariant === 'background' && empty($heroPhotos)) $heroVariant = 'default'; // background needs at least 1 photo
 ?>
+
+<?php if ($heroVariant === 'background'): ?>
+  <section class="hero hero-bg-variant" id="hero">
+    <div class="hero-bg-photo"><img src="<?= img($heroPhotos[0]) ?>" alt="<?= esc($school['name']) ?>"></div>
+    <div class="hero-bg-overlay"></div>
+    <div class="hero-bg-content">
+      <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
+      <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
+    </div>
+  </section>
+
+<?php elseif ($heroVariant === 'carousel'): ?>
+  <section class="hero hero-carousel-variant" id="hero">
+    <div class="hero-carousel-track">
+      <?php foreach ($heroPhotos as $i => $photo): ?>
+        <div class="hero-carousel-slide<?= $i === 0 ? ' active' : '' ?>"><img src="<?= img($photo) ?>" alt=""></div>
+      <?php endforeach; ?>
+    </div>
+    <div class="hero-bg-overlay"></div>
+    <div class="hero-bg-content">
+      <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
+      <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
+    </div>
+    <script>
+      (function(){
+        var slides = document.querySelectorAll('#hero .hero-carousel-slide');
+        if (slides.length < 2) return;
+        var i = 0;
+        setInterval(function(){
+          slides[i].classList.remove('active');
+          i = (i + 1) % slides.length;
+          slides[i].classList.add('active');
+        }, 4500);
+      })();
+    </script>
+  </section>
+
+<?php else: ?>
   <section class="hero" id="hero">
     <div class="hero-inner">
       <div>
@@ -376,6 +430,7 @@ foreach ($sections as $s) {
       <?php endif; ?>
     </div>
   </section>
+<?php endif; ?>
 
 <?php elseif ($key === 'about'): ?>
   <section id="about">
@@ -401,7 +456,10 @@ foreach ($sections as $s) {
     </div>
   </section>
 
-<?php elseif ($key === 'gallery'): ?>
+<?php elseif ($key === 'gallery'):
+    $galleryPhotos = array_filter([$c['photo_1'] ?? '', $c['photo_2'] ?? '', $c['photo_3'] ?? '', $c['photo_4'] ?? '']);
+    if (empty($galleryPhotos)) continue; // nothing uploaded yet - skip the section rather than show an empty grid
+?>
   <section id="gallery">
     <div class="wrap">
       <div class="section-head">
@@ -409,8 +467,8 @@ foreach ($sections as $s) {
         <?php if (!empty($c['caption'])): ?><p style="color:#5a5a52;margin-top:6px;"><?= esc($c['caption']) ?></p><?php endif; ?>
       </div>
       <div class="gallery-grid">
-        <?php foreach (['photo_1','photo_2','photo_3','photo_4'] as $ph): ?>
-          <?php if (!empty($c[$ph])): ?><img src="<?= img($c[$ph]) ?>" alt=""><?php endif; ?>
+        <?php foreach ($galleryPhotos as $ph): ?>
+          <img src="<?= img($ph) ?>" alt="">
         <?php endforeach; ?>
       </div>
     </div>
@@ -617,16 +675,19 @@ foreach ($sections as $s) {
     </div>
   </section>
 
-<?php elseif ($key === 'stats'): ?>
+<?php elseif ($key === 'stats'):
+    $filledStats = array_filter([1,2,3,4], fn($i) => !empty($c["stat_{$i}_number"]));
+    if (empty($filledStats)) continue; // nothing filled in yet - skip rather than show an empty strip
+?>
   <section id="stats">
     <div class="wrap">
       <div class="stats-strip">
-        <?php for ($i = 1; $i <= 4; $i++): if (empty($c["stat_{$i}_number"])) continue; ?>
+        <?php foreach ($filledStats as $i): ?>
           <div class="stat-item">
             <div class="number"><?= esc($c["stat_{$i}_number"]) ?></div>
             <div class="label"><?= esc($c["stat_{$i}_label"] ?? '') ?></div>
           </div>
-        <?php endfor; ?>
+        <?php endforeach; ?>
       </div>
     </div>
   </section>

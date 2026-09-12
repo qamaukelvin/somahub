@@ -84,36 +84,59 @@ function resolve_school_palette(PDO $db, array $school): array {
 function build_template_preview_html(string $customCss): string {
     $baseCss = "
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Nunito Sans',Arial,sans-serif;color:#1B1B18;background:var(--bg);line-height:1.5;}
+        body{font-family:'Nunito Sans',Arial,sans-serif;color:#1B1B18;background:var(--bg);line-height:1.4;}
         h1,h2,h3{font-family:'Sora','Nunito Sans',Arial,sans-serif;letter-spacing:-0.01em;}
         img{display:block;max-width:100%;background:#D9D3C4;}
         :root{ --primary:#0F5257; --accent:#F2A65A; --bg:#F7F2E7; }
-        section{padding:20px 16px;}
+        section{padding:16px;}
         section:nth-of-type(even){background:rgba(0,0,0,0.02);}
-        .section-head{margin-bottom:12px;}
-        .section-head h2{font-size:0.95rem;font-weight:700;color:var(--primary);}
-        .hero{background:var(--primary);color:var(--bg);padding:26px 16px 20px;}
+        .section-head{margin-bottom:10px;}
+        .section-head h2{font-size:0.85rem;font-weight:700;color:var(--primary);}
+        .hero{background:var(--primary);color:var(--bg);padding:22px 16px 18px;}
         .hero-inner{display:grid;grid-template-columns:1.1fr 0.9fr;gap:14px;align-items:center;}
-        .hero h1{font-size:1.15rem;font-weight:700;line-height:1.15;}
-        .hero p{margin-top:6px;font-size:0.68rem;opacity:0.85;}
+        .hero h1{font-size:1.05rem;font-weight:700;line-height:1.15;}
+        .hero p{margin-top:5px;font-size:0.62rem;opacity:0.85;}
         .hero-photo{border-radius:6px;overflow:hidden;}
-        .hero-photo img{width:100%;height:60px;object-fit:cover;}
-        .hero-cta{background:var(--accent);color:var(--primary);margin-top:8px;padding:5px 12px;border-radius:4px;font-weight:700;font-size:0.62rem;display:inline-block;}
-        .staff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-        .staff-grid > div{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:6px;padding:8px;text-align:center;}
-        .staff-grid img{width:32px;height:32px;border-radius:50%;margin:0 auto 4px;}
-        .staff-grid .name{font-size:0.6rem;font-weight:700;}
+        .hero-photo img{width:100%;height:50px;object-fit:cover;}
+        .hero-cta{background:var(--accent);color:var(--primary);margin-top:7px;padding:4px 11px;border-radius:4px;font-weight:700;font-size:0.58rem;display:inline-block;}
+        .staff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+        .staff-card{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:6px;padding:7px;text-align:center;}
+        .staff-card img{width:28px;height:28px;border-radius:50%;margin:0 auto 3px;}
+        .staff-card .name{font-size:0.56rem;font-weight:700;}
+        .staff-card .role{font-size:0.48rem;color:#6b6b60;}
+        .about-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;}
+        .about-grid p{font-size:0.62rem;color:#3a3a34;margin-bottom:5px;}
+        .about-photo{border-radius:6px;overflow:hidden;}
+        .about-photo img{width:100%;height:56px;object-fit:cover;}
+        .testimonial-grid{display:grid;grid-template-columns:1fr;gap:8px;}
+        .testimonial-card{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:8px;padding:10px;}
+        .testimonial-card .quote{font-size:0.6rem;font-style:italic;color:#3a3a34;margin-bottom:5px;}
+        .testimonial-card .author{font-size:0.55rem;font-weight:700;color:var(--primary);}
     ";
     $heroMarkup = '
         <section class="hero"><div class="hero-inner">
             <div><h1>Sample School</h1><p>A short line about the school goes here.</p><span class="hero-cta">Apply Now</span></div>
-            <div class="hero-photo"><img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\'/%3E" alt=""></div>
+            <div class="hero-photo"><img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'%3E%3Crect width=\'100\' height=\'100\' fill=\'%23D9D3C4\'/%3E%3C/svg%3E" alt=""></div>
         </div></section>
+        <section><div class="section-head"><h2>About Us</h2></div>
+            <div class="about-grid">
+                <div>
+                    <p>Founded to provide quality education in a supportive environment for every learner.</p>
+                    <p>We believe every child deserves individual attention and a strong foundation.</p>
+                </div>
+                <div class="about-photo"><img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'%3E%3Crect width=\'100\' height=\'100\' fill=\'%23D9D3C4\'/%3E%3C/svg%3E" alt=""></div>
+            </div>
+        </section>
         <section><div class="section-head"><h2>Our Staff</h2></div>
             <div class="staff-grid">
-                <div><img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\'/%3E"><div class="name">Jane Doe</div></div>
-                <div><img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\'/%3E"><div class="name">John Kamau</div></div>
-                <div><img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\'/%3E"><div class="name">Amina Yusuf</div></div>
+                <div class="staff-card"><img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'%3E%3Crect width=\'100\' height=\'100\' fill=\'%23D9D3C4\'/%3E%3C/svg%3E"><div class="name">Jane Doe</div><div class="role">Head Teacher</div></div>
+                <div class="staff-card"><img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'%3E%3Crect width=\'100\' height=\'100\' fill=\'%23D9D3C4\'/%3E%3C/svg%3E"><div class="name">John Kamau</div><div class="role">Deputy</div></div>
+                <div class="staff-card"><img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'%3E%3Crect width=\'100\' height=\'100\' fill=\'%23D9D3C4\'/%3E%3C/svg%3E"><div class="name">Amina Yusuf</div><div class="role">Teacher</div></div>
+            </div>
+        </section>
+        <section><div class="section-head"><h2>What Parents Say</h2></div>
+            <div class="testimonial-grid">
+                <div class="testimonial-card"><div class="quote">"A wonderful, caring school - my daughter has thrived here."</div><div class="author">— A Parent</div></div>
             </div>
         </section>
     ';
@@ -147,6 +170,7 @@ function resolve_school_appearance(PDO $db, array $school): array {
         return [
             'theme' => $theme,
             'custom_css' => $template['custom_css'] ?? '',
+            'layout' => json_decode($template['layout_config'] ?? '{}', true) ?: [],
             'template' => $template,
             'palette' => null,
             'is_premium_template' => !empty($template['is_premium']),
@@ -164,6 +188,7 @@ function resolve_school_appearance(PDO $db, array $school): array {
     return [
         'theme' => $theme,
         'custom_css' => $template['custom_css'] ?? '',
+        'layout' => json_decode($template['layout_config'] ?? '{}', true) ?: [],
         'template' => $template,
         'palette' => $palette,
         'is_premium_template' => !empty($template['is_premium']),
