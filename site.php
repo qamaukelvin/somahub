@@ -259,10 +259,14 @@ foreach ($sections as $s) {
     .hero-mosaic{min-height:0;max-height:220px;}
   }
 
-  /* Hero variants: background (full-bleed photo + overlay) and carousel (auto-rotating photos) */
-  .hero-bg-variant, .hero-carousel-variant{position:relative;padding:0;overflow:hidden;min-height:420px;display:flex;align-items:flex-end;}
-  .hero-bg-photo, .hero-carousel-track{position:absolute;inset:0;}
-  .hero-bg-photo img{width:100%;height:100%;object-fit:cover;}
+  /* Hero variants: background_fixed (true CSS background-attachment:fixed
+     photo + overlay - needs to be a real background-image, not an <img>,
+     since background-attachment only applies to CSS backgrounds) and
+     carousel (auto-rotating photos, still uses <img> tags since it needs
+     to swap sources). */
+  .hero-bgfixed-variant{position:relative;padding:0;overflow:hidden;min-height:420px;display:flex;align-items:flex-end;background-size:cover;background-position:center;background-attachment:fixed;}
+  .hero-carousel-variant{position:relative;padding:0;overflow:hidden;min-height:420px;display:flex;align-items:flex-end;}
+  .hero-carousel-track{position:absolute;inset:0;}
   .hero-carousel-slide{position:absolute;inset:0;opacity:0;transition:opacity 1s ease;}
   .hero-carousel-slide.active{opacity:1;}
   .hero-carousel-slide img{width:100%;height:100%;object-fit:cover;}
@@ -270,6 +274,23 @@ foreach ($sections as $s) {
   .hero-bg-content{position:relative;z-index:2;padding:60px 6% 50px;color:#fff;max-width:720px;}
   .hero-bg-content h1{color:#fff;}
   .hero-bg-content p{color:rgba(255,255,255,0.88);}
+  .hero-bg-content .hero-cta{margin-top:24px;}
+
+  /* Text-only / text+CTA variant - no photo at all */
+  .hero-text-variant{display:flex;align-items:center;justify-content:center;text-align:center;padding:70px 6%;}
+  .hero-inner-text{max-width:680px;}
+  .hero-inner-text .hero-cta{margin-top:24px;}
+
+  /* Independent height setting - layered on top of whichever variant is
+     active, so any variant can be requested at full or half viewport
+     height, not just one specific one. !important is deliberate here:
+     this is an explicit, single-purpose user override that always needs
+     to win regardless of which variant's own min-height it's layered on. */
+  .hero-size-half{min-height:50vh !important;}
+  .hero-size-full{min-height:100vh !important;}
+  .hero-size-half.hero, .hero-size-full.hero{display:flex;align-items:center;}
+  .hero-size-half .hero-inner, .hero-size-full .hero-inner{width:100%;}
+
   .hero-mosaic.two-photos .m-main{grid-row:1/2;}
 
   /* Theme-specific signature styling, injected per school's theme */
@@ -386,23 +407,32 @@ foreach ($sections as $s) {
 <?php if ($key === 'hero'):
     $heroPhotos = array_filter([$c['hero_photo'] ?? '', $c['hero_photo_2'] ?? '', $c['hero_photo_3'] ?? '']);
     $heroPhotos = array_values($heroPhotos);
-    $heroVariant = $s['layout_variant'] ?? 'default';
-    if ($heroVariant === 'carousel' && count($heroPhotos) < 2) $heroVariant = 'default'; // carousel needs 2+ photos, fall back gracefully
-    if ($heroVariant === 'background' && empty($heroPhotos)) $heroVariant = 'default'; // background needs at least 1 photo
+    $heroVariant = $s['layout_variant'] ?? 'split';
+    $heroSize = $s['layout_size'] ?? 'auto';
+
+    // Graceful fallbacks when the content a variant needs isn't there yet -
+    // matches the same requirements enforced in section-design-save-ajax.php.
+    if ($heroVariant === 'carousel' && count($heroPhotos) < 2) $heroVariant = 'split';
+    if (in_array($heroVariant, ['background_fixed', 'background'], true) && empty($heroPhotos)) $heroVariant = 'split';
+    if ($heroVariant === 'default') $heroVariant = 'split'; // legacy key from before this rewrite
+    if ($heroVariant === 'background') $heroVariant = 'background_fixed'; // legacy key from before this rewrite
+
+    $showCta = in_array($heroVariant, ['text_cta', 'split_cta', 'carousel', 'background_fixed'], true) && !empty($c['cta_text']);
+    $sizeClass = $heroSize === 'full' ? ' hero-size-full' : ($heroSize === 'half' ? ' hero-size-half' : '');
 ?>
 
-<?php if ($heroVariant === 'background'): ?>
-  <section class="hero hero-bg-variant" id="hero">
-    <div class="hero-bg-photo"><img src="<?= img($heroPhotos[0]) ?>" alt="<?= esc($school['name']) ?>"></div>
+<?php if ($heroVariant === 'background_fixed'): ?>
+  <section class="hero hero-bgfixed-variant<?= $sizeClass ?>" id="hero" style="background-image:url('<?= img($heroPhotos[0]) ?>');">
     <div class="hero-bg-overlay"></div>
     <div class="hero-bg-content">
       <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
       <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
+      <?php if ($showCta): ?><a class="hero-cta" href="<?= esc($c['cta_link'] ?: '#contact') ?>"><?= esc($c['cta_text']) ?></a><?php endif; ?>
     </div>
   </section>
 
 <?php elseif ($heroVariant === 'carousel'): ?>
-  <section class="hero hero-carousel-variant" id="hero">
+  <section class="hero hero-carousel-variant<?= $sizeClass ?>" id="hero">
     <div class="hero-carousel-track">
       <?php foreach ($heroPhotos as $i => $photo): ?>
         <div class="hero-carousel-slide<?= $i === 0 ? ' active' : '' ?>"><img src="<?= img($photo) ?>" alt=""></div>
@@ -412,6 +442,7 @@ foreach ($sections as $s) {
     <div class="hero-bg-content">
       <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
       <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
+      <?php if ($showCta): ?><a class="hero-cta" href="<?= esc($c['cta_link'] ?: '#contact') ?>"><?= esc($c['cta_text']) ?></a><?php endif; ?>
     </div>
     <script>
       (function(){
@@ -427,12 +458,22 @@ foreach ($sections as $s) {
     </script>
   </section>
 
-<?php else: ?>
-  <section class="hero" id="hero">
+<?php elseif (in_array($heroVariant, ['text_only', 'text_cta'], true)): ?>
+  <section class="hero hero-text-variant<?= $sizeClass ?>" id="hero">
+    <div class="hero-inner-text">
+      <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
+      <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
+      <?php if ($showCta): ?><a class="hero-cta" href="<?= esc($c['cta_link'] ?: '#contact') ?>"><?= esc($c['cta_text']) ?></a><?php endif; ?>
+    </div>
+  </section>
+
+<?php else: /* split or split_cta - text left, image right */ ?>
+  <section class="hero<?= $sizeClass ?>" id="hero">
     <div class="hero-inner">
       <div>
         <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
         <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
+        <?php if ($showCta): ?><a class="hero-cta" href="<?= esc($c['cta_link'] ?: '#contact') ?>"><?= esc($c['cta_text']) ?></a><?php endif; ?>
       </div>
       <?php if (count($heroPhotos) >= 2): ?>
         <div class="hero-mosaic <?= count($heroPhotos) === 2 ? 'two-photos' : '' ?>">

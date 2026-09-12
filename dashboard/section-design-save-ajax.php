@@ -23,7 +23,7 @@ if (!$section) {
 
 // Keep this allowlist in sync with section-design-fragment.php's options.
 $validVariantsByType = [
-    'hero' => ['default', 'background', 'carousel'],
+    'hero' => ['text_only', 'text_cta', 'split', 'split_cta', 'carousel', 'background_fixed'],
 ];
 
 $allowed = $validVariantsByType[$section['key_name']] ?? null;
@@ -38,23 +38,27 @@ if (!in_array($posted, $allowed, true)) {
     exit;
 }
 
+$validSizes = ['auto', 'half', 'full'];
+$postedSize = trim($_POST['layout_size'] ?? 'auto');
+if (!in_array($postedSize, $validSizes, true)) $postedSize = 'auto';
+
 // Keep this in sync with section-design-fragment.php's $requirementsByVariant.
 if ($section['key_name'] === 'hero') {
-    $requirementsByVariant = ['background' => 1, 'carousel' => 2];
+    $requirementsByVariant = ['split' => 1, 'split_cta' => 1, 'background_fixed' => 1, 'carousel' => 2];
     $needed = $requirementsByVariant[$posted] ?? 0;
     if ($needed > 0) {
         $content = json_decode($section['content_json'], true) ?: [];
         $photoCount = count(array_filter([$content['hero_photo'] ?? '', $content['hero_photo_2'] ?? '', $content['hero_photo_3'] ?? '']));
         if ($photoCount < $needed) {
-            echo json_encode(['ok' => false, 'errors' => ['_' => "Upload at least {$needed} hero photo" . ($needed > 1 ? 's' : '') . ' first (in the Edit tab), then try this layout again.']]);
+            echo json_encode(['ok' => false, 'errors' => ['_' => "Upload at least {$needed} photo" . ($needed > 1 ? 's' : '') . ' first (in the Edit tab), then try this layout again.']]);
             exit;
         }
     }
 }
 
 try {
-    $update = $db->prepare("UPDATE site_sections SET layout_variant = ? WHERE id = ? AND school_id = ?");
-    $update->execute([$posted, $id, $user['school_id']]);
+    $update = $db->prepare("UPDATE site_sections SET layout_variant = ?, layout_size = ? WHERE id = ? AND school_id = ?");
+    $update->execute([$posted, $postedSize, $id, $user['school_id']]);
 } catch (\Throwable $e) {
     app_log('section-design-save-ajax.php failed for section ' . $id . ': ' . $e->getMessage());
     echo json_encode(['ok' => false, 'errors' => ['_' => 'Could not save. Please try again or contact support.']]);

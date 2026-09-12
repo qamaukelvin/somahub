@@ -19,29 +19,41 @@ if (!$section) {
 }
 
 // Only section types with a real, built variant system get real options here.
-// Keep this list in sync with dashboard/_section_row.php's design-button check.
+// Keep this list in sync with dashboard/_section_row.php's design-button check
+// and site.php's hero rendering.
 $variantOptionsByType = [
     'hero' => [
-        'default' => ['label' => 'Side-by-side photo', 'icon' => 'view_agenda'],
-        'background' => ['label' => 'Full-bleed background photo', 'icon' => 'panorama'],
-        'carousel' => ['label' => 'Rotating photo carousel', 'icon' => 'view_carousel'],
+        'text_only' => ['label' => 'Text only', 'icon' => 'notes'],
+        'text_cta' => ['label' => 'Text with call to action', 'icon' => 'ads_click'],
+        'split' => ['label' => 'Text left, photo right', 'icon' => 'view_agenda'],
+        'split_cta' => ['label' => 'Text, call to action & photo', 'icon' => 'view_sidebar'],
+        'carousel' => ['label' => 'Text over rotating photos', 'icon' => 'view_carousel'],
+        'background_fixed' => ['label' => 'Fixed background photo', 'icon' => 'panorama'],
     ],
 ];
 
 $options = $variantOptionsByType[$section['key_name']] ?? null;
-$current = $section['layout_variant'] ?? 'default';
+$current = $section['layout_variant'] ?? 'split';
+$currentSize = $section['layout_size'] ?? 'auto';
 
-// Hero's background/carousel variants need real photos to work - rather than
-// silently falling back to default on the live site with no explanation
-// (what was happening before), disable those options here and say why.
+// Hero variants that use a photo need real photos to work - rather than
+// silently falling back on the live site with no explanation (what was
+// happening before), disable those options here and say why.
 $heroPhotoCount = 0;
 if ($section['key_name'] === 'hero') {
     $content = json_decode($section['content_json'], true) ?: [];
     $heroPhotoCount = count(array_filter([$content['hero_photo'] ?? '', $content['hero_photo_2'] ?? '', $content['hero_photo_3'] ?? '']));
 }
 $requirementsByVariant = [
-    'background' => 1,
+    'split' => 1,
+    'split_cta' => 1,
+    'background_fixed' => 1,
     'carousel' => 2,
+];
+$sizeOptions = [
+    'auto' => 'Fits content',
+    'half' => 'Half page',
+    'full' => 'Full page',
 ];
 ?>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined">
@@ -54,6 +66,10 @@ $requirementsByVariant = [
   .design-variant-option.disabled{opacity:0.45;cursor:not-allowed;}
   .design-variant-label{font-size:0.78rem;font-weight:600;}
   .design-variant-note{font-size:0.68rem;color:#a33;margin-top:2px;}
+  .design-size-row{display:flex;gap:8px;margin-top:8px;}
+  .design-size-option{border:1.5px solid #ccc;border-radius:8px;padding:7px 14px;font-size:0.82rem;cursor:pointer;}
+  .design-size-option input{margin-right:5px;}
+  .design-size-option:has(input:checked){border-color:#0F5257;background:#F4F8F6;}
 </style>
 <form class="inline-design-form" data-section-id="<?= $section['id'] ?>">
   <?php if ($options): ?>
@@ -67,10 +83,20 @@ $requirementsByVariant = [
           <input type="radio" name="layout_variant" value="<?= htmlspecialchars($value) ?>" <?= $current === $value ? 'checked' : '' ?> <?= $isDisabled ? 'disabled' : '' ?> onchange="this.closest('.design-variant-grid').querySelectorAll('.design-variant-option').forEach(o=>o.classList.remove('selected'));this.closest('.design-variant-option').classList.add('selected');">
           <span class="material-symbols-outlined" aria-hidden="true"><?= htmlspecialchars($opt['icon']) ?></span>
           <span class="design-variant-label"><?= htmlspecialchars($opt['label']) ?></span>
-          <?php if ($isDisabled): ?><span class="design-variant-note">Needs <?= $needed ?> hero photo<?= $needed > 1 ? 's' : '' ?> uploaded (Edit tab)</span><?php endif; ?>
+          <?php if ($isDisabled): ?><span class="design-variant-note">Needs <?= $needed ?> photo<?= $needed > 1 ? 's' : '' ?> uploaded (Edit tab)</span><?php endif; ?>
         </label>
       <?php endforeach; ?>
     </div>
+
+    <label style="font-weight:700;display:block;margin:18px 0 8px;">Height</label>
+    <div class="design-size-row">
+      <?php foreach ($sizeOptions as $value => $slabel): ?>
+        <label class="design-size-option">
+          <input type="radio" name="layout_size" value="<?= htmlspecialchars($value) ?>" <?= $currentSize === $value ? 'checked' : '' ?>><?= htmlspecialchars($slabel) ?>
+        </label>
+      <?php endforeach; ?>
+    </div>
+
     <button type="submit" class="btn-primary" style="margin-top:14px;">Save Design</button>
     <span class="inline-form-msg"></span>
   <?php else: ?>
