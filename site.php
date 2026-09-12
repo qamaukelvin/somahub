@@ -229,7 +229,6 @@ foreach ($sections as $s) {
   /* HERO */
   .hero{background:var(--primary);color:var(--bg);padding:80px 24px 60px;}
   .hero-inner{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1.1fr 0.9fr;gap:40px;align-items:center;}
-  @media(max-width:820px){.hero-inner{grid-template-columns:1fr;}}
   .hero h1{font-size:clamp(2rem,4.8vw,3.2rem);font-weight:700;line-height:1.1;}
   .hero p{margin-top:18px;font-size:1.02rem;opacity:0.85;max-width:50ch;}
   .hero-photo{border-radius:10px;overflow:hidden;}
@@ -241,6 +240,19 @@ foreach ($sections as $s) {
   .hero-mosaic img{width:100%;height:100%;object-fit:cover;}
   .hero-mosaic .m-main{grid-row:1/3;}
   .hero-mosaic.two-photos{grid-template-rows:1fr;}
+
+  /* Mobile: the grid above collapses to one stacked column (text, then
+     photo, in DOM order) - without these, a tall 4:3 photo at full mobile
+     width plus the mosaic's 280px min-height made the hero taller than one
+     screen. Placed after the base rules on purpose so it actually wins the
+     cascade instead of being silently overridden by them. */
+  @media(max-width:820px){
+    .hero-inner{grid-template-columns:1fr;}
+    .hero{padding:48px 20px 36px;}
+    .hero-photo{max-height:220px;}
+    .hero-photo img{aspect-ratio:16/9;}
+    .hero-mosaic{min-height:0;max-height:220px;}
+  }
 
   /* Hero variants: background (full-bleed photo + overlay) and carousel (auto-rotating photos) */
   .hero-bg-variant, .hero-carousel-variant{position:relative;padding:0;overflow:hidden;min-height:420px;display:flex;align-items:flex-end;}
