@@ -235,8 +235,13 @@ foreach ($sections as $s) {
   .hero-photo img{width:100%;height:100%;object-fit:cover;aspect-ratio:4/3;}
   .hero-cta{background:var(--accent);color:var(--primary);margin-top:24px;padding:13px 28px;border-radius:6px;font-weight:700;font-size:0.9rem;display:inline-block;}
 
-  /* MOSAIC - used when a school has more than one hero photo */
-  .hero-mosaic{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;height:100%;min-height:280px;}
+  /* MOSAIC - used when a school has more than one hero photo. A definite
+     height (not height:100%, which can never resolve here - the grid row
+     sizes to content since .hero-inner uses align-items:center, not
+     stretch) is what lets object-fit:cover actually crop tall/portrait
+     photos instead of rendering them at their raw, uncropped aspect ratio
+     and ballooning the whole hero section. */
+  .hero-mosaic{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;height:420px;}
   .hero-mosaic img{width:100%;height:100%;object-fit:cover;}
   .hero-mosaic .m-main{grid-row:1/3;}
   .hero-mosaic.two-photos{grid-template-rows:1fr;}
