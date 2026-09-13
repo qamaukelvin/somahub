@@ -70,6 +70,19 @@ function get_section_variant_registry(): array {
                 'photo_forward' => ['label' => 'Photo-forward', 'icon' => 'account_circle', 'photos_needed' => 1],
             ],
         ],
+        'gallery' => [
+            'photo_fields' => ['photo_1', 'photo_2', 'photo_3', 'photo_4', 'photo_5', 'photo_6', 'photo_7', 'photo_8', 'photo_9', 'photo_10'],
+            'default' => 'grid',
+            'has_size' => false,
+            'options' => [
+                'grid' => ['label' => 'Grid', 'icon' => 'grid_view', 'photos_needed' => 1],
+                'masonry' => ['label' => 'Masonry', 'icon' => 'view_quilt', 'photos_needed' => 1],
+                'lightbox' => ['label' => 'Lightbox carousel', 'icon' => 'view_carousel', 'photos_needed' => 1],
+                'before_after' => ['label' => 'Before / After slider', 'icon' => 'compare', 'photos_needed' => 2],
+                'slideshow' => ['label' => 'Full-bleed slideshow', 'icon' => 'slideshow', 'photos_needed' => 1],
+                'tabs' => ['label' => 'Categorized tabs', 'icon' => 'tab', 'photos_needed' => 1],
+            ],
+        ],
     ];
 }
 

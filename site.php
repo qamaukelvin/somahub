@@ -471,6 +471,50 @@ foreach ($sections as $s) {
   .gallery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;}
   .gallery-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;}
 
+  /* Capping - same mechanism as Staff/Testimonials */
+  #galleryContainer > *:nth-child(n+7){display:none;}
+  @media(max-width:820px){#galleryContainer > *:nth-child(n+4){display:none;}}
+  #galleryContainer.expanded > *{display:block;}
+
+  /* Masonry - variable height columns via CSS columns, not a strict grid */
+  .gallery-masonry{columns:3 220px;column-gap:14px;}
+  @media(max-width:820px){.gallery-masonry{columns:2;}}
+  .gallery-masonry img{width:100%;border-radius:8px;margin-bottom:14px;break-inside:avoid;}
+
+  /* Lightbox */
+  .gallery-lightbox-trigger{cursor:pointer;transition:opacity .15s;}
+  .gallery-lightbox-trigger:hover{opacity:0.85;}
+  .gallery-lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:100;align-items:center;justify-content:center;padding:5%;}
+  .gallery-lightbox.open{display:flex;}
+  .gallery-lightbox img{max-width:100%;max-height:90vh;border-radius:6px;}
+  .gallery-lightbox-close{position:absolute;top:20px;right:24px;background:none;border:none;color:#fff;font-size:1.6rem;cursor:pointer;}
+
+  /* Before/After slider - clip-path reveal, not width, so neither photo
+     ever squishes/distorts as the handle moves */
+  .gallery-before-after{position:relative;max-width:800px;margin:0 auto;aspect-ratio:16/9;border-radius:10px;overflow:hidden;}
+  .gallery-before-after img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .ba-after{position:absolute;inset:0;z-index:1;}
+  .ba-before{position:absolute;inset:0;z-index:2;clip-path:inset(0 50% 0 0);}
+  .ba-slider{position:absolute;inset:0;width:100%;height:100%;-webkit-appearance:none;appearance:none;background:transparent;z-index:3;margin:0;cursor:ew-resize;}
+  .ba-slider::-webkit-slider-thumb{-webkit-appearance:none;width:4px;height:100%;background:#fff;box-shadow:0 0 8px rgba(0,0,0,0.4);}
+  .ba-slider::-moz-range-thumb{width:4px;height:100%;background:#fff;border:none;box-shadow:0 0 8px rgba(0,0,0,0.4);}
+  .ba-label{position:absolute;top:12px;background:rgba(0,0,0,0.6);color:#fff;padding:4px 10px;border-radius:4px;font-size:0.75rem;font-weight:700;z-index:4;}
+  .ba-label-before{left:12px;}
+  .ba-label-after{right:12px;}
+
+  /* Full-bleed slideshow */
+  .gallery-slideshow{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;}
+  .gallery-slide{position:absolute;inset:0;opacity:0;transition:opacity 1s ease;}
+  .gallery-slide.active{opacity:1;}
+  .gallery-slide img{width:100%;height:100%;object-fit:cover;}
+
+  /* Categorized tabs */
+  .gallery-tab-buttons{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+  .gallery-tab-btn{border:1.5px solid rgba(0,0,0,0.15);background:#fff;padding:8px 18px;border-radius:20px;font-size:0.85rem;font-weight:600;cursor:pointer;}
+  .gallery-tab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .gallery-tab-panel{display:none;}
+  .gallery-tab-panel.active{display:grid;}
+
   /* CONTACT */
   .contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
   .contact-item{background:#fff;border-radius:10px;padding:20px 22px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
@@ -778,8 +822,21 @@ foreach ($sections as $s) {
   </section>
 
 <?php elseif ($key === 'gallery'):
-    $galleryPhotos = array_filter([$c['photo_1'] ?? '', $c['photo_2'] ?? '', $c['photo_3'] ?? '', $c['photo_4'] ?? '']);
-    if (empty($galleryPhotos)) continue; // nothing uploaded yet - skip the section rather than show an empty grid
+    $galleryVariant = $s['layout_variant'] ?? 'grid';
+    $galleryItems = [];
+    for ($i = 1; $i <= 10; $i++) {
+        if (empty($c["photo_$i"])) continue;
+        $galleryItems[] = ['photo' => $c["photo_$i"], 'category' => $c["category_$i"] ?? ''];
+    }
+    if (empty($galleryItems)) continue; // nothing uploaded yet - skip the section rather than show an empty grid
+
+    if ($galleryVariant === 'before_after' && count($galleryItems) < 2) $galleryVariant = 'grid';
+    if ($galleryVariant === 'tabs' && !array_filter($galleryItems, fn($g) => !empty($g['category']))) $galleryVariant = 'grid'; // no categories set - tabs would just be one unlabeled tab
+
+    $cappedGalleryVariants = ['grid', 'masonry'];
+    $totalGalleryItems = count($galleryItems);
+    $showGalleryViewMore = in_array($galleryVariant, $cappedGalleryVariants, true) && $totalGalleryItems > 3;
+    $galleryViewMoreOnlyMobile = $totalGalleryItems <= 6;
 ?>
   <section id="gallery">
     <div class="wrap">
@@ -787,11 +844,85 @@ foreach ($sections as $s) {
         <h2><?= esc($s['label']) ?></h2>
         <?php if (!empty($c['caption'])): ?><p style="color:#5a5a52;margin-top:6px;"><?= esc($c['caption']) ?></p><?php endif; ?>
       </div>
-      <div class="gallery-grid">
-        <?php foreach ($galleryPhotos as $ph): ?>
-          <img src="<?= img($ph) ?>" alt="">
+
+      <?php if ($galleryVariant === 'masonry'): ?>
+        <div class="gallery-masonry" id="galleryContainer">
+          <?php foreach ($galleryItems as $g): ?><img src="<?= img($g['photo']) ?>" alt=""><?php endforeach; ?>
+        </div>
+
+      <?php elseif ($galleryVariant === 'lightbox'): ?>
+        <div class="gallery-grid">
+          <?php foreach ($galleryItems as $i => $g): ?>
+            <img src="<?= img($g['photo']) ?>" alt="" class="gallery-lightbox-trigger" onclick="document.getElementById('lightbox-<?= esc($key) ?>-<?= $i ?>').classList.add('open');">
+          <?php endforeach; ?>
+        </div>
+        <?php foreach ($galleryItems as $i => $g): ?>
+          <div class="gallery-lightbox" id="lightbox-<?= esc($key) ?>-<?= $i ?>" onclick="this.classList.remove('open');">
+            <img src="<?= img($g['photo']) ?>" alt="">
+            <button type="button" class="gallery-lightbox-close">✕</button>
+          </div>
         <?php endforeach; ?>
-      </div>
+
+      <?php elseif ($galleryVariant === 'before_after'): ?>
+        <div class="gallery-before-after">
+          <div class="ba-after"><img src="<?= img($galleryItems[1]['photo']) ?>" alt="After"></div>
+          <div class="ba-before" id="baBefore"><img src="<?= img($galleryItems[0]['photo']) ?>" alt="Before"></div>
+          <input type="range" min="0" max="100" value="50" class="ba-slider" oninput="document.getElementById('baBefore').style.clipPath='inset(0 '+(100-this.value)+'% 0 0)';">
+          <span class="ba-label ba-label-before">Before</span>
+          <span class="ba-label ba-label-after">After</span>
+        </div>
+
+      <?php elseif ($galleryVariant === 'slideshow'): ?>
+        <div class="gallery-slideshow">
+          <?php foreach ($galleryItems as $i => $g): ?>
+            <div class="gallery-slide<?= $i === 0 ? ' active' : '' ?>"><img src="<?= img($g['photo']) ?>" alt=""></div>
+          <?php endforeach; ?>
+        </div>
+        <?php if (count($galleryItems) > 1): ?>
+        <script>
+          (function(){
+            var slides = document.querySelectorAll('#gallery .gallery-slide');
+            if (slides.length < 2) return;
+            var i = 0;
+            setInterval(function(){
+              slides[i].classList.remove('active');
+              i = (i + 1) % slides.length;
+              slides[i].classList.add('active');
+            }, 4000);
+          })();
+        </script>
+        <?php endif; ?>
+
+      <?php elseif ($galleryVariant === 'tabs'):
+          $tabGroups = [];
+          foreach ($galleryItems as $g) {
+              $cat = $g['category'] ?: 'Other';
+              $tabGroups[$cat][] = $g;
+          }
+          $tabNames = array_keys($tabGroups);
+      ?>
+        <div class="gallery-tabs">
+          <div class="gallery-tab-buttons">
+            <?php foreach ($tabNames as $i => $tabName): ?>
+              <button type="button" class="gallery-tab-btn<?= $i === 0 ? ' active' : '' ?>" onclick="document.querySelectorAll('#gallery .gallery-tab-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.querySelectorAll('#gallery .gallery-tab-panel').forEach(p=>p.classList.remove('active'));document.getElementById('galtab-<?= $i ?>').classList.add('active');"><?= esc($tabName) ?></button>
+            <?php endforeach; ?>
+          </div>
+          <?php foreach ($tabNames as $i => $tabName): ?>
+            <div class="gallery-tab-panel gallery-grid<?= $i === 0 ? ' active' : '' ?>" id="galtab-<?= $i ?>">
+              <?php foreach ($tabGroups[$tabName] as $g): ?><img src="<?= img($g['photo']) ?>" alt=""><?php endforeach; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+
+      <?php else: /* grid - default */ ?>
+        <div class="gallery-grid" id="galleryContainer">
+          <?php foreach ($galleryItems as $g): ?><img src="<?= img($g['photo']) ?>" alt=""><?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($showGalleryViewMore): ?>
+        <button type="button" class="staff-view-more<?= $galleryViewMoreOnlyMobile ? ' only-mobile' : '' ?>" onclick="document.getElementById('galleryContainer').classList.add('expanded');this.style.display='none';">View More</button>
+      <?php endif; ?>
     </div>
   </section>
 
