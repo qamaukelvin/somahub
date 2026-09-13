@@ -57,6 +57,19 @@ function get_section_variant_registry(): array {
                 'grouped' => ['label' => 'Grouped by department', 'icon' => 'category', 'photos_needed' => 0],
             ],
         ],
+        'testimonials' => [
+            'photo_fields' => ['photo_1', 'photo_2', 'photo_3', 'photo_4', 'photo_5', 'photo_6', 'photo_7', 'photo_8', 'photo_9', 'photo_10'],
+            'default' => 'cards',
+            'has_size' => false,
+            'options' => [
+                'cards' => ['label' => 'Cards', 'icon' => 'grid_view', 'photos_needed' => 0],
+                'slider' => ['label' => 'Auto-rotating slider', 'icon' => 'view_carousel', 'photos_needed' => 0],
+                'single' => ['label' => 'Single large quote', 'icon' => 'format_quote', 'photos_needed' => 0],
+                'wall' => ['label' => 'Quote wall', 'icon' => 'view_module', 'photos_needed' => 0],
+                'rating' => ['label' => 'Review-style with rating', 'icon' => 'star', 'photos_needed' => 0],
+                'photo_forward' => ['label' => 'Photo-forward', 'icon' => 'account_circle', 'photos_needed' => 1],
+            ],
+        ],
     ];
 }
 

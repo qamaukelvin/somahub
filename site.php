@@ -365,6 +365,42 @@ foreach ($sections as $s) {
   /* TESTIMONIALS */
   .testimonial-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;}
   .testimonial-card{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:24px;}
+
+  /* Capping - same mechanism as Staff's, scoped to testimonialsContainer.
+     All 4 capped variants' items default to display:block, so no
+     per-variant override needed here (unlike Staff's bio-row/minimal-item,
+     nothing in this section relies on flex for its own internal layout). */
+  #testimonialsContainer > *:nth-child(n+7){display:none;}
+  @media(max-width:820px){#testimonialsContainer > *:nth-child(n+4){display:none;}}
+  #testimonialsContainer.expanded > *{display:block;}
+
+  /* Auto-rotating slider */
+  .testimonial-slider{position:relative;min-height:140px;max-width:720px;margin:0 auto;}
+  .testimonial-slide{position:absolute;inset:0;opacity:0;transition:opacity 1s ease;text-align:center;}
+  .testimonial-slide.active{opacity:1;position:relative;}
+  .testimonial-slide .quote{font-size:1.2rem;font-style:italic;color:#3a3a34;}
+  .testimonial-slide .author{margin-top:12px;font-weight:700;color:var(--primary);}
+
+  /* Single large quote takeover */
+  .testimonial-single{max-width:760px;margin:0 auto;text-align:center;}
+  .testimonial-single .quote{font-family:Georgia,serif;font-size:1.7rem;font-style:italic;color:#2a2a24;line-height:1.4;}
+  .testimonial-single .author{margin-top:18px;font-weight:700;color:var(--primary);}
+
+  /* Quote wall - dense masonry-style via CSS columns */
+  .testimonial-wall{columns:3 220px;column-gap:16px;}
+  @media(max-width:820px){.testimonial-wall{columns:1;}}
+  .testimonial-wall-item{break-inside:avoid;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:8px;padding:16px;margin-bottom:16px;font-size:0.9rem;}
+  .testimonial-wall-item .author{margin-top:8px;font-weight:700;font-size:0.82rem;color:var(--primary);}
+
+  /* Review-style with rating */
+  .testimonial-card .stars{color:var(--accent);letter-spacing:2px;margin-bottom:8px;}
+
+  /* Photo-forward */
+  .testimonial-photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;}
+  .testimonial-photo-card{text-align:center;}
+  .testimonial-photo-card img{width:88px;height:88px;border-radius:50%;object-fit:cover;margin:0 auto 14px;}
+  .testimonial-photo-card .quote{color:#3a3a34;}
+  .testimonial-photo-card .author{margin-top:10px;font-weight:700;color:var(--primary);}
   .testimonial-card .quote{font-size:0.95rem;font-style:italic;color:#3a3a34;margin-bottom:14px;}
   .testimonial-card .author{font-size:0.82rem;font-weight:700;color:var(--primary);}
 
@@ -968,18 +1004,108 @@ foreach ($sections as $s) {
     </div>
   </section>
 
-<?php elseif ($key === 'testimonials'): ?>
+<?php elseif ($key === 'testimonials'):
+    $testimonialVariant = $s['layout_variant'] ?? 'cards';
+    $quotes = [];
+    for ($i = 1; $i <= 10; $i++) {
+        if (empty($c["quote_$i"])) continue;
+        $ratingRaw = (int)($c["rating_$i"] ?? 0);
+        $quotes[] = [
+            'quote' => $c["quote_$i"],
+            'author' => $c["author_$i"] ?? '',
+            'photo' => $c["photo_$i"] ?? '',
+            'rating' => ($ratingRaw >= 1 && $ratingRaw <= 5) ? $ratingRaw : 0,
+        ];
+    }
+    if (empty($quotes)) continue; // nothing entered yet - skip rather than show an empty section
+
+    if ($testimonialVariant === 'photo_forward' && !array_filter($quotes, fn($q) => !empty($q['photo']))) $testimonialVariant = 'cards'; // no photos - photo-forward would just show blanks
+
+    $cappedTestimonialVariants = ['cards', 'wall', 'rating', 'photo_forward'];
+    $totalQuotes = count($quotes);
+    $showQuoteViewMore = in_array($testimonialVariant, $cappedTestimonialVariants, true) && $totalQuotes > 3;
+    $quoteViewMoreOnlyMobile = $totalQuotes <= 6;
+?>
   <section id="testimonials">
     <div class="wrap">
       <div class="section-head"><h2><?= esc($s['label']) ?></h2></div>
-      <div class="testimonial-grid">
-        <?php for ($i = 1; $i <= 3; $i++): if (empty($c["quote_$i"])) continue; ?>
-          <div class="testimonial-card">
-            <div class="quote">"<?= esc($c["quote_$i"]) ?>"</div>
-            <div class="author"><?= esc($c["author_$i"] ?? '') ?></div>
-          </div>
-        <?php endfor; ?>
-      </div>
+
+      <?php if ($testimonialVariant === 'slider'): ?>
+        <div class="testimonial-slider">
+          <?php foreach ($quotes as $i => $q): ?>
+            <div class="testimonial-slide<?= $i === 0 ? ' active' : '' ?>">
+              <div class="quote">"<?= esc($q['quote']) ?>"</div>
+              <div class="author"><?= esc($q['author']) ?></div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+        <?php if (count($quotes) > 1): ?>
+        <script>
+          (function(){
+            var slides = document.querySelectorAll('#testimonials .testimonial-slide');
+            if (slides.length < 2) return;
+            var i = 0;
+            setInterval(function(){
+              slides[i].classList.remove('active');
+              i = (i + 1) % slides.length;
+              slides[i].classList.add('active');
+            }, 5500);
+          })();
+        </script>
+        <?php endif; ?>
+
+      <?php elseif ($testimonialVariant === 'single'): ?>
+        <div class="testimonial-single">
+          <div class="quote">"<?= esc($quotes[0]['quote']) ?>"</div>
+          <div class="author"><?= esc($quotes[0]['author']) ?></div>
+        </div>
+
+      <?php elseif ($testimonialVariant === 'wall'): ?>
+        <div class="testimonial-wall" id="testimonialsContainer">
+          <?php foreach ($quotes as $q): ?>
+            <div class="testimonial-wall-item">
+              <div class="quote">"<?= esc($q['quote']) ?>"</div>
+              <div class="author"><?= esc($q['author']) ?></div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+
+      <?php elseif ($testimonialVariant === 'rating'): ?>
+        <div class="testimonial-grid" id="testimonialsContainer">
+          <?php foreach ($quotes as $q): ?>
+            <div class="testimonial-card">
+              <?php if ($q['rating']): ?><div class="stars"><?= str_repeat('★', $q['rating']) . str_repeat('☆', 5 - $q['rating']) ?></div><?php endif; ?>
+              <div class="quote">"<?= esc($q['quote']) ?>"</div>
+              <div class="author"><?= esc($q['author']) ?></div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+
+      <?php elseif ($testimonialVariant === 'photo_forward'): ?>
+        <div class="testimonial-photo-grid" id="testimonialsContainer">
+          <?php foreach ($quotes as $q): ?>
+            <div class="testimonial-photo-card">
+              <?php if (!empty($q['photo'])): ?><img src="<?= img($q['photo']) ?>" alt="<?= esc($q['author']) ?>"><?php endif; ?>
+              <div class="quote">"<?= esc($q['quote']) ?>"</div>
+              <div class="author"><?= esc($q['author']) ?></div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+
+      <?php else: /* cards - default */ ?>
+        <div class="testimonial-grid" id="testimonialsContainer">
+          <?php foreach ($quotes as $q): ?>
+            <div class="testimonial-card">
+              <div class="quote">"<?= esc($q['quote']) ?>"</div>
+              <div class="author"><?= esc($q['author']) ?></div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($showQuoteViewMore): ?>
+        <button type="button" class="staff-view-more<?= $quoteViewMoreOnlyMobile ? ' only-mobile' : '' ?>" onclick="document.getElementById('testimonialsContainer').classList.add('expanded');this.style.display='none';">View More</button>
+      <?php endif; ?>
     </div>
   </section>
 
