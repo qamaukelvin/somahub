@@ -83,6 +83,40 @@ if ($errors) {
     exit;
 }
 
+// Hero's cta_1/cta_2 aren't part of the generic schema loop above (they're
+// a curated destination picker, not free text) - preserve/update them
+// explicitly here so a normal content save never silently wipes them.
+if ($section['key_name'] === 'hero') {
+    require_once __DIR__ . '/../includes/plan.php';
+    $stmt2 = $db->prepare("SELECT * FROM schools WHERE id = ?");
+    $stmt2->execute([$user['school_id']]);
+    $schoolRow = $stmt2->fetch();
+    $locked = is_premium_locked($schoolRow);
+
+    $ctaSectionKeys = ['enroll' => 'enrollment_form', 'contact' => 'contact', 'results' => 'results_lookup', 'fees' => 'fees'];
+    $availStmt = $db->prepare("
+        SELECT st.key_name FROM site_sections ss
+        JOIN section_types st ON st.id = ss.section_type_id
+        WHERE ss.school_id = ? AND ss.is_visible = 1 AND (? = 0 OR st.is_premium = 0)
+    ");
+    $availStmt->execute([$user['school_id'], $locked ? 1 : 0]);
+    $availableKeys = array_column($availStmt->fetchAll(), 'key_name');
+    $validCtaChoices = array_keys(array_filter($ctaSectionKeys, fn($k) => in_array($k, $availableKeys, true)));
+
+    foreach (['cta_1', 'cta_2'] as $ctaField) {
+        if (isset($_POST[$ctaField])) {
+            // Explicitly submitted (this request came from the form that has
+            // these fields) - validate against what's actually available.
+            $posted = trim($_POST[$ctaField]);
+            $newContent[$ctaField] = ($posted === '' || in_array($posted, $validCtaChoices, true)) ? $posted : ($content[$ctaField] ?? '');
+        } else {
+            // Not submitted (e.g. a future save path that doesn't know about
+            // these fields) - keep whatever was already there.
+            $newContent[$ctaField] = $content[$ctaField] ?? '';
+        }
+    }
+}
+
 $update = $db->prepare("UPDATE site_sections SET content_json = ? WHERE id = ? AND school_id = ?");
 $update->execute([json_encode($newContent), $section['id'], $user['school_id']]);
 

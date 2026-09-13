@@ -97,6 +97,22 @@ if (is_premium_locked($school)) {
     $sections = array_filter($sections, fn($s) => !$s['is_premium']);
 }
 
+// Hero CTA destinations - a curated list, not free text, so a CTA never
+// links to a section the school doesn't actually have (or has lost access
+// to since choosing it, e.g. a plan downgrade).
+$ctaDestinations = [
+    'enroll' => ['label' => 'Request Admission', 'key' => 'enrollment_form'],
+    'contact' => ['label' => 'Contact Us', 'key' => 'contact'],
+    'results' => ['label' => 'Check Results', 'key' => 'results_lookup'],
+    'fees' => ['label' => 'School Fees', 'key' => 'fees'],
+];
+$availableSectionKeys = array_column($sections, 'key_name');
+$availableCtaKeys = array_filter(array_keys($ctaDestinations), fn($k) => in_array($ctaDestinations[$k]['key'], $availableSectionKeys, true));
+// Sensible default when a school hasn't explicitly picked one: Enroll if
+// they have it (and it's not locked out), otherwise Contact, since that's
+// always free and always available.
+$defaultCta = in_array('enroll', $availableCtaKeys, true) ? 'enroll' : (in_array('contact', $availableCtaKeys, true) ? 'contact' : null);
+
 // Social share image: hero photo if set, else default
 $ogImage = 'https://somahub.top/assets/og-share-image.png';
 foreach ($sections as $s) {
@@ -233,7 +249,9 @@ foreach ($sections as $s) {
   .hero p{margin-top:18px;font-size:1.02rem;opacity:0.85;max-width:50ch;}
   .hero-photo{border-radius:10px;overflow:hidden;}
   .hero-photo img{width:100%;height:100%;object-fit:cover;aspect-ratio:4/3;}
-  .hero-cta{background:var(--accent);color:var(--primary);margin-top:24px;padding:13px 28px;border-radius:6px;font-weight:700;font-size:0.9rem;display:inline-block;}
+  .hero-cta{background:var(--accent);color:var(--primary);padding:13px 28px;border-radius:6px;font-weight:700;font-size:0.9rem;display:inline-block;}
+  .hero-cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px;}
+  .hero-cta-row .hero-cta:nth-child(2){background:transparent;border:2px solid currentColor;}
 
   /* MOSAIC - used when a school has more than one hero photo. A definite
      height (not height:100%, which can never resolve here - the grid row
@@ -274,12 +292,11 @@ foreach ($sections as $s) {
   .hero-bg-content{position:relative;z-index:2;padding:60px 6% 50px;color:#fff;max-width:720px;}
   .hero-bg-content h1{color:#fff;}
   .hero-bg-content p{color:rgba(255,255,255,0.88);}
-  .hero-bg-content .hero-cta{margin-top:24px;}
 
   /* Text-only / text+CTA variant - no photo at all */
   .hero-text-variant{display:flex;align-items:center;justify-content:center;text-align:center;padding:70px 6%;}
   .hero-inner-text{max-width:680px;}
-  .hero-inner-text .hero-cta{margin-top:24px;}
+  .hero-inner-text .hero-cta-row{justify-content:center;}
 
   /* Independent height setting - layered on top of whichever variant is
      active, so any variant can be requested at full or half viewport
@@ -417,8 +434,28 @@ foreach ($sections as $s) {
     if ($heroVariant === 'default') $heroVariant = 'split'; // legacy key from before this rewrite
     if ($heroVariant === 'background') $heroVariant = 'background_fixed'; // legacy key from before this rewrite
 
-    $showCta = in_array($heroVariant, ['text_cta', 'split_cta', 'carousel', 'background_fixed'], true) && !empty($c['cta_text']);
+    $showCta = in_array($heroVariant, ['text_cta', 'split_cta', 'carousel', 'background_fixed'], true);
     $sizeClass = $heroSize === 'full' ? ' hero-size-full' : ($heroSize === 'half' ? ' hero-size-half' : '');
+
+    // Resolve up to 2 real CTA buttons from the school's choice (cta_1/cta_2),
+    // falling back to the smart default for slot 1 if never explicitly set.
+    // A choice that no longer resolves to an available section (e.g. picked
+    // "Check Results" then downgraded to free) is silently skipped rather
+    // than linking to a dead anchor.
+    $heroCtaButtons = [];
+    if ($showCta) {
+        $chosen1 = $c['cta_1'] ?? '';
+        $chosen2 = $c['cta_2'] ?? '';
+        if (empty($chosen1) && $defaultCta) $chosen1 = $defaultCta;
+        foreach ([$chosen1, $chosen2] as $choice) {
+            if ($choice && in_array($choice, $availableCtaKeys, true) && !isset($heroCtaButtons[$choice])) {
+                $heroCtaButtons[$choice] = $ctaDestinations[$choice];
+            }
+        }
+    }
+    ob_start();
+    foreach ($heroCtaButtons as $key => $dest): ?><a class="hero-cta" href="#<?= esc($dest['key']) ?>"><?= esc($dest['label']) ?></a><?php endforeach;
+    $heroCtaHtml = ob_get_clean();
 ?>
 
 <?php if ($heroVariant === 'background_fixed'): ?>
@@ -427,7 +464,7 @@ foreach ($sections as $s) {
     <div class="hero-bg-content">
       <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
       <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
-      <?php if ($showCta): ?><a class="hero-cta" href="<?= esc($c['cta_link'] ?: '#contact') ?>"><?= esc($c['cta_text']) ?></a><?php endif; ?>
+      <?php if ($heroCtaButtons): ?><div class="hero-cta-row"><?= $heroCtaHtml ?></div><?php endif; ?>
     </div>
   </section>
 
@@ -442,7 +479,7 @@ foreach ($sections as $s) {
     <div class="hero-bg-content">
       <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
       <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
-      <?php if ($showCta): ?><a class="hero-cta" href="<?= esc($c['cta_link'] ?: '#contact') ?>"><?= esc($c['cta_text']) ?></a><?php endif; ?>
+      <?php if ($heroCtaButtons): ?><div class="hero-cta-row"><?= $heroCtaHtml ?></div><?php endif; ?>
     </div>
     <script>
       (function(){
@@ -463,7 +500,7 @@ foreach ($sections as $s) {
     <div class="hero-inner-text">
       <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
       <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
-      <?php if ($showCta): ?><a class="hero-cta" href="<?= esc($c['cta_link'] ?: '#contact') ?>"><?= esc($c['cta_text']) ?></a><?php endif; ?>
+      <?php if ($heroCtaButtons): ?><div class="hero-cta-row"><?= $heroCtaHtml ?></div><?php endif; ?>
     </div>
   </section>
 
@@ -473,7 +510,7 @@ foreach ($sections as $s) {
       <div>
         <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
         <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
-        <?php if ($showCta): ?><a class="hero-cta" href="<?= esc($c['cta_link'] ?: '#contact') ?>"><?= esc($c['cta_text']) ?></a><?php endif; ?>
+        <?php if ($heroCtaButtons): ?><div class="hero-cta-row"><?= $heroCtaHtml ?></div><?php endif; ?>
       </div>
       <?php if (count($heroPhotos) >= 2): ?>
         <div class="hero-mosaic <?= count($heroPhotos) === 2 ? 'two-photos' : '' ?>">

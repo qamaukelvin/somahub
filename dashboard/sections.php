@@ -195,19 +195,28 @@ function saveOrder() {
 let openAccordionId = null;
 let openDesignAccordionId = null;
 
+function closeAccordion(id) {
+    const panel = document.getElementById('accordion-' + id);
+    if (panel) { panel.classList.remove('open'); panel.innerHTML = ''; }
+    if (openAccordionId === id) openAccordionId = null;
+}
+
+function closeDesignAccordion(id) {
+    const panel = document.getElementById('design-accordion-' + id);
+    if (panel) { panel.classList.remove('open'); panel.innerHTML = ''; }
+    if (openDesignAccordionId === id) openDesignAccordionId = null;
+}
+
 function toggleAccordion(id) {
     const panel = document.getElementById('accordion-' + id);
 
-    // Close whichever accordion is currently open, if it's a different one
-    if (openAccordionId !== null && openAccordionId !== id) {
-        const prev = document.getElementById('accordion-' + openAccordionId);
-        if (prev) { prev.classList.remove('open'); prev.innerHTML = ''; }
-    }
+    // Only one accordion open at a time, period - close any other Edit
+    // panel, and close this row's Design panel too if it's open.
+    if (openAccordionId !== null && openAccordionId !== id) closeAccordion(openAccordionId);
+    if (openDesignAccordionId !== null) closeDesignAccordion(openDesignAccordionId);
 
     if (panel.classList.contains('open')) {
-        panel.classList.remove('open');
-        panel.innerHTML = '';
-        openAccordionId = null;
+        closeAccordion(id);
         return;
     }
 
@@ -222,56 +231,19 @@ function toggleAccordion(id) {
             const form = panel.querySelector('.inline-edit-form');
             form.addEventListener('submit', e => {
                 e.preventDefault();
-                submitInlineForm(form, id);
+                submitInlineForm(form, id, 'section-save-ajax.php', 'Save Changes');
             });
-        });
-}
-
-function submitInlineForm(form, id) {
-    const msg = form.querySelector('.inline-form-msg');
-    const btn = form.querySelector('button[type=submit]');
-    msg.textContent = '';
-    msg.className = 'inline-form-msg';
-    btn.disabled = true;
-    btn.textContent = 'Saving…';
-
-    const formData = new FormData(form);
-    formData.append('section_id', id);
-
-    fetch('section-save-ajax.php', { method: 'POST', body: formData })
-        .then(res => res.json())
-        .then(data => {
-            btn.disabled = false;
-            btn.textContent = 'Save Changes';
-            if (data.ok) {
-                msg.textContent = 'Saved.';
-                msg.classList.add('success');
-            } else {
-                const firstError = Object.values(data.errors)[0] || 'Something went wrong.';
-                msg.textContent = firstError;
-                msg.classList.add('error');
-            }
-        })
-        .catch(() => {
-            btn.disabled = false;
-            btn.textContent = 'Save Changes';
-            msg.textContent = 'Network error — please try again.';
-            msg.classList.add('error');
         });
 }
 
 function toggleDesignAccordion(id) {
     const panel = document.getElementById('design-accordion-' + id);
 
-    if (openDesignAccordionId !== null && openDesignAccordionId !== id) {
-        const prev = document.getElementById('design-accordion-' + openDesignAccordionId);
-        if (prev) { prev.classList.remove('open'); prev.innerHTML = ''; }
-    }
+    if (openDesignAccordionId !== null && openDesignAccordionId !== id) closeDesignAccordion(openDesignAccordionId);
+    if (openAccordionId !== null) closeAccordion(openAccordionId);
 
     if (panel.classList.contains('open')) {
-        panel.classList.remove('open');
-        panel.innerHTML = '';
-        openDesignAccordionId = null;
+        closeDesignAccordion(id);
         return;
     }
 
@@ -287,12 +259,14 @@ function toggleDesignAccordion(id) {
             if (!form) return;
             form.addEventListener('submit', e => {
                 e.preventDefault();
-                submitDesignForm(form, id);
+                submitInlineForm(form, id, 'section-design-save-ajax.php', 'Save Design');
             });
         });
 }
 
-function submitDesignForm(form, id) {
+// Shared by both Edit and Design forms - same save-button behavior either
+// way, just posts to whichever endpoint the caller passed in.
+function submitInlineForm(form, id, endpoint, savedButtonText) {
     const msg = form.querySelector('.inline-form-msg');
     const btn = form.querySelector('button[type=submit]');
     msg.textContent = '';
@@ -303,11 +277,11 @@ function submitDesignForm(form, id) {
     const formData = new FormData(form);
     formData.append('section_id', id);
 
-    fetch('section-design-save-ajax.php', { method: 'POST', body: formData })
+    fetch(endpoint, { method: 'POST', body: formData })
         .then(res => res.json())
         .then(data => {
             btn.disabled = false;
-            btn.textContent = 'Save Design';
+            btn.textContent = savedButtonText;
             if (data.ok) {
                 msg.textContent = 'Saved.';
                 msg.classList.add('success');
@@ -319,7 +293,7 @@ function submitDesignForm(form, id) {
         })
         .catch(() => {
             btn.disabled = false;
-            btn.textContent = 'Save Design';
+            btn.textContent = savedButtonText;
             msg.textContent = 'Network error — please try again.';
             msg.classList.add('error');
         });
