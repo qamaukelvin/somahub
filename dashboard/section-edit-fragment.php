@@ -89,6 +89,7 @@ if ($section['key_name'] === 'hero') {
         <div class="image-field">
           <?php if (!empty($content[$field])): ?>
             <img class="current-img" src="../<?= htmlspecialchars($content[$field]) ?>" alt="">
+            <label class="remove-photo-label"><input type="checkbox" name="remove_<?= $field ?>" value="1"> Remove this photo</label>
           <?php endif; ?>
           <input type="file" name="<?= $field ?>" accept="image/*">
         </div>

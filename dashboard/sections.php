@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/section_variants.php';
 $user = require_school_login();
 $db = get_db();
 $schoolId = $user['school_id'];
@@ -74,6 +75,7 @@ foreach ($availableTypes as $t) {
   .accordion-panel textarea{min-height:90px;}
   .accordion-panel .image-field{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
   .accordion-panel .current-img{width:64px;height:64px;object-fit:cover;border-radius:6px;flex-shrink:0;}
+  .accordion-panel .remove-photo-label{font-size:0.78rem;color:#a33;display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;}
   .accordion-panel input[type=file]{font-size:0.8rem;flex:1;min-width:160px;}
   .accordion-panel .inline-form-msg{font-size:0.85rem;margin:10px 0;}
   .accordion-panel .inline-form-msg.success{color:#1B4D3E;}

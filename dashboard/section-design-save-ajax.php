@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/app_log.php';
+require_once __DIR__ . '/../includes/section_variants.php';
 $user = require_school_login();
 $db = get_db();
 
@@ -21,38 +22,30 @@ if (!$section) {
     exit;
 }
 
-// Keep this allowlist in sync with section-design-fragment.php's options.
-$validVariantsByType = [
-    'hero' => ['text_only', 'text_cta', 'split', 'split_cta', 'carousel', 'background_fixed'],
-];
-
-$allowed = $validVariantsByType[$section['key_name']] ?? null;
-if (!$allowed) {
+$registry = get_section_variant_registry();
+$config = $registry[$section['key_name']] ?? null;
+if (!$config) {
     echo json_encode(['ok' => false, 'errors' => ['_' => 'No design options for this section.']]);
     exit;
 }
 
 $posted = trim($_POST['layout_variant'] ?? '');
-if (!in_array($posted, $allowed, true)) {
+if (!isset($config['options'][$posted])) {
     echo json_encode(['ok' => false, 'errors' => ['_' => 'Invalid layout choice.']]);
     exit;
 }
 
 $validSizes = ['auto', 'half', 'full'];
-$postedSize = trim($_POST['layout_size'] ?? 'auto');
+$postedSize = $config['has_size'] ? trim($_POST['layout_size'] ?? 'auto') : 'auto';
 if (!in_array($postedSize, $validSizes, true)) $postedSize = 'auto';
 
-// Keep this in sync with section-design-fragment.php's $requirementsByVariant.
-if ($section['key_name'] === 'hero') {
-    $requirementsByVariant = ['split' => 1, 'split_cta' => 1, 'background_fixed' => 1, 'carousel' => 2];
-    $needed = $requirementsByVariant[$posted] ?? 0;
-    if ($needed > 0) {
-        $content = json_decode($section['content_json'], true) ?: [];
-        $photoCount = count(array_filter([$content['hero_photo'] ?? '', $content['hero_photo_2'] ?? '', $content['hero_photo_3'] ?? '']));
-        if ($photoCount < $needed) {
-            echo json_encode(['ok' => false, 'errors' => ['_' => "Upload at least {$needed} photo" . ($needed > 1 ? 's' : '') . ' first (in the Edit tab), then try this layout again.']]);
-            exit;
-        }
+$needed = $config['options'][$posted]['photos_needed'];
+if ($needed > 0) {
+    $content = json_decode($section['content_json'], true) ?: [];
+    $photoCount = count_section_photos($content, $config['photo_fields']);
+    if ($photoCount < $needed) {
+        echo json_encode(['ok' => false, 'errors' => ['_' => "Upload at least {$needed} photo" . ($needed > 1 ? 's' : '') . ' first (in the Edit tab), then try this layout again.']]);
+        exit;
     }
 }
 

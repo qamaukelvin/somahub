@@ -73,6 +73,10 @@ foreach ($schema as $field => $fieldType) {
 
         $db->prepare("INSERT INTO media (school_id, uploaded_by_user_id, file_path, file_type, file_size_bytes) VALUES (?,?,?,?,?)")
            ->execute([$user['school_id'], $user['id'], $relPath, $mime, $fileSize]);
+    } elseif (!empty($_POST['remove_' . $field])) {
+        // Explicit remove - clears the field. Uploading a new file (handled
+        // above) always takes priority over this if somehow both are set.
+        $newContent[$field] = '';
     } else {
         $newContent[$field] = $content[$field] ?? '';
     }

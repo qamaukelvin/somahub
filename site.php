@@ -244,22 +244,22 @@ foreach ($sections as $s) {
 
   /* HERO */
   .hero{background:var(--primary);color:var(--bg);padding:80px 24px 60px;}
-  .hero-inner{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1.1fr 0.9fr;gap:40px;align-items:center;}
+  .hero-inner{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1.1fr 0.9fr;gap:40px;align-items:stretch;min-height:420px;}
+  .hero-inner > div:first-child{display:flex;flex-direction:column;justify-content:center;}
   .hero h1{font-size:clamp(2rem,4.8vw,3.2rem);font-weight:700;line-height:1.1;}
   .hero p{margin-top:18px;font-size:1.02rem;opacity:0.85;max-width:50ch;}
-  .hero-photo{border-radius:10px;overflow:hidden;}
-  .hero-photo img{width:100%;height:100%;object-fit:cover;aspect-ratio:4/3;}
+  .hero-photo{border-radius:10px;overflow:hidden;height:100%;}
+  .hero-photo img{width:100%;height:100%;object-fit:cover;}
   .hero-cta{background:var(--accent);color:var(--primary);padding:13px 28px;border-radius:6px;font-weight:700;font-size:0.9rem;display:inline-block;}
   .hero-cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px;}
   .hero-cta-row .hero-cta:nth-child(2){background:transparent;border:2px solid currentColor;}
 
-  /* MOSAIC - used when a school has more than one hero photo. A definite
-     height (not height:100%, which can never resolve here - the grid row
-     sizes to content since .hero-inner uses align-items:center, not
-     stretch) is what lets object-fit:cover actually crop tall/portrait
-     photos instead of rendering them at their raw, uncropped aspect ratio
-     and ballooning the whole hero section. */
-  .hero-mosaic{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;height:420px;}
+  /* MOSAIC - used when a school has more than one hero photo. Now sizes
+     against .hero-inner's own definite min-height (stretched, not
+     content-sized), same fix applied consistently to both the single-photo
+     and mosaic cases - no percentage-height-against-indefinite-parent
+     anywhere in this chain anymore. */
+  .hero-mosaic{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;height:100%;}
   .hero-mosaic img{width:100%;height:100%;object-fit:cover;}
   .hero-mosaic .m-main{grid-row:1/3;}
   .hero-mosaic.two-photos{grid-template-rows:1fr;}
@@ -270,7 +270,7 @@ foreach ($sections as $s) {
      screen. Placed after the base rules on purpose so it actually wins the
      cascade instead of being silently overridden by them. */
   @media(max-width:820px){
-    .hero-inner{grid-template-columns:1fr;}
+    .hero-inner{grid-template-columns:1fr;min-height:0;align-items:stretch;}
     .hero{padding:48px 20px 36px;}
     .hero-photo{max-height:220px;}
     .hero-photo img{aspect-ratio:16/9;}
@@ -320,6 +320,48 @@ foreach ($sections as $s) {
   .staff-card .name{font-weight:700;font-size:0.95rem;}
   .staff-card .role{font-size:0.82rem;color:#6b6b60;}
 
+  /* Universal cap: show first 6 on desktop, first 3 on mobile, reveal the
+     rest via "View More" (adds .expanded, which the more specific rule
+     below overrides). Applies to #staffContainer's direct children,
+     whichever layout that ends up being (cards, bio rows, minimal rows). */
+  #staffContainer > *:nth-child(n+7){display:none;}
+  @media(max-width:820px){#staffContainer > *:nth-child(n+4){display:none;}}
+  #staffContainer.expanded > *{display:block;}
+  .staff-list-bio.expanded > .staff-bio-row{display:flex;}
+  .staff-minimal-list.expanded > .staff-minimal-item{display:flex;}
+  .staff-view-more{display:block;margin:24px auto 0;background:none;border:2px solid var(--primary);color:var(--primary);padding:10px 26px;border-radius:6px;font-weight:700;cursor:pointer;}
+  @media(min-width:821px){.staff-view-more.only-mobile{display:none;}}
+
+  /* Horizontal scroll carousel - space problem solved by scrolling, not capping */
+  .staff-carousel{display:flex;gap:20px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch;}
+  .staff-carousel .staff-card{flex:0 0 160px;}
+
+  /* List with bio */
+  .staff-list-bio{display:flex;flex-direction:column;gap:22px;}
+  .staff-bio-row{display:flex;gap:16px;align-items:flex-start;}
+  .staff-bio-row img{width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+  .staff-bio-row .name{font-weight:700;}
+  .staff-bio-row .role{font-size:0.82rem;color:#6b6b60;margin-bottom:6px;}
+  .staff-bio-row .bio{color:#3a3a34;font-size:0.9rem;}
+
+  /* Org chart - three tiers, sized down by seniority */
+  .staff-org-chart{display:flex;flex-direction:column;align-items:center;gap:28px;}
+  .org-tier{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;}
+  .org-tier-1 .staff-card img{width:120px;height:120px;}
+  .org-tier-2 .staff-card img{width:90px;height:90px;}
+  .org-tier-3 .staff-card img{width:70px;height:70px;}
+  .org-tier .staff-card{width:140px;}
+
+  /* Minimal - dense text-only list */
+  .staff-minimal-list{max-width:640px;margin:0 auto;}
+  .staff-minimal-item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.08);}
+  .staff-minimal-item .name{font-weight:700;}
+  .staff-minimal-item .role{color:#6b6b60;font-size:0.88rem;}
+
+  /* Grouped by department */
+  .staff-dept-heading{font-size:1.1rem;margin:28px 0 14px;color:var(--primary);}
+  .staff-dept-heading:first-child{margin-top:0;}
+
   /* TESTIMONIALS */
   .testimonial-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;}
   .testimonial-card{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:24px;}
@@ -348,7 +390,43 @@ foreach ($sections as $s) {
   @media(max-width:820px){.about-grid{grid-template-columns:1fr;}}
   .about-grid p{margin-bottom:14px;color:#3a3a34;}
   .about-photo{border-radius:10px;overflow:hidden;}
-  .about-photo img{width:100%;object-fit:cover;}
+  .about-photo img{width:100%;max-height:420px;object-fit:cover;}
+  .about-photo-left{grid-template-columns:0.9fr 1.1fr;}
+  @media(max-width:820px){.about-photo-left{grid-template-columns:1fr;}}
+  .about-photo-left .about-photo, .about-photo-left .about-carousel{order:-1;}
+  @media(max-width:820px){.about-photo-left .about-photo, .about-photo-left .about-carousel{order:0;}}
+
+  .about-text-only{max-width:760px;color:#3a3a34;}
+  .about-text-only p{margin-bottom:14px;}
+
+  /* About carousel - same definite-height pattern as the hero carousel */
+  .about-carousel{position:relative;border-radius:10px;overflow:hidden;height:340px;}
+  .about-carousel-slide{position:absolute;inset:0;opacity:0;transition:opacity 1s ease;}
+  .about-carousel-slide.active{opacity:1;}
+  .about-carousel-slide img{width:100%;height:100%;object-fit:cover;}
+
+  .about-list-intro{max-width:760px;color:#3a3a34;margin-bottom:20px;}
+  .about-list{max-width:760px;list-style:none;padding:0;}
+  .about-list li{position:relative;padding:12px 0 12px 30px;border-bottom:1px solid rgba(0,0,0,0.08);color:#3a3a34;}
+  .about-list li::before{content:"✓";position:absolute;left:0;top:12px;color:var(--accent);font-weight:800;}
+
+  .about-timeline{max-width:760px;position:relative;padding-left:28px;}
+  .about-timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--accent);}
+  .about-timeline-item{position:relative;padding:0 0 22px 20px;color:#3a3a34;}
+  .about-timeline-item::before{content:"";position:absolute;left:-28px;top:4px;width:11px;height:11px;border-radius:50%;background:var(--primary);border:2px solid var(--accent);}
+
+  .about-quote-grid{display:grid;grid-template-columns:0.8fr 1.2fr;gap:40px;align-items:center;}
+  @media(max-width:820px){.about-quote-grid{grid-template-columns:1fr;}}
+  .about-quote-photo{border-radius:50%;overflow:hidden;width:220px;height:220px;margin:0 auto;}
+  .about-quote-photo img{width:100%;height:100%;object-fit:cover;}
+  .about-quote-mark{font-family:Georgia,serif;font-size:3.5rem;color:var(--accent);line-height:1;margin-bottom:-10px;}
+  .about-quote-text{color:#3a3a34;font-size:1.1rem;font-style:italic;}
+  .about-quote-author{margin-top:14px;font-weight:700;font-style:normal;color:var(--primary);}
+
+  .about-inline-stats{display:flex;gap:28px;margin-top:20px;}
+  .about-inline-stat{display:flex;flex-direction:column;}
+  .about-inline-stat .num{font-size:1.6rem;font-weight:800;color:var(--primary);}
+  .about-inline-stat .label{font-size:0.78rem;color:#5c5c52;}
 
   /* GENERIC TEXT SECTIONS (academics/admissions) */
   .text-block p{margin-bottom:14px;max-width:70ch;color:#3a3a34;}
@@ -526,18 +604,131 @@ foreach ($sections as $s) {
   </section>
 <?php endif; ?>
 
-<?php elseif ($key === 'about'): ?>
+<?php elseif ($key === 'about'):
+    $aboutVariant = $s['layout_variant'] ?? 'photo_right';
+    $aboutPhotos = array_values(array_filter([$c['photo'] ?? '', $c['photo_2'] ?? '', $c['photo_3'] ?? '']));
+    $listItems = array_values(array_filter(array_map('trim', explode("\n", $c['list_items'] ?? ''))));
+
+    // Graceful fallbacks when the content a variant needs isn't there yet.
+    if ($aboutVariant === 'carousel_left' && count($aboutPhotos) < 2) $aboutVariant = 'photo_right';
+    if (in_array($aboutVariant, ['photo_right', 'photo_left', 'quote', 'stats_inline'], true) && empty($aboutPhotos)) $aboutVariant = 'text_only';
+    if ($aboutVariant === 'list' && empty($listItems)) $aboutVariant = 'text_only';
+    if ($aboutVariant === 'timeline' && empty($listItems)) $aboutVariant = 'text_only';
+?>
+
+<?php if ($aboutVariant === 'text_only'): ?>
+  <section id="about">
+    <div class="wrap">
+      <div class="section-head"><h2><?= esc($s['label']) ?></h2></div>
+      <div class="about-text-only"><?= nl2p($c['body'] ?? '') ?></div>
+    </div>
+  </section>
+
+<?php elseif ($aboutVariant === 'photo_left'): ?>
+  <section id="about">
+    <div class="wrap">
+      <div class="section-head"><h2><?= esc($s['label']) ?></h2></div>
+      <div class="about-grid about-photo-left">
+        <div class="about-photo"><img src="<?= img($aboutPhotos[0]) ?>" alt=""></div>
+        <div><?= nl2p($c['body'] ?? '') ?></div>
+      </div>
+    </div>
+  </section>
+
+<?php elseif ($aboutVariant === 'carousel_left'): ?>
+  <section id="about">
+    <div class="wrap">
+      <div class="section-head"><h2><?= esc($s['label']) ?></h2></div>
+      <div class="about-grid about-photo-left">
+        <div class="about-carousel">
+          <?php foreach ($aboutPhotos as $i => $photo): ?>
+            <div class="about-carousel-slide<?= $i === 0 ? ' active' : '' ?>"><img src="<?= img($photo) ?>" alt=""></div>
+          <?php endforeach; ?>
+        </div>
+        <div><?= nl2p($c['body'] ?? '') ?></div>
+      </div>
+    </div>
+  </section>
+  <script>
+    (function(){
+      var slides = document.querySelectorAll('#about .about-carousel-slide');
+      if (slides.length < 2) return;
+      var i = 0;
+      setInterval(function(){
+        slides[i].classList.remove('active');
+        i = (i + 1) % slides.length;
+        slides[i].classList.add('active');
+      }, 4500);
+    })();
+  </script>
+
+<?php elseif ($aboutVariant === 'list'): ?>
+  <section id="about">
+    <div class="wrap">
+      <div class="section-head"><h2><?= esc($s['label']) ?></h2></div>
+      <?php if (!empty($c['body'])): ?><div class="about-list-intro"><?= nl2p($c['body']) ?></div><?php endif; ?>
+      <ul class="about-list">
+        <?php foreach ($listItems as $item): ?><li><?= esc($item) ?></li><?php endforeach; ?>
+      </ul>
+    </div>
+  </section>
+
+<?php elseif ($aboutVariant === 'timeline'): ?>
+  <section id="about">
+    <div class="wrap">
+      <div class="section-head"><h2><?= esc($s['label']) ?></h2></div>
+      <?php if (!empty($c['body'])): ?><div class="about-list-intro"><?= nl2p($c['body']) ?></div><?php endif; ?>
+      <div class="about-timeline">
+        <?php foreach ($listItems as $item): ?><div class="about-timeline-item"><?= esc($item) ?></div><?php endforeach; ?>
+      </div>
+    </div>
+  </section>
+
+<?php elseif ($aboutVariant === 'quote'): ?>
+  <section id="about">
+    <div class="wrap">
+      <div class="section-head"><h2><?= esc($s['label']) ?></h2></div>
+      <div class="about-quote-grid">
+        <div class="about-quote-photo"><img src="<?= img($aboutPhotos[0]) ?>" alt=""></div>
+        <div class="about-quote-text">
+          <div class="about-quote-mark">&ldquo;</div>
+          <?= nl2p($c['body'] ?? '') ?>
+          <?php if (!empty($c['author_name'])): ?><div class="about-quote-author">— <?= esc($c['author_name']) ?></div><?php endif; ?>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<?php elseif ($aboutVariant === 'stats_inline'): ?>
+  <section id="about">
+    <div class="wrap">
+      <div class="section-head"><h2><?= esc($s['label']) ?></h2></div>
+      <div class="about-grid">
+        <div>
+          <?= nl2p($c['body'] ?? '') ?>
+          <?php if (!empty($c['inline_stat_1']) || !empty($c['inline_stat_2'])): ?>
+            <div class="about-inline-stats">
+              <?php if (!empty($c['inline_stat_1'])): ?><div class="about-inline-stat"><span class="num"><?= esc($c['inline_stat_1']) ?></span><span class="label"><?= esc($c['inline_stat_1_label'] ?? '') ?></span></div><?php endif; ?>
+              <?php if (!empty($c['inline_stat_2'])): ?><div class="about-inline-stat"><span class="num"><?= esc($c['inline_stat_2']) ?></span><span class="label"><?= esc($c['inline_stat_2_label'] ?? '') ?></span></div><?php endif; ?>
+            </div>
+          <?php endif; ?>
+        </div>
+        <div class="about-photo"><img src="<?= img($aboutPhotos[0]) ?>" alt=""></div>
+      </div>
+    </div>
+  </section>
+
+<?php else: /* photo_right - default */ ?>
   <section id="about">
     <div class="wrap">
       <div class="section-head"><h2><?= esc($s['label']) ?></h2></div>
       <div class="about-grid">
         <div><?= nl2p($c['body'] ?? '') ?></div>
-        <?php if (!empty($c['photo'])): ?>
-          <div class="about-photo"><img src="<?= img($c['photo']) ?>" alt=""></div>
-        <?php endif; ?>
+        <div class="about-photo"><img src="<?= img($aboutPhotos[0]) ?>" alt=""></div>
       </div>
     </div>
   </section>
+<?php endif; ?>
 
 <?php elseif (in_array($key, ['academics', 'admissions'])): ?>
   <section id="<?= esc($key) ?>">
@@ -653,22 +844,127 @@ foreach ($sections as $s) {
     </div>
   </section>
 
-<?php elseif ($key === 'staff'): ?>
+<?php elseif ($key === 'staff'):
+    $staffVariant = $s['layout_variant'] ?? 'grid';
+    $people = [];
+    for ($i = 1; $i <= 10; $i++) {
+        if (empty($c["name_$i"])) continue;
+        $people[] = [
+            'name' => $c["name_$i"],
+            'role' => $c["role_$i"] ?? '',
+            'photo' => $c["photo_$i"] ?? '',
+            'bio' => $c["bio_$i"] ?? '',
+            'department' => $c["department_$i"] ?? '',
+        ];
+    }
+    if (empty($people)) continue; // nothing entered yet - skip rather than show an empty section
+
+    if ($staffVariant === 'grouped' && !array_filter($people, fn($p) => !empty($p['department']))) $staffVariant = 'grid'; // no departments set - grouping would just be one unlabeled group
+
+    // Universal "show 3 on mobile, 6 on desktop, View More" capping -
+    // applies to the layouts that stack vertically/in a grid. Carousel
+    // already solves the space problem via horizontal scroll, and org
+    // chart is a small curated leadership view, not meant for browsing
+    // through 10 people - neither gets capped.
+    $cappedVariants = ['grid', 'list_bio', 'minimal'];
+    $totalStaff = count($people);
+    $showViewMore = in_array($staffVariant, $cappedVariants, true) && $totalStaff > 3;
+    $viewMoreOnlyMobile = $totalStaff <= 6;
+?>
   <section id="staff">
     <div class="wrap">
       <div class="section-head">
         <h2><?= esc($s['label']) ?></h2>
         <?php if (!empty($c['intro_text'])): ?><p style="color:#5a5a52;margin-top:6px;"><?= esc($c['intro_text']) ?></p><?php endif; ?>
       </div>
-      <div class="staff-grid">
-        <?php for ($i = 1; $i <= 4; $i++): if (empty($c["name_$i"])) continue; ?>
-          <div class="staff-card">
-            <?php if (!empty($c["photo_$i"])): ?><img src="<?= img($c["photo_$i"]) ?>" alt="<?= esc($c["name_$i"]) ?>"><?php endif; ?>
-            <div class="name"><?= esc($c["name_$i"]) ?></div>
-            <div class="role"><?= esc($c["role_$i"] ?? '') ?></div>
-          </div>
-        <?php endfor; ?>
-      </div>
+
+      <?php if ($staffVariant === 'carousel'): ?>
+        <div class="staff-carousel">
+          <?php foreach ($people as $p): ?>
+            <div class="staff-card">
+              <?php if (!empty($p['photo'])): ?><img src="<?= img($p['photo']) ?>" alt="<?= esc($p['name']) ?>"><?php endif; ?>
+              <div class="name"><?= esc($p['name']) ?></div>
+              <div class="role"><?= esc($p['role']) ?></div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+
+      <?php elseif ($staffVariant === 'list_bio'): ?>
+        <div class="staff-list-bio" id="staffContainer">
+          <?php foreach ($people as $p): ?>
+            <div class="staff-bio-row">
+              <?php if (!empty($p['photo'])): ?><img src="<?= img($p['photo']) ?>" alt="<?= esc($p['name']) ?>"><?php endif; ?>
+              <div>
+                <div class="name"><?= esc($p['name']) ?></div>
+                <div class="role"><?= esc($p['role']) ?></div>
+                <?php if (!empty($p['bio'])): ?><p class="bio"><?= esc($p['bio']) ?></p><?php endif; ?>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+
+      <?php elseif ($staffVariant === 'org_chart'):
+          $tier1 = array_slice($people, 0, 1);
+          $tier2 = array_slice($people, 1, 2);
+          $tier3 = array_slice($people, 3);
+          $renderOrgCard = function($p) { ?>
+            <div class="staff-card">
+              <?php if (!empty($p['photo'])): ?><img src="<?= img($p['photo']) ?>" alt="<?= esc($p['name']) ?>"><?php endif; ?>
+              <div class="name"><?= esc($p['name']) ?></div>
+              <div class="role"><?= esc($p['role']) ?></div>
+            </div>
+          <?php };
+      ?>
+        <div class="staff-org-chart">
+          <div class="org-tier org-tier-1"><?php foreach ($tier1 as $p) $renderOrgCard($p); ?></div>
+          <?php if ($tier2): ?><div class="org-tier org-tier-2"><?php foreach ($tier2 as $p) $renderOrgCard($p); ?></div><?php endif; ?>
+          <?php if ($tier3): ?><div class="org-tier org-tier-3"><?php foreach ($tier3 as $p) $renderOrgCard($p); ?></div><?php endif; ?>
+        </div>
+
+      <?php elseif ($staffVariant === 'minimal'): ?>
+        <div class="staff-minimal-list" id="staffContainer">
+          <?php foreach ($people as $p): ?>
+            <div class="staff-minimal-item"><span class="name"><?= esc($p['name']) ?></span><span class="role"><?= esc($p['role']) ?></span></div>
+          <?php endforeach; ?>
+        </div>
+
+      <?php elseif ($staffVariant === 'grouped'):
+          $groups = [];
+          foreach ($people as $p) {
+              $dept = $p['department'] ?: 'Other';
+              $groups[$dept][] = $p;
+          }
+      ?>
+        <div id="staffContainer">
+          <?php foreach ($groups as $deptName => $deptPeople): ?>
+            <h3 class="staff-dept-heading"><?= esc($deptName) ?></h3>
+            <div class="staff-grid">
+              <?php foreach ($deptPeople as $p): ?>
+                <div class="staff-card">
+                  <?php if (!empty($p['photo'])): ?><img src="<?= img($p['photo']) ?>" alt="<?= esc($p['name']) ?>"><?php endif; ?>
+                  <div class="name"><?= esc($p['name']) ?></div>
+                  <div class="role"><?= esc($p['role']) ?></div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+
+      <?php else: /* grid - default */ ?>
+        <div class="staff-grid" id="staffContainer">
+          <?php foreach ($people as $p): ?>
+            <div class="staff-card">
+              <?php if (!empty($p['photo'])): ?><img src="<?= img($p['photo']) ?>" alt="<?= esc($p['name']) ?>"><?php endif; ?>
+              <div class="name"><?= esc($p['name']) ?></div>
+              <div class="role"><?= esc($p['role']) ?></div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($showViewMore): ?>
+        <button type="button" class="staff-view-more<?= $viewMoreOnlyMobile ? ' only-mobile' : '' ?>" onclick="document.getElementById('staffContainer').classList.add('expanded');this.style.display='none';">View More</button>
+      <?php endif; ?>
     </div>
   </section>
 
