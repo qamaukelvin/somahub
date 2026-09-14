@@ -41,7 +41,6 @@ $sizeOptions = ['auto' => 'Fits content', 'half' => 'Half page', 'full' => 'Full
   .design-variant-option.selected{border-color:#0F5257;box-shadow:0 0 0 2px rgba(15,82,87,0.15);background:#F4F8F6;}
   .design-variant-option.disabled{opacity:0.45;cursor:not-allowed;}
   .design-variant-label{font-size:0.78rem;font-weight:600;}
-  .design-variant-note{font-size:0.68rem;color:#a33;margin-top:2px;}
   .design-size-row{display:flex;gap:8px;margin-top:8px;}
   .design-size-option{border:1.5px solid #ccc;border-radius:8px;padding:7px 14px;font-size:0.82rem;cursor:pointer;}
   .design-size-option input{margin-right:5px;}
@@ -54,12 +53,12 @@ $sizeOptions = ['auto' => 'Fits content', 'half' => 'Half page', 'full' => 'Full
       <?php foreach ($config['options'] as $value => $opt):
           $needed = $opt['photos_needed'];
           $isDisabled = $needed > 0 && $photoCount < $needed;
+          $disabledReason = $isDisabled ? "Needs {$needed} photo" . ($needed > 1 ? 's' : '') . ' uploaded (Edit tab)' : '';
       ?>
-        <label class="design-variant-option<?= $current === $value ? ' selected' : '' ?><?= $isDisabled ? ' disabled' : '' ?>">
+        <label class="design-variant-option<?= $current === $value ? ' selected' : '' ?><?= $isDisabled ? ' disabled' : '' ?>" <?= $isDisabled ? 'title="' . htmlspecialchars($disabledReason) . '"' : '' ?>>
           <input type="radio" name="layout_variant" value="<?= htmlspecialchars($value) ?>" <?= $current === $value ? 'checked' : '' ?> <?= $isDisabled ? 'disabled' : '' ?> onchange="this.closest('.design-variant-grid').querySelectorAll('.design-variant-option').forEach(o=>o.classList.remove('selected'));this.closest('.design-variant-option').classList.add('selected');">
           <span class="material-symbols-outlined" aria-hidden="true"><?= htmlspecialchars($opt['icon']) ?></span>
           <span class="design-variant-label"><?= htmlspecialchars($opt['label']) ?></span>
-          <?php if ($isDisabled): ?><span class="design-variant-note">Needs <?= $needed ?> photo<?= $needed > 1 ? 's' : '' ?> uploaded (Edit tab)</span><?php endif; ?>
         </label>
       <?php endforeach; ?>
     </div>

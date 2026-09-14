@@ -244,22 +244,20 @@ foreach ($sections as $s) {
 
   /* HERO */
   .hero{background:var(--primary);color:var(--bg);padding:80px 24px 60px;}
-  .hero-inner{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1.1fr 0.9fr;gap:40px;align-items:stretch;min-height:420px;}
-  .hero-inner > div:first-child{display:flex;flex-direction:column;justify-content:center;}
+  .hero-inner{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1.1fr 0.9fr;gap:40px;align-items:center;}
   .hero h1{font-size:clamp(2rem,4.8vw,3.2rem);font-weight:700;line-height:1.1;}
   .hero p{margin-top:18px;font-size:1.02rem;opacity:0.85;max-width:50ch;}
-  .hero-photo{border-radius:10px;overflow:hidden;height:100%;}
-  .hero-photo img{width:100%;height:100%;object-fit:cover;}
+  .hero-photo{border-radius:10px;overflow:hidden;}
+  .hero-photo img{width:100%;max-height:420px;object-fit:cover;}
   .hero-cta{background:var(--accent);color:var(--primary);padding:13px 28px;border-radius:6px;font-weight:700;font-size:0.9rem;display:inline-block;}
   .hero-cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px;}
   .hero-cta-row .hero-cta:nth-child(2){background:transparent;border:2px solid currentColor;}
 
-  /* MOSAIC - used when a school has more than one hero photo. Now sizes
-     against .hero-inner's own definite min-height (stretched, not
-     content-sized), same fix applied consistently to both the single-photo
-     and mosaic cases - no percentage-height-against-indefinite-parent
-     anywhere in this chain anymore. */
-  .hero-mosaic{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;height:100%;}
+  /* MOSAIC - used when a school has more than one hero photo. Its own
+     fixed height (not inherited from the text column - the two are
+     independent, same principle as About's photo sizing) so the 2x2
+     internal grid always has a real height to divide between its cells. */
+  .hero-mosaic{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;height:420px;}
   .hero-mosaic img{width:100%;height:100%;object-fit:cover;}
   .hero-mosaic .m-main{grid-row:1/3;}
   .hero-mosaic.two-photos{grid-template-rows:1fr;}
@@ -270,11 +268,10 @@ foreach ($sections as $s) {
      screen. Placed after the base rules on purpose so it actually wins the
      cascade instead of being silently overridden by them. */
   @media(max-width:820px){
-    .hero-inner{grid-template-columns:1fr;min-height:0;align-items:stretch;}
+    .hero-inner{grid-template-columns:1fr;}
     .hero{padding:48px 20px 36px;}
-    .hero-photo{max-height:220px;}
-    .hero-photo img{aspect-ratio:16/9;}
-    .hero-mosaic{min-height:0;max-height:220px;}
+    .hero-photo img{max-height:220px;aspect-ratio:16/9;}
+    .hero-mosaic{height:220px;}
   }
 
   /* Hero variants: background_fixed (true CSS background-attachment:fixed

@@ -31,7 +31,11 @@ $errors = [];
 
 foreach ($schema as $field => $fieldType) {
     if ($fieldType === 'image') continue;
-    $newContent[$field] = trim($_POST[$field] ?? '');
+    // A field not present in this submission (hidden because the current
+    // variant doesn't use it, or not yet revealed in a progressive
+    // "add another" flow) keeps its existing value rather than being
+    // blanked - the same principle already applied to images below.
+    $newContent[$field] = isset($_POST[$field]) ? trim($_POST[$field]) : ($content[$field] ?? '');
 }
 
 foreach ($schema as $field => $fieldType) {
@@ -85,6 +89,52 @@ foreach ($schema as $field => $fieldType) {
 if ($errors) {
     echo json_encode(['ok' => false, 'errors' => $errors]);
     exit;
+}
+
+// Bulk photo upload (Gallery's "upload several at once" option) - fills
+// whichever numbered photo slots are still empty after the per-field
+// inputs above, in order. Same validation as a single image upload.
+if (!empty($_FILES['bulk_photos']['tmp_name']) && is_array($_FILES['bulk_photos']['tmp_name'])) {
+    require_once __DIR__ . '/../includes/section_variants.php';
+    $registry = get_section_variant_registry();
+    $config = $registry[$section['key_name']] ?? null;
+
+    if ($config && !empty($config['repeatable']) && !empty($config['bulk_photo_upload'])) {
+        $existenceField = $config['item_fields'][0]; // 'photo' for gallery
+        $emptySlots = [];
+        for ($i = 1; $i <= $config['max_items']; $i++) {
+            if (empty($newContent["{$existenceField}_{$i}"])) $emptySlots[] = $i;
+        }
+
+        $bulkCount = count($_FILES['bulk_photos']['tmp_name']);
+        $allowedMimes = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+        $slotIndex = 0;
+
+        for ($f = 0; $f < $bulkCount && $slotIndex < count($emptySlots); $f++) {
+            if (empty($_FILES['bulk_photos']['tmp_name'][$f])) continue;
+            $tmpPath = $_FILES['bulk_photos']['tmp_name'][$f];
+            $fileSize = $_FILES['bulk_photos']['size'][$f];
+
+            if ($fileSize > 5 * 1024 * 1024) continue; // silently skip oversized files in a bulk batch rather than failing the whole save
+            $imageInfo = @getimagesize($tmpPath);
+            if ($imageInfo === false || !isset($allowedMimes[$imageInfo['mime']])) continue;
+
+            $ext = $allowedMimes[$imageInfo['mime']];
+            $targetSlot = $emptySlots[$slotIndex];
+            $safeName = 'sec_' . $section['id'] . '_' . $existenceField . '_' . $targetSlot . '_' . time() . '_' . $f . '.' . $ext;
+            $destDir = __DIR__ . '/../uploads/schools/' . $user['school_id'] . '/';
+            if (!is_dir($destDir)) mkdir($destDir, 0755, true);
+            move_uploaded_file($tmpPath, $destDir . $safeName);
+
+            $relPath = 'uploads/schools/' . $user['school_id'] . '/' . $safeName;
+            $newContent["{$existenceField}_{$targetSlot}"] = $relPath;
+
+            $db->prepare("INSERT INTO media (school_id, uploaded_by_user_id, file_path, file_type, file_size_bytes) VALUES (?,?,?,?,?)")
+               ->execute([$user['school_id'], $user['id'], $relPath, $imageInfo['mime'], $fileSize]);
+
+            $slotIndex++;
+        }
+    }
 }
 
 // Hero's cta_1/cta_2 aren't part of the generic schema loop above (they're

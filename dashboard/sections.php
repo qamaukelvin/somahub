@@ -76,6 +76,13 @@ foreach ($availableTypes as $t) {
   .accordion-panel .image-field{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
   .accordion-panel .current-img{width:64px;height:64px;object-fit:cover;border-radius:6px;flex-shrink:0;}
   .accordion-panel .remove-photo-label{font-size:0.78rem;color:#a33;display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;}
+  .accordion-panel .repeatable-item{border:1px solid #e2e2da;border-radius:8px;padding:14px;margin-bottom:14px;background:#fafaf6;}
+  .accordion-panel .repeatable-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .accordion-panel .repeatable-item-header strong{font-size:0.88rem;color:#333;}
+  .accordion-panel .remove-item-btn{background:none;border:1px solid #d99;color:#a33;font-size:0.76rem;padding:4px 10px;border-radius:6px;cursor:pointer;}
+  .accordion-panel .add-item-btn{display:block;width:100%;background:#fff;border:1.5px dashed #0F5257;color:#0F5257;font-weight:700;font-size:0.85rem;padding:10px;border-radius:8px;cursor:pointer;margin-bottom:14px;}
+  .accordion-panel .bulk-upload-field{border-bottom:1px solid #e2e2da;padding-bottom:14px;margin-bottom:14px;}
+  .accordion-panel .field-hint{font-size:0.74rem;color:#888;margin-top:4px;}
   .accordion-panel input[type=file]{font-size:0.8rem;flex:1;min-width:160px;}
   .accordion-panel .inline-form-msg{font-size:0.85rem;margin:10px 0;}
   .accordion-panel .inline-form-msg.success{color:#1B4D3E;}
