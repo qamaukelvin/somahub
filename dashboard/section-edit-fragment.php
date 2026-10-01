@@ -27,8 +27,8 @@ $registry = get_section_variant_registry();
 $config = $registry[$section['key_name']] ?? null;
 $currentVariant = $section['layout_variant'] ?? ($config['default'] ?? null);
 
-// Hero's CTA buttons link to real destinations (Admissions, Contact, Check
-// Results, Fees) rather than free text - only offer ones this school
+// Hero and CTA Banner both link to real destinations (Admissions, Contact,
+// Check Results, Fees) rather than free text - only offer ones this school
 // actually has (section exists, visible, and not premium-locked), so a
 // choice here can never end up pointing at a dead anchor.
 $ctaDestinations = [
@@ -39,7 +39,7 @@ $ctaDestinations = [
 ];
 $ctaSectionKeys = ['enroll' => 'enrollment_form', 'contact' => 'contact', 'results' => 'results_lookup', 'fees' => 'fees'];
 $availableCtaOptions = [];
-if ($section['key_name'] === 'hero') {
+if (in_array($section['key_name'], ['hero', 'cta_banner'], true)) {
     require_once __DIR__ . '/../includes/plan.php';
     $stmt2 = $db->prepare("SELECT * FROM schools WHERE id = ?");
     $stmt2->execute([$user['school_id']]);
@@ -63,11 +63,40 @@ if ($section['key_name'] === 'hero') {
 
 // Renders one field's input (text/textarea/image), reused by both the flat
 // field list and the repeatable-item cards below so markup stays identical.
-function render_edit_field(string $field, string $fieldType, string $displayLabel, array $content): void {
+function render_edit_field(string $field, string $fieldType, string $displayLabel, array $content, array $ctaOptions = []): void {
+    // Curated icon choices for any *_icon field (currently just Stats) -
+    // a dropdown rather than free text, so a typo can never silently
+    // produce a missing/broken icon on the live site.
+    $iconChoices = [
+        'school' => 'Graduation cap',
+        'groups' => 'People',
+        'calendar_month' => 'Calendar',
+        'menu_book' => 'Book',
+        'emoji_events' => 'Trophy',
+        'star' => 'Star',
+        'schedule' => 'Clock',
+        'bar_chart' => 'Chart',
+        'diversity_3' => 'Community',
+        'workspace_premium' => 'Award',
+    ];
     ?>
     <div class="field">
       <label><?= htmlspecialchars($displayLabel) ?></label>
-      <?php if ($fieldType === 'textarea'): ?>
+      <?php if (str_starts_with($field, 'cta_destination') && $ctaOptions): ?>
+        <select name="<?= htmlspecialchars($field) ?>">
+          <option value="">Use default</option>
+          <?php foreach ($ctaOptions as $ctaKey => $ctaLabel): ?>
+            <option value="<?= htmlspecialchars($ctaKey) ?>" <?= ($content[$field] ?? '') === $ctaKey ? 'selected' : '' ?>><?= htmlspecialchars($ctaLabel) ?></option>
+          <?php endforeach; ?>
+        </select>
+      <?php elseif (str_ends_with($field, '_icon')): ?>
+        <select name="<?= htmlspecialchars($field) ?>">
+          <option value="">No icon</option>
+          <?php foreach ($iconChoices as $value => $iconLabel): ?>
+            <option value="<?= htmlspecialchars($value) ?>" <?= ($content[$field] ?? '') === $value ? 'selected' : '' ?>><?= htmlspecialchars($iconLabel) ?></option>
+          <?php endforeach; ?>
+        </select>
+      <?php elseif ($fieldType === 'textarea'): ?>
         <textarea name="<?= htmlspecialchars($field) ?>"><?= htmlspecialchars($content[$field] ?? '') ?></textarea>
       <?php elseif ($fieldType === 'image'): ?>
         <div class="image-field">
@@ -86,6 +115,7 @@ function render_edit_field(string $field, string $fieldType, string $displayLabe
 ?>
 <form class="inline-edit-form" data-section-id="<?= $section['id'] ?>">
   <?php if ($section['key_name'] === 'hero' && $availableCtaOptions): ?>
+    <p style="font-size:0.8rem;color:#888;margin:-4px 0 4px;">Buttons link to real pages on your site (like Admissions or Contact) - no web addresses to type.</p>
     <div class="field">
       <label>Button 1</label>
       <select name="cta_1">
@@ -110,14 +140,15 @@ function render_edit_field(string $field, string $fieldType, string $displayLabe
       $itemFieldStems = $config['item_field_groups'][$currentVariant] ?? $config['item_fields'];
       $maxItems = $config['max_items'];
       $itemLabel = $config['item_label'];
+      $namePattern = $config['field_name_format'] ?? '{stem}_{index}';
 
       // Only show cards for items that actually have data - "the field that
       // makes this item exist" is its first field stem (name for staff,
-      // quote for testimonials, photo for gallery).
+      // quote for testimonials, photo for gallery, number for stats).
       $existenceField = $config['item_fields'][0];
       $existingIndexes = [];
       for ($i = 1; $i <= $maxItems; $i++) {
-          if (!empty($content["{$existenceField}_{$i}"])) $existingIndexes[] = $i;
+          if (!empty($content[format_item_field_name($existenceField, $i, $namePattern)])) $existingIndexes[] = $i;
       }
       $nextIndex = empty($existingIndexes) ? 1 : max($existingIndexes) + 1;
   ?>
@@ -133,7 +164,7 @@ function render_edit_field(string $field, string $fieldType, string $displayLabe
       <?php if (empty($existingIndexes)): ?>
         <div class="repeatable-item" data-index="1">
           <div class="repeatable-item-header"><strong><?= htmlspecialchars($itemLabel) ?> 1</strong></div>
-          <?php foreach ($itemFieldStems as $stem): render_edit_field("{$stem}_1", $schema["{$stem}_1"] ?? 'text', ucwords($stem), $content); endforeach; ?>
+          <?php foreach ($itemFieldStems as $stem): $fname = format_item_field_name($stem, 1, $namePattern); render_edit_field($fname, $schema[$fname] ?? 'text', ucwords($stem), $content); endforeach; ?>
         </div>
       <?php else: ?>
         <?php foreach ($existingIndexes as $n => $i): ?>
@@ -142,96 +173,37 @@ function render_edit_field(string $field, string $fieldType, string $displayLabe
               <strong><?= htmlspecialchars($itemLabel) ?> <?= $n + 1 ?></strong>
               <button type="button" class="remove-item-btn" onclick="somahubRemoveRepeatableItem(this)">Remove</button>
             </div>
-            <?php foreach ($itemFieldStems as $stem): render_edit_field("{$stem}_{$i}", $schema["{$stem}_{$i}"] ?? 'text', ucwords($stem), $content); endforeach; ?>
+            <?php foreach ($itemFieldStems as $stem): $fname = format_item_field_name($stem, $i, $namePattern); render_edit_field($fname, $schema[$fname] ?? 'text', ucwords($stem), $content); endforeach; ?>
           </div>
         <?php endforeach; ?>
       <?php endif; ?>
     </div>
 
     <?php if ($nextIndex <= $maxItems): ?>
-      <button type="button" class="add-item-btn" id="addItemBtn-<?= $section['id'] ?>" onclick="somahubAddRepeatableItem(<?= $section['id'] ?>, <?= $nextIndex ?>, <?= $maxItems ?>, '<?= htmlspecialchars($itemLabel, ENT_QUOTES) ?>')">+ Add Another <?= htmlspecialchars($itemLabel) ?></button>
+      <button type="button" class="add-item-btn" id="addItemBtn-<?= $section['id'] ?>" onclick="somahubAddRepeatableItem(<?= $section['id'] ?>, <?= $nextIndex ?>, <?= $maxItems ?>, '<?= htmlspecialchars($itemLabel, ENT_QUOTES) ?>', '<?= htmlspecialchars($namePattern, ENT_QUOTES) ?>')">+ Add Another <?= htmlspecialchars($itemLabel) ?></button>
     <?php endif; ?>
 
     <!-- Blank field templates for each field stem, used by the Add button - kept
          out of the visible form (a real hidden <template>, never submitted) -->
     <template id="itemFieldTemplates-<?= $section['id'] ?>">
-      <?php foreach ($itemFieldStems as $stem): ?>
-        <div data-stem="<?= htmlspecialchars($stem) ?>" data-type="<?= htmlspecialchars($schema["{$stem}_1"] ?? 'text') ?>" data-label="<?= htmlspecialchars(ucwords($stem)) ?>"></div>
+      <?php foreach ($itemFieldStems as $stem): $sampleField = format_item_field_name($stem, 1, $namePattern); ?>
+        <div data-stem="<?= htmlspecialchars($stem) ?>" data-type="<?= htmlspecialchars($schema[$sampleField] ?? 'text') ?>" data-label="<?= htmlspecialchars(ucwords($stem)) ?>"></div>
       <?php endforeach; ?>
     </template>
 
   <?php elseif ($config && isset($config['field_groups'][$currentVariant])): ?>
-    <?php foreach ($config['field_groups'][$currentVariant] as $field): ?>
-      <?php render_edit_field($field, $schema[$field] ?? 'text', ucwords(str_replace('_', ' ', $field)), $content); ?>
+    <?php foreach ($config['field_groups'][$currentVariant] as $field):
+        $niceLabel = preg_match('/^cta_destination_(\d)$/', $field, $m) ? "Button {$m[1]} Destination" : (($field === 'button_text_2') ? 'Button 2 Text' : ucwords(str_replace('_', ' ', $field)));
+    ?>
+      <?php render_edit_field($field, $schema[$field] ?? 'text', $niceLabel, $content, $availableCtaOptions); ?>
     <?php endforeach; ?>
 
   <?php else: ?>
     <?php foreach ($schema as $field => $fieldType): ?>
-      <?php render_edit_field($field, $fieldType, ucwords(str_replace('_', ' ', $field)), $content); ?>
+      <?php render_edit_field($field, $fieldType, ucwords(str_replace('_', ' ', $field)), $content, $availableCtaOptions); ?>
     <?php endforeach; ?>
   <?php endif; ?>
 
   <div class="inline-form-msg"></div>
   <button type="submit" class="btn">Save Changes</button>
 </form>
-
-<script>
-  // Builds one item's field HTML from the <template> stamped out above -
-  // shared by the Add button for every repeatable section type.
-  function somahubBuildRepeatableItemHtml(index, itemLabel, displayNum, templateId) {
-    var tpl = document.getElementById(templateId);
-    var wrapper = document.createElement('div');
-    wrapper.className = 'repeatable-item';
-    wrapper.dataset.index = index;
-
-    var header = document.createElement('div');
-    header.className = 'repeatable-item-header';
-    header.innerHTML = '<strong>' + itemLabel + ' ' + displayNum + '</strong> <button type="button" class="remove-item-btn" onclick="somahubRemoveRepeatableItem(this)">Remove</button>';
-    wrapper.appendChild(header);
-
-    tpl.content.querySelectorAll('[data-stem]').forEach(function(fieldTpl) {
-      var stem = fieldTpl.dataset.stem, type = fieldTpl.dataset.type, label = fieldTpl.dataset.label;
-      var name = stem + '_' + index;
-      var fieldDiv = document.createElement('div');
-      fieldDiv.className = 'field';
-      var inputHtml = '';
-      if (type === 'textarea') {
-        inputHtml = '<textarea name="' + name + '"></textarea>';
-      } else if (type === 'image') {
-        inputHtml = '<div class="image-field"><input type="file" name="' + name + '" accept="image/*"></div>';
-      } else {
-        inputHtml = '<input type="text" name="' + name + '">';
-      }
-      fieldDiv.innerHTML = '<label>' + label + '</label>' + inputHtml;
-      wrapper.appendChild(fieldDiv);
-    });
-
-    return wrapper;
-  }
-
-  function somahubAddRepeatableItem(sectionId, index, maxItems, itemLabel) {
-    var container = document.getElementById('repeatable-' + sectionId);
-    var displayNum = container.querySelectorAll('.repeatable-item').length + 1;
-    var newItem = somahubBuildRepeatableItemHtml(index, itemLabel, displayNum, 'itemFieldTemplates-' + sectionId);
-    container.appendChild(newItem);
-
-    if (index >= maxItems) {
-      document.getElementById('addItemBtn-' + sectionId).remove();
-    } else {
-      var btn = document.getElementById('addItemBtn-' + sectionId);
-      btn.setAttribute('onclick', "somahubAddRepeatableItem(" + sectionId + ", " + (index + 1) + ", " + maxItems + ", '" + itemLabel.replace(/'/g, "\\'") + "')");
-    }
-  }
-
-  // "Remove" blanks every field in the item (so Save actually clears it -
-  // fields not submitted are preserved, not wiped, so an item can't be
-  // cleared just by hiding it) then hides the card. Reuses the existing
-  // photo-remove checkbox mechanism for image fields.
-  function somahubRemoveRepeatableItem(button) {
-    var item = button.closest('.repeatable-item');
-    item.querySelectorAll('input[type=text], textarea').forEach(function(el) { el.value = ''; });
-    item.querySelectorAll('input[type=file]').forEach(function(el) { el.value = ''; });
-    item.querySelectorAll('input[type=checkbox][name^="remove_"]').forEach(function(el) { el.checked = true; });
-    item.style.display = 'none';
-  }
-</script>

@@ -159,10 +159,210 @@ function get_section_variant_registry(): array {
             ],
             'bulk_photo_upload' => true,
         ],
+        'faq' => [
+            // No 'options' here - FAQ doesn't get a Design/layout picker,
+            // just the same repeatable add/remove editing UX as the others.
+            // _section_row.php's Design-button check looks for 'options'
+            // specifically, so this correctly gets no Design button.
+            'repeatable' => true,
+            'item_label' => 'Question',
+            'max_items' => 10,
+            'item_fields' => ['question', 'answer'],
+        ],
+        'blog' => [
+            // Minimal step for now - numbered post teasers, same pattern as
+            // FAQ. Not the real per-school blog subsystem (own archive
+            // page, real post management) - that's deliberately deferred.
+            'repeatable' => true,
+            'item_label' => 'Post',
+            'max_items' => 10,
+            'item_fields' => ['title', 'body', 'photo'],
+        ],
+        'stats' => [
+            'photo_fields' => [], // stats never need photos, regardless of variant
+            'default' => 'strip',
+            'has_size' => false,
+            'options' => [
+                'strip' => ['label' => 'Strip', 'icon' => 'view_column', 'photos_needed' => 0],
+                'countup' => ['label' => 'Animated count-up', 'icon' => 'trending_up', 'photos_needed' => 0],
+                'icon_paired' => ['label' => 'Icon-paired', 'icon' => 'stars', 'photos_needed' => 0],
+                'rings' => ['label' => 'Circular progress rings', 'icon' => 'donut_large', 'photos_needed' => 0],
+                'ticker' => ['label' => 'Horizontal ticker', 'icon' => 'view_carousel', 'photos_needed' => 0],
+                'bars' => ['label' => 'Comparison bars', 'icon' => 'bar_chart', 'photos_needed' => 0],
+            ],
+            'repeatable' => true,
+            'item_label' => 'Stat',
+            'max_items' => 8,
+            'item_fields' => ['number', 'label', 'icon'],
+            'item_field_groups' => [
+                'strip' => ['number', 'label'],
+                'countup' => ['number', 'label'],
+                'icon_paired' => ['number', 'label', 'icon'],
+                'rings' => ['number', 'label'],
+                'ticker' => ['number', 'label'],
+                'bars' => ['number', 'label'],
+            ],
+            // Stats predates the repeatable-item system and already uses
+            // stat_{index}_{stem} (e.g. stat_1_number) rather than the
+            // {stem}_{index} pattern every other repeatable section uses -
+            // kept as-is rather than forcing a rename migration on existing
+            // schools' already-saved content.
+            'field_name_format' => 'stat_{index}_{stem}',
+        ],
+        'contact' => [
+            // Not repeatable - one set of contact details per school, just
+            // different presentations of the same fields (plus a couple
+            // variant-specific extras).
+            'default' => 'stacked',
+            'has_size' => false,
+            'options' => [
+                'stacked' => ['label' => 'Details + map (stacked)', 'icon' => 'view_agenda', 'photos_needed' => 0],
+                'side_by_side' => ['label' => 'Details + map (side by side)', 'icon' => 'view_sidebar', 'photos_needed' => 0],
+                'map_only' => ['label' => 'Map-only, details overlay', 'icon' => 'map', 'photos_needed' => 0],
+                'details_only' => ['label' => 'Details only, no map', 'icon' => 'contact_page', 'photos_needed' => 0],
+                'with_form' => ['label' => 'With quick-message form', 'icon' => 'mail', 'photos_needed' => 0],
+                'whatsapp_first' => ['label' => 'WhatsApp-first', 'icon' => 'chat', 'photos_needed' => 0],
+            ],
+            'photo_fields' => [],
+            'field_groups' => [
+                'stacked' => ['address', 'phone', 'email', 'office_hours', 'map_location'],
+                'side_by_side' => ['address', 'phone', 'email', 'office_hours', 'map_location'],
+                'map_only' => ['address', 'phone', 'map_location'],
+                'details_only' => ['address', 'phone', 'email', 'office_hours'],
+                'with_form' => ['address', 'phone', 'email', 'office_hours', 'form_intro'],
+                'whatsapp_first' => ['whatsapp_number', 'address', 'phone', 'email'],
+            ],
+        ],
+        'admissions' => [
+            'default' => 'text_cta',
+            'has_size' => false,
+            'photo_fields' => ['photo'],
+            'options' => [
+                'text_cta' => ['label' => 'Text + Apply button', 'icon' => 'notes', 'photos_needed' => 0],
+                'steps' => ['label' => 'Steps / process timeline', 'icon' => 'timeline', 'photos_needed' => 0],
+                'checklist' => ['label' => 'Requirements checklist', 'icon' => 'checklist', 'photos_needed' => 0],
+                'text_photo' => ['label' => 'Text + photo', 'icon' => 'view_agenda', 'photos_needed' => 1],
+                'key_dates' => ['label' => 'Key dates / deadlines', 'icon' => 'event', 'photos_needed' => 0],
+                'faq_style' => ['label' => 'Admissions FAQ', 'icon' => 'quiz', 'photos_needed' => 0],
+            ],
+            'field_groups' => [
+                'text_cta' => ['body'],
+                'steps' => ['body', 'list_items'],
+                'checklist' => ['body', 'list_items'],
+                'text_photo' => ['body', 'photo'],
+                'key_dates' => ['body', 'list_items'],
+                'faq_style' => ['body', 'faq_q1', 'faq_a1', 'faq_q2', 'faq_a2', 'faq_q3', 'faq_a3'],
+            ],
+        ],
+        'academics' => [
+            'default' => 'text_only',
+            'has_size' => false,
+            'photo_fields' => ['photo'],
+            'options' => [
+                'text_only' => ['label' => 'Text only', 'icon' => 'notes', 'photos_needed' => 0],
+                'text_photo' => ['label' => 'Text + photo', 'icon' => 'view_agenda', 'photos_needed' => 1],
+                'curriculum_grid' => ['label' => 'Curriculum grid', 'icon' => 'grid_view', 'photos_needed' => 0],
+                'grade_levels' => ['label' => 'Grade levels breakdown', 'icon' => 'stairs', 'photos_needed' => 0],
+                'stats_inline' => ['label' => 'Text with inline stats', 'icon' => 'bar_chart', 'photos_needed' => 0],
+            ],
+            'field_groups' => [
+                'text_only' => ['body'],
+                'text_photo' => ['body', 'photo'],
+                'curriculum_grid' => ['body', 'list_items'],
+                'grade_levels' => ['body', 'list_items'],
+                'stats_inline' => ['body', 'inline_stat_1', 'inline_stat_1_label', 'inline_stat_2', 'inline_stat_2_label'],
+            ],
+        ],
+        'cta_banner' => [
+            'default' => 'simple',
+            'has_size' => false,
+            'photo_fields' => ['photo'],
+            'options' => [
+                'simple' => ['label' => 'Simple, centered', 'icon' => 'crop_landscape', 'photos_needed' => 0],
+                'split' => ['label' => 'Text + button side by side', 'icon' => 'view_sidebar', 'photos_needed' => 0],
+                'background_photo' => ['label' => 'Background photo', 'icon' => 'panorama', 'photos_needed' => 1],
+                'two_button' => ['label' => 'Two buttons', 'icon' => 'view_agenda', 'photos_needed' => 0],
+            ],
+            'field_groups' => [
+                'simple' => ['headline', 'subtext', 'button_text', 'cta_destination_1'],
+                'split' => ['headline', 'subtext', 'button_text', 'cta_destination_1'],
+                'background_photo' => ['headline', 'subtext', 'button_text', 'cta_destination_1', 'photo'],
+                'two_button' => ['headline', 'subtext', 'button_text', 'cta_destination_1', 'button_text_2', 'cta_destination_2'],
+            ],
+        ],
+        'fees' => [
+            // Not repeatable - fee rows live in the real fee_structures
+            // table (managed on its own dashboard page), not numbered
+            // content_json fields. These variants only change how the
+            // same underlying rows are grouped/displayed.
+            'default' => 'table',
+            'has_size' => false,
+            'photo_fields' => [],
+            'options' => [
+                'table' => ['label' => 'Table', 'icon' => 'table_chart', 'photos_needed' => 0],
+                'by_grade' => ['label' => 'Grouped by grade', 'icon' => 'grid_view', 'photos_needed' => 0],
+                'by_term' => ['label' => 'Grouped by term', 'icon' => 'calendar_view_month', 'photos_needed' => 0],
+                'compact_list' => ['label' => 'Compact list', 'icon' => 'format_list_bulleted', 'photos_needed' => 0],
+                'summary_only' => ['label' => 'Summary only', 'icon' => 'summarize', 'photos_needed' => 0],
+            ],
+            'field_groups' => [
+                'table' => ['intro_text'],
+                'by_grade' => ['intro_text'],
+                'by_term' => ['intro_text'],
+                'compact_list' => ['intro_text'],
+                'summary_only' => ['intro_text', 'summary_note'],
+            ],
+        ],
+        'enrollment_form' => [
+            'default' => 'simple',
+            'has_size' => false,
+            'photo_fields' => ['photo'],
+            'options' => [
+                'simple' => ['label' => 'Simple callout', 'icon' => 'campaign', 'photos_needed' => 0],
+                'inline_form' => ['label' => 'Inline embedded form', 'icon' => 'assignment', 'photos_needed' => 0],
+                'steps_preview' => ['label' => '"How it works" steps', 'icon' => 'timeline', 'photos_needed' => 0],
+                'photo_callout' => ['label' => 'Photo + callout', 'icon' => 'view_agenda', 'photos_needed' => 1],
+                'deadline_banner' => ['label' => 'Deadline / urgency banner', 'icon' => 'event', 'photos_needed' => 0],
+            ],
+            'field_groups' => [
+                'simple' => ['intro_text'],
+                'inline_form' => ['intro_text'],
+                'steps_preview' => ['intro_text', 'list_items'],
+                'photo_callout' => ['intro_text', 'photo'],
+                'deadline_banner' => ['intro_text', 'deadline_text'],
+            ],
+        ],
+        'results_lookup' => [
+            'default' => 'simple',
+            'has_size' => false,
+            'photo_fields' => ['photo'],
+            'options' => [
+                'simple' => ['label' => 'Simple callout (both buttons)', 'icon' => 'campaign', 'photos_needed' => 0],
+                'inline_form' => ['label' => 'Inline lookup form', 'icon' => 'search', 'photos_needed' => 0],
+                'photo_callout' => ['label' => 'Photo + callout', 'icon' => 'view_agenda', 'photos_needed' => 1],
+                'steps_preview' => ['label' => '"How to check" steps', 'icon' => 'timeline', 'photos_needed' => 0],
+                'single_button' => ['label' => 'Single focused button', 'icon' => 'touch_app', 'photos_needed' => 0],
+            ],
+            'field_groups' => [
+                'simple' => ['intro_text'],
+                'inline_form' => ['intro_text'],
+                'photo_callout' => ['intro_text', 'photo'],
+                'steps_preview' => ['intro_text', 'list_items'],
+                'single_button' => ['intro_text'],
+            ],
+        ],
     ];
 }
 
 /**
+ * Builds the actual content_json field name for one item's field, given a
+ * section's naming pattern (defaults to the standard {stem}_{index} used
+ * by every repeatable section except Stats).
+ */
+function format_item_field_name(string $stem, int $index, ?string $pattern = null): string {
+    $pattern = $pattern ?? '{stem}_{index}';
+    return str_replace(['{stem}', '{index}'], [$stem, (string)$index], $pattern);
+}/**
  * How many of a section's designated photo fields are actually filled in,
  * given its content_json (already json_decode'd to an array).
  */

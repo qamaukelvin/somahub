@@ -275,6 +275,98 @@ function toggleDesignAccordion(id) {
 
 // Shared by both Edit and Design forms - same save-button behavior either
 // way, just posts to whichever endpoint the caller passed in.
+// Builds one item's field HTML from the <template> stamped out in the
+// fetched fragment - shared by the Add button for every repeatable
+// section type (Staff, Testimonials, Gallery, FAQ, ...). Defined here
+// rather than in the AJAX-fetched fragment itself: scripts injected via
+// .innerHTML never execute, so defining these inside the fragment meant
+// they never actually existed - this was the root cause of "Add Another"
+// silently doing nothing anywhere it was used.
+function somahubBuildRepeatableItemHtml(index, itemLabel, displayNum, templateId, namePattern) {
+    var tpl = document.getElementById(templateId);
+    var wrapper = document.createElement('div');
+    wrapper.className = 'repeatable-item';
+    wrapper.dataset.index = index;
+
+    var header = document.createElement('div');
+    header.className = 'repeatable-item-header';
+    header.innerHTML = '<strong>' + itemLabel + ' ' + displayNum + '</strong> <button type="button" class="remove-item-btn" onclick="somahubRemoveRepeatableItem(this)">Remove</button>';
+    wrapper.appendChild(header);
+
+    var SOMAHUB_ICON_CHOICES = [
+        ['', 'No icon'],
+        ['school', 'Graduation cap'],
+        ['groups', 'People'],
+        ['calendar_month', 'Calendar'],
+        ['menu_book', 'Book'],
+        ['emoji_events', 'Trophy'],
+        ['star', 'Star'],
+        ['schedule', 'Clock'],
+        ['bar_chart', 'Chart'],
+        ['diversity_3', 'Community'],
+        ['workspace_premium', 'Award'],
+    ];
+
+    tpl.content.querySelectorAll('[data-stem]').forEach(function(fieldTpl) {
+        var stem = fieldTpl.dataset.stem, type = fieldTpl.dataset.type, label = fieldTpl.dataset.label;
+        // Matches PHP's format_item_field_name() - same {stem}/{index}
+        // placeholder pattern, so Stats' stat_{index}_{stem} naming works
+        // here too, not just the standard {stem}_{index}.
+        var name = (namePattern || '{stem}_{index}').replace('{stem}', stem).replace('{index}', index);
+        var fieldDiv = document.createElement('div');
+        fieldDiv.className = 'field';
+        var inputHtml = '';
+        if (name.endsWith('_icon')) {
+            inputHtml = '<select name="' + name + '">' + SOMAHUB_ICON_CHOICES.map(function(pair) {
+                return '<option value="' + pair[0] + '">' + pair[1] + '</option>';
+            }).join('') + '</select>';
+        } else if (type === 'textarea') {
+            inputHtml = '<textarea name="' + name + '"></textarea>';
+        } else if (type === 'image') {
+            inputHtml = '<div class="image-field"><input type="file" name="' + name + '" accept="image/*"></div>';
+        } else {
+            inputHtml = '<input type="text" name="' + name + '">';
+        }
+        fieldDiv.innerHTML = '<label>' + label + '</label>' + inputHtml;
+        wrapper.appendChild(fieldDiv);
+    });
+
+    return wrapper;
+}
+
+function somahubAddRepeatableItem(sectionId, index, maxItems, itemLabel, namePattern) {
+    var container = document.getElementById('repeatable-' + sectionId);
+    // Count only still-visible items - a removed item stays in the DOM
+    // (display:none) so Save can still clear it, so querySelectorAll alone
+    // would count it too and throw off the numbering of newly-added items.
+    var visibleCount = Array.prototype.filter.call(
+        container.querySelectorAll('.repeatable-item'),
+        function(el) { return el.style.display !== 'none'; }
+    ).length;
+    var newItem = somahubBuildRepeatableItemHtml(index, itemLabel, visibleCount + 1, 'itemFieldTemplates-' + sectionId, namePattern);
+    container.appendChild(newItem);
+
+
+    if (index >= maxItems) {
+        document.getElementById('addItemBtn-' + sectionId).remove();
+    } else {
+        var btn = document.getElementById('addItemBtn-' + sectionId);
+        btn.setAttribute('onclick', "somahubAddRepeatableItem(" + sectionId + ", " + (index + 1) + ", " + maxItems + ", '" + itemLabel.replace(/'/g, "\\'") + "', '" + (namePattern || '{stem}_{index}').replace(/'/g, "\\'") + "')");
+    }
+}
+
+// "Remove" blanks every field in the item (so Save actually clears it -
+// fields not submitted are preserved, not wiped, so an item can't be
+// cleared just by hiding it) then hides the card. Reuses the existing
+// photo-remove checkbox mechanism for image fields.
+function somahubRemoveRepeatableItem(button) {
+    var item = button.closest('.repeatable-item');
+    item.querySelectorAll('input[type=text], textarea').forEach(function(el) { el.value = ''; });
+    item.querySelectorAll('input[type=file]').forEach(function(el) { el.value = ''; });
+    item.querySelectorAll('input[type=checkbox][name^="remove_"]').forEach(function(el) { el.checked = true; });
+    item.style.display = 'none';
+}
+
 function submitInlineForm(form, id, endpoint, savedButtonText) {
     const msg = form.querySelector('.inline-form-msg');
     const btn = form.querySelector('button[type=submit]');

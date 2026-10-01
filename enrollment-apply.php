@@ -67,6 +67,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         send_somahub_email($parentEmail, "Application received - {$school['name']}", $parentBody);
     }
 
+    // The homepage's "inline embedded form" variant posts here too (reusing
+    // this same insert/notification logic rather than duplicating it) but
+    // sends the parent back to the homepage to see the success message
+    // there, instead of navigating them to this standalone page's own one.
+    if (!empty($_POST['return_to_homepage'])) {
+        header('Location: https://' . $school['slug'] . '.somahub.top/?applied=1#enrollment_form');
+        exit;
+    }
+
     $success = true;
 }
 ?>

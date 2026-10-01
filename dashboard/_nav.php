@@ -134,6 +134,7 @@ function plan_badge_text(array $school): array {
           <span class="nav-group-label">School Data ▾</span>
           <div class="nav-dropdown">
             <a href="enrollment.php">Enrollment</a>
+            <a href="contact-messages.php">Contact Messages</a>
             <a href="results.php">Results</a>
             <a href="attendance.php">Attendance</a>
             <a href="fees.php">Fees</a>

@@ -13,7 +13,8 @@
 
     <?php
       // Keep this list in sync with section-design-fragment.php's $variantOptionsByType keys.
-      $hasDesignOptions = array_key_exists($s['key_name'], get_section_variant_registry());
+      $registryEntry = get_section_variant_registry()[$s['key_name']] ?? null;
+      $hasDesignOptions = !empty($registryEntry['options']);
     ?>
 
     <!-- Desktop: original inline button layout, Edit now opens the same inline accordion as mobile -->

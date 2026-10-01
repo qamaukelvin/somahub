@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/appearance.php';
   .tpl-card input{position:absolute;opacity:0;pointer-events:none;}
   .tpl-card.selected{border-color:var(--teal);box-shadow:0 0 0 2px rgba(15,82,87,0.15);}
   .tpl-card.locked{opacity:0.55;}
-  .tpl-frame-wrap{width:100%;height:110px;overflow:hidden;position:relative;background:#F4F4F0;}
+  .tpl-frame-wrap{width:100%;height:150px;overflow:hidden;position:relative;background:#F4F4F0;}
   .tpl-frame-wrap iframe{width:400%;height:400%;border:0;transform:scale(0.25);transform-origin:top left;pointer-events:none;}
   .tpl-card-footer{padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
   .tpl-card-name{font-size:0.8rem;font-weight:700;color:var(--ink);}

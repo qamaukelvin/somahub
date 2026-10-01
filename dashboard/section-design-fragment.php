@@ -21,6 +21,7 @@ if (!$section) {
 
 $registry = get_section_variant_registry();
 $config = $registry[$section['key_name']] ?? null;
+if (empty($config['options'])) $config = null; // e.g. FAQ - repeatable for editing, but no layout variants
 $current = $section['layout_variant'] ?? ($config['default'] ?? null);
 $currentSize = $section['layout_size'] ?? 'auto';
 
