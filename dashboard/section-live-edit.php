@@ -119,10 +119,34 @@ $listItems = array_values(array_filter(array_map('trim', explode("\n", $content[
   .about-inline-stat .num{font-size:1.6rem;font-weight:800;color:var(--primary);}
   .about-inline-stat .label{font-size:0.78rem;color:#5c5c52;}
 
-  .about-carousel{position:relative;border-radius:10px;overflow:hidden;height:340px;display:flex;gap:6px;background:#e9e5d6;}
-  .about-carousel .live-photo-wrap{flex:1;height:100%;border-radius:0;}
-  .about-carousel .live-photo-wrap img{height:100%;}
-  .about-carousel .live-photo-wrap.empty{min-height:0;}
+  /* Carousel editing lives entirely in one box: by default it shows a real
+     rotating preview just like the live site; hover reveals a grid of every
+     uploaded photo, each individually replaceable/removable, plus
+     Replace all/Remove all for the whole set. No separate controls
+     elsewhere on the page. */
+  .about-carousel-box{position:relative;border-radius:10px;overflow:hidden;height:340px;background:#e9e5d6;}
+  .carousel-empty-cta{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;color:#555;}
+  .carousel-empty-cta .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:40px;color:#999;}
+  .carousel-empty-cta span.cta-btn{background:var(--primary);color:#fff;border-radius:6px;padding:9px 18px;font-size:0.82rem;font-weight:700;}
+
+  .carousel-rotator{position:absolute;inset:0;}
+  .carousel-slide{position:absolute;inset:0;opacity:0;transition:opacity 1s ease;}
+  .carousel-slide.active{opacity:1;}
+  .carousel-slide img{width:100%;height:100%;object-fit:cover;display:block;}
+
+  .carousel-hover-grid{position:absolute;inset:0;background:rgba(15,15,12,0.72);opacity:0;pointer-events:none;transition:opacity .15s;display:flex;flex-direction:column;padding:14px;}
+  .about-carousel-box:hover .carousel-hover-grid{opacity:1;pointer-events:auto;}
+  .carousel-grid-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .carousel-grid-toolbar .mini-btn{border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.08);color:#fff;border-radius:6px;padding:6px 11px;font-size:0.74rem;font-weight:600;cursor:pointer;}
+  .carousel-grid-toolbar .mini-btn:hover{background:rgba(255,255,255,0.2);}
+  .carousel-grid-toolbar .mini-btn.danger{border-color:rgba(244,160,160,0.6);color:#F4A0A0;}
+  .carousel-grid-toolbar .hint{font-size:0.72rem;color:#D8D4C4;margin-left:auto;}
+  .carousel-grid-items{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-top:12px;}
+  .carousel-grid-items .live-photo-wrap{border-radius:6px;min-height:0;height:100%;}
+  .carousel-grid-items .live-photo-wrap.empty{background:rgba(255,255,255,0.1);min-height:0;}
+  .carousel-grid-items .live-photo-wrap .photo-overlay-btn{padding:5px 8px;font-size:0.68rem;}
+  .carousel-grid-items .live-photo-wrap .photo-delete-btn{width:22px;height:22px;top:4px;right:4px;}
+  .carousel-grid-items .live-photo-wrap .photo-delete-btn .material-symbols-outlined{font-size:13px;}
 
   section#about{background:var(--bg);padding:60px 0;min-height:100vh;}
 
@@ -156,9 +180,6 @@ $listItems = array_values(array_filter(array_map('trim', explode("\n", $content[
   .variant-chip .needs-photo-badge{background:rgba(0,0,0,0.08);border-radius:10px;padding:1px 7px;font-size:0.68rem;font-weight:700;}
   .variant-chip.active .needs-photo-badge{background:rgba(255,255,255,0.25);}
 
-  .bulk-upload-row{display:flex;align-items:center;gap:8px;padding:6px 20px 12px;background:#F4F1E6;}
-  .bulk-upload-btn{border:1.5px dashed #999;background:#fff;border-radius:6px;padding:7px 12px;font-size:0.78rem;font-weight:600;color:#555;cursor:pointer;}
-
   [contenteditable="true"]{outline:2px dashed transparent;border-radius:3px;transition:outline-color .15s;cursor:text;min-width:20px;}
   [contenteditable="true"]:hover{outline-color:rgba(15,82,87,0.35);}
   [contenteditable="true"]:focus{outline:2px dashed var(--primary);background:rgba(255,255,255,0.5);}
@@ -178,18 +199,6 @@ $listItems = array_values(array_filter(array_map('trim', explode("\n", $content[
   .live-photo-wrap:hover .photo-delete-btn{opacity:1;}
   .live-photo-wrap.empty .photo-delete-btn{display:none;}
 
-  .photo-select-check{position:absolute;top:8px;left:8px;width:22px;height:22px;z-index:6;display:none;accent-color:var(--primary);}
-  #carouselSlots.select-mode .photo-select-check{display:block;}
-  #carouselSlots.select-mode .photo-overlay,
-  #carouselSlots.select-mode .photo-delete-btn{display:none;}
-  #carouselSlots.select-mode .live-photo-wrap{cursor:pointer;}
-  #carouselSlots.select-mode .live-photo-wrap.picked{outline:3px solid var(--primary);outline-offset:-3px;}
-
-  .bulk-select-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .bulk-select-btn{border:1.5px solid #ccc;background:#fff;border-radius:6px;padding:7px 12px;font-size:0.78rem;font-weight:600;color:#555;cursor:pointer;}
-  .bulk-select-btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;}
-  .bulk-select-btn.danger{border-color:#e0c4bc;color:#8C3B2E;}
-  .bulk-select-btn:disabled{opacity:0.4;cursor:not-allowed;}
 
   .live-list-item{display:flex;align-items:flex-start;gap:8px;}
   .live-list-item [contenteditable]{flex:1;}
@@ -234,31 +243,14 @@ $listItems = array_values(array_filter(array_map('trim', explode("\n", $content[
   <?php endforeach; ?>
 </div>
 
-<?php if ($aboutVariant === 'carousel_left'): ?>
-  <div class="bulk-upload-row">
-    <button type="button" class="bulk-upload-btn" id="bulkUploadBtn" onclick="document.getElementById('bulkPhotoInput').click()">+ Upload several photos at once</button>
-    <span style="font-size:0.75rem;color:#888;" id="bulkUploadHint">Fills the next empty slots below, in order.</span>
-  </div>
-  <div class="bulk-select-row" style="padding:0 20px 14px;background:#F4F1E6;">
-    <button type="button" class="bulk-select-btn" id="selectModeBtn" onclick="somahubToggleSelectMode()">Select photos</button>
-    <span id="selectModeActions" style="display:none;gap:8px;align-items:center;">
-      <button type="button" class="bulk-select-btn primary" id="replaceSelectedBtn" disabled onclick="document.getElementById('replaceSelectedInput').click()">Replace selected</button>
-      <button type="button" class="bulk-select-btn danger" id="deleteSelectedBtn" disabled onclick="somahubDeleteSelected()">Delete selected</button>
-      <button type="button" class="bulk-select-btn" onclick="somahubToggleSelectMode()">Cancel</button>
-      <span id="selectedCountNote" style="font-size:0.75rem;color:#888;"></span>
-    </span>
-  </div>
-<?php endif; ?>
-
 <div class="save-toast" id="saveToast"><span class="material-symbols-outlined">check_circle</span><span id="saveToastMsg">Saved</span></div>
 
 <?php
 // A tiny helper that renders one photo slot with its upload/replace overlay
 // baked in - every variant below that shows an image uses this instead of
 // a bare <img>, so clicking the photo on the live canvas is how you change it.
-function live_photo_block(string $field, string $src, string $wrapClass = 'about-photo', bool $selectable = false): void { ?>
-  <div class="<?= esc($wrapClass) ?> live-photo-wrap<?= $src ? '' : ' empty' ?>" data-photo-field="<?= esc($field) ?>" <?= $selectable ? 'onclick="somahubToggleSelect(event, this)"' : '' ?>>
-    <?php if ($selectable): ?><input type="checkbox" class="photo-select-check" onclick="event.stopPropagation();somahubToggleSelect(event, this.closest('.live-photo-wrap'))"><?php endif; ?>
+function live_photo_block(string $field, string $src, string $wrapClass = 'about-photo'): void { ?>
+  <div class="<?= esc($wrapClass) ?> live-photo-wrap<?= $src ? '' : ' empty' ?>" data-photo-field="<?= esc($field) ?>">
     <?php if ($src): ?><img src="<?= esc($src) ?>" alt=""><?php endif; ?>
     <?php if ($src): ?>
       <button type="button" class="photo-delete-btn" title="Remove photo" onclick="event.stopPropagation();somahubDeletePhoto('<?= esc($field) ?>')">
@@ -288,12 +280,36 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
         <div data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
       </div>
 
-    <?php elseif ($aboutVariant === 'carousel_left'): ?>
+    <?php elseif ($aboutVariant === 'carousel_left'):
+      $carouselSlots = ['photo', 'photo_2', 'photo_3'];
+      $filledSlots = array_values(array_filter($carouselSlots, fn($s) => !empty($aboutPhotos[$s])));
+    ?>
       <div class="about-grid about-photo-left">
-        <div class="about-carousel" id="carouselSlots">
-          <?php foreach (['photo', 'photo_2', 'photo_3'] as $slot): ?>
-            <?php live_photo_block($slot, $aboutPhotos[$slot] ? img($aboutPhotos[$slot]) : '', 'about-carousel-slot', true); ?>
-          <?php endforeach; ?>
+        <div class="about-carousel-box" id="carouselBox">
+          <?php if (empty($filledSlots)): ?>
+            <div class="carousel-empty-cta" onclick="document.getElementById('bulkPhotoInput').click()">
+              <span class="material-symbols-outlined">add_photo_alternate</span>
+              <span class="cta-btn">Upload multiple photos</span>
+            </div>
+          <?php else: ?>
+            <div class="carousel-rotator" id="carouselRotator">
+              <?php foreach ($filledSlots as $i => $slot): ?>
+                <div class="carousel-slide<?= $i === 0 ? ' active' : '' ?>"><img src="<?= img($aboutPhotos[$slot]) ?>" alt=""></div>
+              <?php endforeach; ?>
+            </div>
+            <div class="carousel-hover-grid">
+              <div class="carousel-grid-toolbar">
+                <button type="button" class="mini-btn" onclick="document.getElementById('bulkPhotoInput').click()">Replace all</button>
+                <button type="button" class="mini-btn danger" onclick="somahubRemoveAllCarouselPhotos()">Remove all</button>
+                <span class="hint">Or manage one photo at a time below</span>
+              </div>
+              <div class="carousel-grid-items">
+                <?php foreach ($carouselSlots as $slot): ?>
+                  <?php live_photo_block($slot, $aboutPhotos[$slot] ? img($aboutPhotos[$slot]) : '', 'carousel-grid-slot'); ?>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          <?php endif; ?>
         </div>
         <div data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
       </div>
@@ -345,8 +361,6 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
 
 <input type="file" id="livePhotoInput" accept="image/*" style="display:none;">
 <input type="file" id="bulkPhotoInput" accept="image/*" multiple style="display:none;">
-<input type="file" id="replaceSelectedInput" accept="image/*" multiple style="display:none;">
-
 <script>
 (function(){
   var sectionId = <?= (int)$section['id'] ?>;
@@ -466,28 +480,36 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
     fileInput.value = '';
   });
 
-  // Bulk upload (currently the carousel layout) - pick several photos at
-  // once, they fill the empty photo/photo_2/photo_3 slots in order.
+  // Bulk upload for the carousel - used both by the empty-state "Upload
+  // multiple photos" button and by "Replace all". Either way it fills
+  // photo/photo_2/photo_3 in that fixed order, overwriting whatever was
+  // already in those slots - picking 2 files always means "these 2 photos,
+  // in slots 1 and 2", regardless of what used to be there. Reloads after,
+  // since the rotator's slide list is built from the PHP render.
   var bulkInput = document.getElementById('bulkPhotoInput');
+  var carouselFieldOrder = ['photo', 'photo_2', 'photo_3'];
   bulkInput.addEventListener('change', function(){
     if (!bulkInput.files.length) return;
-    var emptySlots = Array.prototype.filter.call(
-      document.querySelectorAll('#carouselSlots .live-photo-wrap'),
-      function(w){ return w.classList.contains('empty'); }
-    ).map(function(w){ return w.dataset.photoField; });
-
     var files = Array.prototype.slice.call(bulkInput.files);
     var chain = Promise.resolve();
     var filled = 0;
     files.forEach(function(file, i){
-      if (i >= emptySlots.length) return;
-      chain = chain.then(function(){ return uploadPhoto(emptySlots[i], file).then(function(ok){ if (ok) filled++; }); });
+      if (i >= carouselFieldOrder.length) return;
+      chain = chain.then(function(){ return uploadPhoto(carouselFieldOrder[i], file).then(function(ok){ if (ok) filled++; }); });
     });
-    chain.then(function(){ showSaved(filled > 0, filled > 0 ? (filled + ' photo' + (filled > 1 ? 's' : '') + ' added') : 'Could not add photos'); });
+    chain.then(function(){
+      if (filled > 0) {
+        sessionStorage.setItem('somahubLiveEditNotice', filled + ' photo' + (filled > 1 ? 's' : '') + ' saved');
+        window.location.reload();
+      } else {
+        showSaved(false, 'Could not add photos');
+      }
+    });
     bulkInput.value = '';
   });
 
-  // Delete a single photo - the little x in the corner of any filled slot.
+  // Delete a single photo - the little x in the corner of any filled slot
+  // (works the same inside the carousel's hover grid as everywhere else).
   // Reuses section-save-ajax.php's existing remove_<field> flag.
   window.somahubDeletePhoto = function(field) {
     if (!window.confirm('Remove this photo?')) return;
@@ -499,12 +521,16 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (data.ok) {
+          // Inside the carousel, removing one of several photos changes how
+          // many slides the rotator has, so just reload to rebuild it.
+          if (document.getElementById('carouselBox')) {
+            sessionStorage.setItem('somahubLiveEditNotice', 'Photo removed');
+            window.location.reload();
+            return;
+          }
           var img = wrap.querySelector('img');
           if (img) img.remove();
           wrap.classList.add('empty');
-          wrap.classList.remove('picked');
-          var check = wrap.querySelector('.photo-select-check');
-          if (check) check.checked = false;
           showSaved(true, 'Photo removed');
         } else {
           showSaved(false, (data.errors && Object.values(data.errors)[0]) || 'Could not remove photo');
@@ -513,90 +539,38 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
       .catch(function(){ showSaved(false); });
   };
 
-  // Select mode for the carousel - pick several existing photos at once,
-  // then either replace all of them or delete all of them in one go.
-  var selectedFields = [];
-  function updateSelectActionState() {
-    var n = selectedFields.length;
-    document.getElementById('replaceSelectedBtn').disabled = n === 0;
-    document.getElementById('deleteSelectedBtn').disabled = n === 0;
-    document.getElementById('selectedCountNote').textContent = n > 0 ? (n + ' selected') : '';
-  }
-  window.somahubToggleSelect = function(evt, wrap) {
-    if (!document.getElementById('carouselSlots').classList.contains('select-mode')) return;
-    var field = wrap.dataset.photoField;
-    var check = wrap.querySelector('.photo-select-check');
-    var picked = wrap.classList.toggle('picked');
-    if (check) check.checked = picked;
-    if (picked) {
-      if (selectedFields.indexOf(field) === -1) selectedFields.push(field);
-    } else {
-      selectedFields = selectedFields.filter(function(f){ return f !== field; });
-    }
-    updateSelectActionState();
-  };
-  window.somahubToggleSelectMode = function() {
-    var slots = document.getElementById('carouselSlots');
-    var active = slots.classList.toggle('select-mode');
-    document.getElementById('selectModeBtn').style.display = active ? 'none' : '';
-    document.getElementById('selectModeActions').style.display = active ? 'inline-flex' : 'none';
-    document.getElementById('bulkUploadBtn').style.display = active ? 'none' : '';
-    document.getElementById('bulkUploadHint').style.display = active ? 'none' : '';
-    if (!active) {
-      selectedFields = [];
-      slots.querySelectorAll('.live-photo-wrap.picked').forEach(function(w){
-        w.classList.remove('picked');
-        var check = w.querySelector('.photo-select-check');
-        if (check) check.checked = false;
-      });
-      updateSelectActionState();
-    }
-  };
-  window.somahubDeleteSelected = function() {
-    if (!selectedFields.length) return;
-    if (!window.confirm('Remove ' + selectedFields.length + ' selected photo' + (selectedFields.length > 1 ? 's' : '') + '?')) return;
+  // "Remove all" in the carousel's hover toolbar.
+  window.somahubRemoveAllCarouselPhotos = function() {
+    if (!window.confirm('Remove all photos from this carousel?')) return;
     var chain = Promise.resolve();
     var removed = 0;
-    selectedFields.slice().forEach(function(field){
+    carouselFieldOrder.forEach(function(field){
       chain = chain.then(function(){
         var fd = new FormData();
         fd.append('section_id', sectionId);
         fd.append('remove_' + field, '1');
         return fetch('section-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
           .then(function(r){ return r.json(); })
-          .then(function(data){
-            if (data.ok) {
-              var wrap = document.querySelector('.live-photo-wrap[data-photo-field="' + field + '"]');
-              var img = wrap.querySelector('img');
-              if (img) img.remove();
-              wrap.classList.add('empty');
-              removed++;
-            }
-          });
+          .then(function(data){ if (data.ok) removed++; });
       });
     });
     chain.then(function(){
-      showSaved(removed > 0, removed + ' photo' + (removed > 1 ? 's' : '') + ' removed');
-      somahubToggleSelectMode();
+      sessionStorage.setItem('somahubLiveEditNotice', removed > 0 ? 'All photos removed' : 'Nothing to remove');
+      window.location.reload();
     });
   };
-  var replaceSelectedInput = document.getElementById('replaceSelectedInput');
-  replaceSelectedInput.addEventListener('change', function(){
-    if (!replaceSelectedInput.files.length || !selectedFields.length) return;
-    var fields = selectedFields.slice();
-    var files = Array.prototype.slice.call(replaceSelectedInput.files);
-    var chain = Promise.resolve();
-    var updated = 0;
-    files.forEach(function(file, i){
-      if (i >= fields.length) return;
-      chain = chain.then(function(){ return uploadPhoto(fields[i], file).then(function(ok){ if (ok) updated++; }); });
-    });
-    chain.then(function(){
-      showSaved(updated > 0, updated > 0 ? (updated + ' photo' + (updated > 1 ? 's' : '') + ' replaced') : 'Could not replace photos');
-      somahubToggleSelectMode();
-    });
-    replaceSelectedInput.value = '';
-  });
+
+  // Rotate the carousel preview the same way the live site does, so the
+  // editor shows what visitors will actually see.
+  var rotatorSlides = document.querySelectorAll('#carouselRotator .carousel-slide');
+  if (rotatorSlides.length > 1) {
+    var slideIndex = 0;
+    setInterval(function(){
+      rotatorSlides[slideIndex].classList.remove('active');
+      slideIndex = (slideIndex + 1) % rotatorSlides.length;
+      rotatorSlides[slideIndex].classList.add('active');
+    }, 4500);
+  }
 
   // Variant switching - same save endpoint the old Design tab used. Always
   // allowed, even without the needed photos yet: the editor shows the empty
