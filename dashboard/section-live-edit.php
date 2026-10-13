@@ -172,6 +172,25 @@ $listItems = array_values(array_filter(array_map('trim', explode("\n", $content[
   .live-photo-wrap.empty .photo-overlay{opacity:1;position:static;background:none;}
   .live-photo-wrap.empty .photo-overlay-btn{background:var(--primary);color:#fff;}
 
+  .photo-delete-btn{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(20,20,16,0.7);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s,background .15s;z-index:5;}
+  .photo-delete-btn:hover{background:#B3382C;}
+  .photo-delete-btn .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:16px;}
+  .live-photo-wrap:hover .photo-delete-btn{opacity:1;}
+  .live-photo-wrap.empty .photo-delete-btn{display:none;}
+
+  .photo-select-check{position:absolute;top:8px;left:8px;width:22px;height:22px;z-index:6;display:none;accent-color:var(--primary);}
+  #carouselSlots.select-mode .photo-select-check{display:block;}
+  #carouselSlots.select-mode .photo-overlay,
+  #carouselSlots.select-mode .photo-delete-btn{display:none;}
+  #carouselSlots.select-mode .live-photo-wrap{cursor:pointer;}
+  #carouselSlots.select-mode .live-photo-wrap.picked{outline:3px solid var(--primary);outline-offset:-3px;}
+
+  .bulk-select-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .bulk-select-btn{border:1.5px solid #ccc;background:#fff;border-radius:6px;padding:7px 12px;font-size:0.78rem;font-weight:600;color:#555;cursor:pointer;}
+  .bulk-select-btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .bulk-select-btn.danger{border-color:#e0c4bc;color:#8C3B2E;}
+  .bulk-select-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
   .live-list-item{display:flex;align-items:flex-start;gap:8px;}
   .live-list-item [contenteditable]{flex:1;}
   .live-list-remove{border:none;background:none;color:#b33;cursor:pointer;font-size:1rem;line-height:1;padding:10px 4px;}
@@ -217,8 +236,17 @@ $listItems = array_values(array_filter(array_map('trim', explode("\n", $content[
 
 <?php if ($aboutVariant === 'carousel_left'): ?>
   <div class="bulk-upload-row">
-    <button type="button" class="bulk-upload-btn" onclick="document.getElementById('bulkPhotoInput').click()">+ Upload several photos at once</button>
-    <span style="font-size:0.75rem;color:#888;">Fills the next empty slots below, in order.</span>
+    <button type="button" class="bulk-upload-btn" id="bulkUploadBtn" onclick="document.getElementById('bulkPhotoInput').click()">+ Upload several photos at once</button>
+    <span style="font-size:0.75rem;color:#888;" id="bulkUploadHint">Fills the next empty slots below, in order.</span>
+  </div>
+  <div class="bulk-select-row" style="padding:0 20px 14px;background:#F4F1E6;">
+    <button type="button" class="bulk-select-btn" id="selectModeBtn" onclick="somahubToggleSelectMode()">Select photos</button>
+    <span id="selectModeActions" style="display:none;gap:8px;align-items:center;">
+      <button type="button" class="bulk-select-btn primary" id="replaceSelectedBtn" disabled onclick="document.getElementById('replaceSelectedInput').click()">Replace selected</button>
+      <button type="button" class="bulk-select-btn danger" id="deleteSelectedBtn" disabled onclick="somahubDeleteSelected()">Delete selected</button>
+      <button type="button" class="bulk-select-btn" onclick="somahubToggleSelectMode()">Cancel</button>
+      <span id="selectedCountNote" style="font-size:0.75rem;color:#888;"></span>
+    </span>
   </div>
 <?php endif; ?>
 
@@ -228,10 +256,16 @@ $listItems = array_values(array_filter(array_map('trim', explode("\n", $content[
 // A tiny helper that renders one photo slot with its upload/replace overlay
 // baked in - every variant below that shows an image uses this instead of
 // a bare <img>, so clicking the photo on the live canvas is how you change it.
-function live_photo_block(string $field, string $src, string $wrapClass = 'about-photo'): void { ?>
-  <div class="<?= esc($wrapClass) ?> live-photo-wrap<?= $src ? '' : ' empty' ?>" data-photo-field="<?= esc($field) ?>">
+function live_photo_block(string $field, string $src, string $wrapClass = 'about-photo', bool $selectable = false): void { ?>
+  <div class="<?= esc($wrapClass) ?> live-photo-wrap<?= $src ? '' : ' empty' ?>" data-photo-field="<?= esc($field) ?>" <?= $selectable ? 'onclick="somahubToggleSelect(event, this)"' : '' ?>>
+    <?php if ($selectable): ?><input type="checkbox" class="photo-select-check" onclick="event.stopPropagation();somahubToggleSelect(event, this.closest('.live-photo-wrap'))"><?php endif; ?>
     <?php if ($src): ?><img src="<?= esc($src) ?>" alt=""><?php endif; ?>
-    <div class="photo-overlay" onclick="somahubTriggerPhotoUpload('<?= esc($field) ?>')">
+    <?php if ($src): ?>
+      <button type="button" class="photo-delete-btn" title="Remove photo" onclick="event.stopPropagation();somahubDeletePhoto('<?= esc($field) ?>')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    <?php endif; ?>
+    <div class="photo-overlay" onclick="event.stopPropagation();somahubTriggerPhotoUpload('<?= esc($field) ?>')">
       <span class="photo-overlay-btn">
         <span class="material-symbols-outlined" style="font-family:'Material Symbols Outlined';font-size:16px;">photo_camera</span>
         <?= $src ? 'Replace photo' : 'Upload photo' ?>
@@ -258,7 +292,7 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
       <div class="about-grid about-photo-left">
         <div class="about-carousel" id="carouselSlots">
           <?php foreach (['photo', 'photo_2', 'photo_3'] as $slot): ?>
-            <?php live_photo_block($slot, $aboutPhotos[$slot] ? img($aboutPhotos[$slot]) : '', 'about-carousel-slot'); ?>
+            <?php live_photo_block($slot, $aboutPhotos[$slot] ? img($aboutPhotos[$slot]) : '', 'about-carousel-slot', true); ?>
           <?php endforeach; ?>
         </div>
         <div data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
@@ -311,6 +345,7 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
 
 <input type="file" id="livePhotoInput" accept="image/*" style="display:none;">
 <input type="file" id="bulkPhotoInput" accept="image/*" multiple style="display:none;">
+<input type="file" id="replaceSelectedInput" accept="image/*" multiple style="display:none;">
 
 <script>
 (function(){
@@ -450,6 +485,117 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
     });
     chain.then(function(){ showSaved(filled > 0, filled > 0 ? (filled + ' photo' + (filled > 1 ? 's' : '') + ' added') : 'Could not add photos'); });
     bulkInput.value = '';
+  });
+
+  // Delete a single photo - the little x in the corner of any filled slot.
+  // Reuses section-save-ajax.php's existing remove_<field> flag.
+  window.somahubDeletePhoto = function(field) {
+    if (!window.confirm('Remove this photo?')) return;
+    var fd = new FormData();
+    fd.append('section_id', sectionId);
+    fd.append('remove_' + field, '1');
+    var wrap = document.querySelector('.live-photo-wrap[data-photo-field="' + field + '"]');
+    fetch('section-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data.ok) {
+          var img = wrap.querySelector('img');
+          if (img) img.remove();
+          wrap.classList.add('empty');
+          wrap.classList.remove('picked');
+          var check = wrap.querySelector('.photo-select-check');
+          if (check) check.checked = false;
+          showSaved(true, 'Photo removed');
+        } else {
+          showSaved(false, (data.errors && Object.values(data.errors)[0]) || 'Could not remove photo');
+        }
+      })
+      .catch(function(){ showSaved(false); });
+  };
+
+  // Select mode for the carousel - pick several existing photos at once,
+  // then either replace all of them or delete all of them in one go.
+  var selectedFields = [];
+  function updateSelectActionState() {
+    var n = selectedFields.length;
+    document.getElementById('replaceSelectedBtn').disabled = n === 0;
+    document.getElementById('deleteSelectedBtn').disabled = n === 0;
+    document.getElementById('selectedCountNote').textContent = n > 0 ? (n + ' selected') : '';
+  }
+  window.somahubToggleSelect = function(evt, wrap) {
+    if (!document.getElementById('carouselSlots').classList.contains('select-mode')) return;
+    var field = wrap.dataset.photoField;
+    var check = wrap.querySelector('.photo-select-check');
+    var picked = wrap.classList.toggle('picked');
+    if (check) check.checked = picked;
+    if (picked) {
+      if (selectedFields.indexOf(field) === -1) selectedFields.push(field);
+    } else {
+      selectedFields = selectedFields.filter(function(f){ return f !== field; });
+    }
+    updateSelectActionState();
+  };
+  window.somahubToggleSelectMode = function() {
+    var slots = document.getElementById('carouselSlots');
+    var active = slots.classList.toggle('select-mode');
+    document.getElementById('selectModeBtn').style.display = active ? 'none' : '';
+    document.getElementById('selectModeActions').style.display = active ? 'inline-flex' : 'none';
+    document.getElementById('bulkUploadBtn').style.display = active ? 'none' : '';
+    document.getElementById('bulkUploadHint').style.display = active ? 'none' : '';
+    if (!active) {
+      selectedFields = [];
+      slots.querySelectorAll('.live-photo-wrap.picked').forEach(function(w){
+        w.classList.remove('picked');
+        var check = w.querySelector('.photo-select-check');
+        if (check) check.checked = false;
+      });
+      updateSelectActionState();
+    }
+  };
+  window.somahubDeleteSelected = function() {
+    if (!selectedFields.length) return;
+    if (!window.confirm('Remove ' + selectedFields.length + ' selected photo' + (selectedFields.length > 1 ? 's' : '') + '?')) return;
+    var chain = Promise.resolve();
+    var removed = 0;
+    selectedFields.slice().forEach(function(field){
+      chain = chain.then(function(){
+        var fd = new FormData();
+        fd.append('section_id', sectionId);
+        fd.append('remove_' + field, '1');
+        return fetch('section-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+          .then(function(r){ return r.json(); })
+          .then(function(data){
+            if (data.ok) {
+              var wrap = document.querySelector('.live-photo-wrap[data-photo-field="' + field + '"]');
+              var img = wrap.querySelector('img');
+              if (img) img.remove();
+              wrap.classList.add('empty');
+              removed++;
+            }
+          });
+      });
+    });
+    chain.then(function(){
+      showSaved(removed > 0, removed + ' photo' + (removed > 1 ? 's' : '') + ' removed');
+      somahubToggleSelectMode();
+    });
+  };
+  var replaceSelectedInput = document.getElementById('replaceSelectedInput');
+  replaceSelectedInput.addEventListener('change', function(){
+    if (!replaceSelectedInput.files.length || !selectedFields.length) return;
+    var fields = selectedFields.slice();
+    var files = Array.prototype.slice.call(replaceSelectedInput.files);
+    var chain = Promise.resolve();
+    var updated = 0;
+    files.forEach(function(file, i){
+      if (i >= fields.length) return;
+      chain = chain.then(function(){ return uploadPhoto(fields[i], file).then(function(ok){ if (ok) updated++; }); });
+    });
+    chain.then(function(){
+      showSaved(updated > 0, updated > 0 ? (updated + ' photo' + (updated > 1 ? 's' : '') + ' replaced') : 'Could not replace photos');
+      somahubToggleSelectMode();
+    });
+    replaceSelectedInput.value = '';
   });
 
   // Variant switching - same save endpoint the old Design tab used. Always
