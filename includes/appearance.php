@@ -166,6 +166,8 @@ function resolve_school_appearance(PDO $db, array $school): array {
             'secondary' => $school['secondary_override'] ?: '#1C1C16',
             'accent' => $school['accent_override'] ?: '#F2A65A',
             'bg' => $school['bg_override'] ?: '#F7F2E7',
+            'font_display' => $school['font_display_override'] ?: 'Sora',
+            'font_body' => $school['font_body_override'] ?: 'Nunito Sans',
         ];
         return [
             'theme' => $theme,
@@ -184,6 +186,10 @@ function resolve_school_appearance(PDO $db, array $school): array {
     if (!empty($school['primary_override'])) $theme['primary'] = $school['primary_override'];
     if (!empty($school['secondary_override'])) $theme['secondary'] = $school['secondary_override'];
     if (!empty($school['bg_override'])) $theme['bg'] = $school['bg_override'];
+    // Font pair is its own override, independent of color mode - a school on
+    // a preset color palette can still pick a different font pairing.
+    if (!empty($school['font_display_override'])) $theme['font_display'] = $school['font_display_override'];
+    if (!empty($school['font_body_override'])) $theme['font_body'] = $school['font_body_override'];
 
     return [
         'theme' => $theme,
@@ -192,5 +198,21 @@ function resolve_school_appearance(PDO $db, array $school): array {
         'template' => $template,
         'palette' => $palette,
         'is_premium_template' => !empty($template['is_premium']),
+    ];
+}
+
+/**
+ * Curated display/body font pairings - a picker, not free text, so a school
+ * can never end up with an unreadable or unloaded combination. Key is what
+ * gets saved to font_display_override/font_body_override.
+ */
+function get_font_pairs(): array {
+    return [
+        'sora_nunito'     => ['label' => 'Sora + Nunito Sans (default)', 'display' => 'Sora', 'body' => 'Nunito Sans'],
+        'playfair_lato'   => ['label' => 'Playfair Display + Lato',      'display' => 'Playfair Display', 'body' => 'Lato'],
+        'poppins_inter'   => ['label' => 'Poppins + Inter',              'display' => 'Poppins', 'body' => 'Inter'],
+        'merriweather_open' => ['label' => 'Merriweather + Open Sans',   'display' => 'Merriweather', 'body' => 'Open Sans'],
+        'montserrat_source' => ['label' => 'Montserrat + Source Sans 3', 'display' => 'Montserrat', 'body' => 'Source Sans 3'],
+        'dmserif_karla'   => ['label' => 'DM Serif Display + Karla',     'display' => 'DM Serif Display', 'body' => 'Karla'],
     ];
 }

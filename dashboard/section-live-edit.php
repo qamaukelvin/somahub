@@ -32,6 +32,14 @@ $stmt2->execute([$user['school_id']]);
 $school = $stmt2->fetch();
 $appearance = resolve_school_appearance($db, $school);
 $theme = $appearance['theme'];
+$fontPairs = get_font_pairs();
+$currentFontPair = 'default';
+foreach ($fontPairs as $pairKey => $pair) {
+    if (($theme['font_display'] ?? '') === $pair['display'] && ($theme['font_body'] ?? '') === $pair['body']) {
+        $currentFontPair = $pairKey;
+        break;
+    }
+}
 
 $registry = get_section_variant_registry();
 $config = $registry['about'];
@@ -111,6 +119,11 @@ $listItems = array_values(array_filter(array_map('trim', explode("\n", $content[
   .about-inline-stat .num{font-size:1.6rem;font-weight:800;color:var(--primary);}
   .about-inline-stat .label{font-size:0.78rem;color:#5c5c52;}
 
+  .about-carousel{position:relative;border-radius:10px;overflow:hidden;height:340px;display:flex;gap:6px;background:#e9e5d6;}
+  .about-carousel .live-photo-wrap{flex:1;height:100%;border-radius:0;}
+  .about-carousel .live-photo-wrap img{height:100%;}
+  .about-carousel .live-photo-wrap.empty{min-height:0;}
+
   section#about{background:var(--bg);padding:60px 0;min-height:100vh;}
 
   /* --- editor chrome - none of this exists on the live site --- */
@@ -118,15 +131,33 @@ $listItems = array_values(array_filter(array_map('trim', explode("\n", $content[
   .live-editor-topbar a.back-link{color:#fff;text-decoration:none;font-size:0.85rem;opacity:0.85;display:flex;align-items:center;gap:4px;}
   .live-editor-topbar a.back-link:hover{opacity:1;}
   .live-editor-topbar .title{font-weight:700;font-size:0.9rem;margin-right:auto;}
-  .save-indicator{font-size:0.78rem;color:#9FE3B0;opacity:0;transition:opacity .2s;}
-  .save-indicator.show{opacity:1;}
-  .save-indicator.err{color:#F4A0A0;}
+  .autosave-note{font-size:0.72rem;color:#C9C4B0;display:flex;align-items:center;gap:4px;}
+  .autosave-note .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:15px;}
+
+  .font-picker{position:relative;}
+  .font-picker-btn{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;border-radius:6px;padding:6px 12px;font-size:0.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;}
+  .font-picker-panel{display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;color:#1C1C16;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.25);padding:8px;min-width:230px;z-index:60;}
+  .font-picker-panel.open{display:block;}
+  .font-pair-option{display:block;width:100%;text-align:left;padding:9px 10px;border-radius:6px;border:none;background:none;cursor:pointer;font-size:0.82rem;}
+  .font-pair-option:hover{background:#F4F1E6;}
+  .font-pair-option.selected{background:#F4F8F6;color:var(--primary);font-weight:700;}
+
+  /* Toast-style save confirmation - fixed position so it's visible
+     regardless of scroll, since there's no explicit Save button to click. */
+  .save-toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,16px);background:#1C1C16;color:#fff;padding:11px 20px;border-radius:30px;font-size:0.83rem;font-weight:600;display:flex;align-items:center;gap:8px;box-shadow:0 6px 20px rgba(0,0,0,0.25);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:100;}
+  .save-toast.show{opacity:1;transform:translate(-50%,0);}
+  .save-toast .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:18px;color:#9FE3B0;}
+  .save-toast.err .material-symbols-outlined{color:#F4A0A0;}
 
   .variant-switcher{display:flex;gap:6px;overflow-x:auto;padding:10px 20px;background:#F4F1E6;border-bottom:1px solid #E2DCC6;}
   .variant-chip{display:flex;align-items:center;gap:6px;border:1.5px solid #ccc;border-radius:20px;padding:7px 14px;font-size:0.78rem;font-weight:600;white-space:nowrap;cursor:pointer;background:#fff;color:#333;}
   .variant-chip .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:17px;}
   .variant-chip.active{border-color:var(--primary);background:var(--primary);color:#fff;}
-  .variant-chip.disabled{opacity:0.4;cursor:not-allowed;}
+  .variant-chip .needs-photo-badge{background:rgba(0,0,0,0.08);border-radius:10px;padding:1px 7px;font-size:0.68rem;font-weight:700;}
+  .variant-chip.active .needs-photo-badge{background:rgba(255,255,255,0.25);}
+
+  .bulk-upload-row{display:flex;align-items:center;gap:8px;padding:6px 20px 12px;background:#F4F1E6;}
+  .bulk-upload-btn{border:1.5px dashed #999;background:#fff;border-radius:6px;padding:7px 12px;font-size:0.78rem;font-weight:600;color:#555;cursor:pointer;}
 
   [contenteditable="true"]{outline:2px dashed transparent;border-radius:3px;transition:outline-color .15s;cursor:text;min-width:20px;}
   [contenteditable="true"]:hover{outline-color:rgba(15,82,87,0.35);}
@@ -152,23 +183,46 @@ $listItems = array_values(array_filter(array_map('trim', explode("\n", $content[
 <div class="live-editor-topbar">
   <a href="sections.php" class="back-link">&larr; Back to sections</a>
   <span class="title"><?= esc($section['label']) ?> — live editor</span>
-  <span class="save-indicator" id="saveIndicator">Saved</span>
+  <span class="autosave-note"><span class="material-symbols-outlined">cloud_done</span> Changes save automatically</span>
+
+  <div class="font-picker">
+    <button type="button" class="font-picker-btn" onclick="document.getElementById('fontPickerPanel').classList.toggle('open')">
+      <span style="font-size:1rem;">Aa</span> Font
+    </button>
+    <div class="font-picker-panel" id="fontPickerPanel">
+      <?php foreach ($fontPairs as $pairKey => $pair): ?>
+        <button type="button" class="font-pair-option<?= $currentFontPair === $pairKey ? ' selected' : '' ?>"
+                style="font-family:'<?= esc($pair['display']) ?>',sans-serif;"
+                onclick="somahubSetFontPair('<?= esc($pairKey) ?>')"><?= esc($pair['label']) ?></button>
+      <?php endforeach; ?>
+      <p style="font-size:0.7rem;color:#888;padding:6px 10px 2px;margin:0;">Applies across your whole site, not just this section.</p>
+    </div>
+  </div>
 </div>
 
 <div class="variant-switcher" id="variantSwitcher">
   <?php foreach ($config['options'] as $value => $opt):
       $needed = $opt['photos_needed'];
-      $isDisabled = $needed > 0 && $photoCount < $needed;
-      $reason = $isDisabled ? "Needs {$needed} photo" . ($needed > 1 ? 's' : '') . ' uploaded first' : '';
+      $short = max(0, $needed - $photoCount);
   ?>
-    <button type="button" class="variant-chip<?= $aboutVariant === $value ? ' active' : '' ?><?= $isDisabled ? ' disabled' : '' ?>"
-            data-variant="<?= esc($value) ?>" <?= $isDisabled ? 'disabled title="' . esc($reason) . '"' : '' ?>
+    <button type="button" class="variant-chip<?= $aboutVariant === $value ? ' active' : '' ?>"
+            data-variant="<?= esc($value) ?>"
             onclick="somahubSwitchVariant('<?= esc($value) ?>')">
       <span class="material-symbols-outlined"><?= esc($opt['icon']) ?></span>
       <?= esc($opt['label']) ?>
+      <?php if ($short > 0): ?><span class="needs-photo-badge">+<?= $short ?> photo<?= $short > 1 ? 's' : '' ?></span><?php endif; ?>
     </button>
   <?php endforeach; ?>
 </div>
+
+<?php if ($aboutVariant === 'carousel_left'): ?>
+  <div class="bulk-upload-row">
+    <button type="button" class="bulk-upload-btn" onclick="document.getElementById('bulkPhotoInput').click()">+ Upload several photos at once</button>
+    <span style="font-size:0.75rem;color:#888;">Fills the next empty slots below, in order.</span>
+  </div>
+<?php endif; ?>
+
+<div class="save-toast" id="saveToast"><span class="material-symbols-outlined">check_circle</span><span id="saveToastMsg">Saved</span></div>
 
 <?php
 // A tiny helper that renders one photo slot with its upload/replace overlay
@@ -197,6 +251,16 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
     <?php elseif ($aboutVariant === 'photo_left'): ?>
       <div class="about-grid about-photo-left">
         <?php live_photo_block('photo', $aboutPhotos['photo'] ? img($aboutPhotos['photo']) : ''); ?>
+        <div data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
+      </div>
+
+    <?php elseif ($aboutVariant === 'carousel_left'): ?>
+      <div class="about-grid about-photo-left">
+        <div class="about-carousel" id="carouselSlots">
+          <?php foreach (['photo', 'photo_2', 'photo_3'] as $slot): ?>
+            <?php live_photo_block($slot, $aboutPhotos[$slot] ? img($aboutPhotos[$slot]) : '', 'about-carousel-slot'); ?>
+          <?php endforeach; ?>
+        </div>
         <div data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
       </div>
 
@@ -246,19 +310,30 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
 </section>
 
 <input type="file" id="livePhotoInput" accept="image/*" style="display:none;">
+<input type="file" id="bulkPhotoInput" accept="image/*" multiple style="display:none;">
 
 <script>
 (function(){
   var sectionId = <?= (int)$section['id'] ?>;
-  var saveIndicator = document.getElementById('saveIndicator');
   var pendingField = null;
+  var toast = document.getElementById('saveToast');
+  var toastMsg = document.getElementById('saveToastMsg');
 
   function showSaved(ok, msg) {
-    saveIndicator.textContent = msg || (ok ? 'Saved' : 'Could not save');
-    saveIndicator.classList.toggle('err', !ok);
-    saveIndicator.classList.add('show');
+    toastMsg.textContent = msg || (ok ? 'Saved' : 'Could not save');
+    toast.classList.toggle('err', !ok);
+    toast.querySelector('.material-symbols-outlined').textContent = ok ? 'check_circle' : 'error';
+    toast.classList.add('show');
     clearTimeout(showSaved._t);
-    showSaved._t = setTimeout(function(){ saveIndicator.classList.remove('show'); }, 1800);
+    showSaved._t = setTimeout(function(){ toast.classList.remove('show'); }, 2600);
+  }
+
+  // A notice can be queued just before a reload (e.g. after switching
+  // layout) so it still shows up once the fresh page has loaded.
+  var queuedNotice = sessionStorage.getItem('somahubLiveEditNotice');
+  if (queuedNotice) {
+    sessionStorage.removeItem('somahubLiveEditNotice');
+    setTimeout(function(){ showSaved(true, queuedNotice); }, 300);
   }
 
   function saveField(field, value) {
@@ -320,8 +395,31 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
     span.focus();
   };
 
-  // Photo upload - click the overlay on any photo, pick a file, it uploads
-  // immediately and swaps the image in place (no page reload).
+  // Single photo upload (used by every photo slot, including each carousel
+  // slot) - returns a Promise so the bulk-upload flow below can chain calls.
+  function uploadPhoto(field, file) {
+    var fd = new FormData();
+    fd.append('section_id', sectionId);
+    fd.append(field, file);
+    var wrap = document.querySelector('.live-photo-wrap[data-photo-field="' + field + '"]');
+    return fetch('section-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data.ok && data.content && data.content[field]) {
+          var newSrc = '../' + data.content[field] + '?t=' + Date.now();
+          var img = wrap.querySelector('img');
+          if (!img) { img = document.createElement('img'); wrap.insertBefore(img, wrap.firstChild); }
+          img.src = newSrc;
+          wrap.classList.remove('empty');
+          return true;
+        }
+        showSaved(false, (data.errors && Object.values(data.errors)[0]) || 'Upload failed');
+        return false;
+      })
+      .catch(function(){ showSaved(false); return false; });
+  }
+
+  // Click-to-replace on a single photo slot.
   var fileInput = document.getElementById('livePhotoInput');
   window.somahubTriggerPhotoUpload = function(field) {
     pendingField = field;
@@ -329,32 +427,38 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
   };
   fileInput.addEventListener('change', function(){
     if (!fileInput.files.length || !pendingField) return;
-    var fd = new FormData();
-    fd.append('section_id', sectionId);
-    fd.append(pendingField, fileInput.files[0]);
-    var wrap = document.querySelector('.live-photo-wrap[data-photo-field="' + pendingField + '"]');
-    fetch('section-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        if (data.ok && data.content && data.content[pendingField]) {
-          var newSrc = '../' + data.content[pendingField] + '?t=' + Date.now();
-          var img = wrap.querySelector('img');
-          if (!img) { img = document.createElement('img'); wrap.insertBefore(img, wrap.firstChild); }
-          img.src = newSrc;
-          wrap.classList.remove('empty');
-          showSaved(true, 'Photo updated');
-        } else {
-          showSaved(false, (data.errors && Object.values(data.errors)[0]) || 'Upload failed');
-        }
-      })
-      .catch(function(){ showSaved(false); });
+    uploadPhoto(pendingField, fileInput.files[0]).then(function(ok){ showSaved(ok, ok ? 'Photo updated' : undefined); });
     fileInput.value = '';
   });
 
-  // Variant switching - same save endpoint the old Design tab used. On
-  // success we just reload, since a different variant can need a field
-  // that isn't on screen yet (e.g. switching into "list" needs the
-  // list-items UI, which only this page's PHP render knows how to build).
+  // Bulk upload (currently the carousel layout) - pick several photos at
+  // once, they fill the empty photo/photo_2/photo_3 slots in order.
+  var bulkInput = document.getElementById('bulkPhotoInput');
+  bulkInput.addEventListener('change', function(){
+    if (!bulkInput.files.length) return;
+    var emptySlots = Array.prototype.filter.call(
+      document.querySelectorAll('#carouselSlots .live-photo-wrap'),
+      function(w){ return w.classList.contains('empty'); }
+    ).map(function(w){ return w.dataset.photoField; });
+
+    var files = Array.prototype.slice.call(bulkInput.files);
+    var chain = Promise.resolve();
+    var filled = 0;
+    files.forEach(function(file, i){
+      if (i >= emptySlots.length) return;
+      chain = chain.then(function(){ return uploadPhoto(emptySlots[i], file).then(function(ok){ if (ok) filled++; }); });
+    });
+    chain.then(function(){ showSaved(filled > 0, filled > 0 ? (filled + ' photo' + (filled > 1 ? 's' : '') + ' added') : 'Could not add photos'); });
+    bulkInput.value = '';
+  });
+
+  // Variant switching - same save endpoint the old Design tab used. Always
+  // allowed, even without the needed photos yet: the editor shows the empty
+  // upload slots right where the photos go, and the public site falls back
+  // to the default layout until they're filled in. We reload after a
+  // successful switch since a different variant can need UI that isn't on
+  // screen yet (e.g. switching into "list" needs the list-items markup,
+  // which only this page's PHP render knows how to build).
   window.somahubSwitchVariant = function(variant) {
     var fd = new FormData();
     fd.append('section_id', sectionId);
@@ -362,11 +466,40 @@ function live_photo_block(string $field, string $src, string $wrapClass = 'about
     fetch('section-design-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
       .then(function(r){ return r.json(); })
       .then(function(data){
-        if (data.ok) { window.location.reload(); }
-        else { showSaved(false, (data.errors && Object.values(data.errors)[0]) || 'Could not switch layout'); }
+        if (data.ok) {
+          sessionStorage.setItem('somahubLiveEditNotice', data.notice || 'Layout updated');
+          window.location.reload();
+        } else {
+          showSaved(false, (data.errors && Object.values(data.errors)[0]) || 'Could not switch layout');
+        }
       })
       .catch(function(){ showSaved(false); });
   };
+
+  // Font pairing - site-wide, so this just saves and reloads to pick up the
+  // new Google Fonts link and CSS variables.
+  window.somahubSetFontPair = function(pairKey) {
+    var fd = new FormData();
+    fd.append('font_pair', pairKey);
+    fetch('font-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data.ok) {
+          sessionStorage.setItem('somahubLiveEditNotice', 'Font updated');
+          window.location.reload();
+        } else {
+          showSaved(false, (data.errors && Object.values(data.errors)[0]) || 'Could not change font');
+        }
+      })
+      .catch(function(){ showSaved(false); });
+  };
+
+  // Close the font picker panel when clicking outside it.
+  document.addEventListener('click', function(e){
+    var panel = document.getElementById('fontPickerPanel');
+    if (!panel.classList.contains('open')) return;
+    if (!e.target.closest('.font-picker')) panel.classList.remove('open');
+  });
 })();
 </script>
 </body>

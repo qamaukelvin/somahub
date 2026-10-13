@@ -39,14 +39,18 @@ $validSizes = ['auto', 'half', 'full'];
 $postedSize = $config['has_size'] ? trim($_POST['layout_size'] ?? 'auto') : 'auto';
 if (!in_array($postedSize, $validSizes, true)) $postedSize = 'auto';
 
+// A layout can always be picked, even before its photos are uploaded - the
+// editor shows the empty upload slots right where the photos go, and the
+// public site gracefully falls back to the default layout (see site.php)
+// until enough photos actually exist. So this is informational only, never
+// a block: the school can set up the layout and the look first, then add
+// photos whenever they're ready, in either order.
 $needed = $config['options'][$posted]['photos_needed'];
+$photosStillNeeded = 0;
 if ($needed > 0) {
     $content = json_decode($section['content_json'], true) ?: [];
     $photoCount = count_section_photos($content, $config['photo_fields']);
-    if ($photoCount < $needed) {
-        echo json_encode(['ok' => false, 'errors' => ['_' => "Upload at least {$needed} photo" . ($needed > 1 ? 's' : '') . ' first (in the Edit tab), then try this layout again.']]);
-        exit;
-    }
+    $photosStillNeeded = max(0, $needed - $photoCount);
 }
 
 try {
@@ -58,4 +62,7 @@ try {
     exit;
 }
 
-echo json_encode(['ok' => true]);
+$notice = $photosStillNeeded > 0
+    ? "Saved. Add {$photosStillNeeded} more photo" . ($photosStillNeeded > 1 ? 's' : '') . ' to make this layout appear on your live site.'
+    : null;
+echo json_encode(['ok' => true, 'notice' => $notice]);
