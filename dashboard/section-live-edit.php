@@ -1,0 +1,373 @@
+<?php
+// Live, in-place editor: renders the section the way it actually looks on
+// the live site (same markup/CSS, real school colors) and lets the school
+// edit text/photos/layout directly on top of it, instead of switching
+// between a plain-text Edit form and a separate Design picker.
+//
+// Proof of concept for the About section only - if this lands well, the
+// same pattern (render real markup + contenteditable/upload overlays +
+// floating variant switcher) rolls out to the other 14 section types.
+require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/section_variants.php';
+require_once __DIR__ . '/../includes/appearance.php';
+$user = require_school_login();
+$db = get_db();
+
+$id = (int)($_GET['id'] ?? 0);
+$stmt = $db->prepare("
+    SELECT ss.*, st.label, st.key_name, st.schema_json
+    FROM site_sections ss
+    JOIN section_types st ON st.id = ss.section_type_id
+    WHERE ss.id = ? AND ss.school_id = ?
+");
+$stmt->execute([$id, $user['school_id']]);
+$section = $stmt->fetch();
+if (!$section || $section['key_name'] !== 'about') {
+    http_response_code(404);
+    exit('Live editor is not available for this section yet.');
+}
+
+$stmt2 = $db->prepare("SELECT * FROM schools WHERE id = ?");
+$stmt2->execute([$user['school_id']]);
+$school = $stmt2->fetch();
+$appearance = resolve_school_appearance($db, $school);
+$theme = $appearance['theme'];
+
+$registry = get_section_variant_registry();
+$config = $registry['about'];
+$content = json_decode($section['content_json'], true) ?: [];
+
+function img($path) { return $path ? '../' . htmlspecialchars($path) : ''; }
+function esc($text) { return htmlspecialchars($text ?? ''); }
+function nl2p_live($text) {
+    // Plain text + <br> rather than separate <p> tags, so the whole block
+    // stays one simple contenteditable region (a nested contenteditable
+    // would freeze that paragraph and defeat the point of editing in place).
+    return nl2br(esc($text ?? ''));
+}
+
+$aboutVariant = $section['layout_variant'] ?? 'photo_right';
+$aboutPhotos = [
+    'photo' => $content['photo'] ?? '',
+    'photo_2' => $content['photo_2'] ?? '',
+    'photo_3' => $content['photo_3'] ?? '',
+];
+$photoCount = count(array_filter($aboutPhotos));
+$listItems = array_values(array_filter(array_map('trim', explode("\n", $content['list_items'] ?? ''))));
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Editing: <?= esc($section['label']) ?></title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=<?= urlencode($theme['font_display'] ?? 'Sora') ?>:wght@400;700;800&family=<?= urlencode($theme['font_body'] ?? 'Nunito Sans') ?>:wght@400;600;700&display=swap">
+<style>
+  :root{
+    --primary: <?= esc($theme['primary'] ?? '#1B4D3E') ?>;
+    --accent: <?= esc($theme['accent'] ?? '#F2B705') ?>;
+    --bg: <?= esc($theme['bg'] ?? '#FBF8F2') ?>;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:'<?= esc($theme['font_body'] ?? 'Nunito Sans') ?>',sans-serif;color:#1B1B18;background:#DCD8C8;line-height:1.65;margin:0;}
+  h1,h2,h3{font-family:'<?= esc($theme['font_display'] ?? 'Sora') ?>',sans-serif;letter-spacing:-0.01em;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px;}
+  .section-head{margin-bottom:32px;max-width:60ch;}
+  .section-head h2{font-size:clamp(1.4rem,3.2vw,2rem);font-weight:700;color:var(--primary);}
+  .btn-primary{background:var(--primary);color:var(--bg);padding:13px 28px;border-radius:6px;font-weight:600;font-size:0.9rem;display:inline-block;border:none;cursor:pointer;}
+
+  .about-grid{display:grid;grid-template-columns:1.1fr 0.9fr;gap:40px;align-items:start;}
+  @media(max-width:820px){.about-grid{grid-template-columns:1fr;}}
+  .about-grid p{margin-bottom:14px;color:#3a3a34;}
+  .about-grid > div[data-field="body"],
+  .about-text-only[data-field="body"],
+  .about-list-intro[data-field="body"],
+  .about-quote-text div[data-field="body"]{color:#3a3a34;line-height:1.8;}
+  .about-photo{border-radius:10px;overflow:hidden;}
+  .about-photo img{width:100%;max-height:420px;object-fit:cover;display:block;}
+  .about-photo-left{grid-template-columns:0.9fr 1.1fr;}
+  @media(max-width:820px){.about-photo-left{grid-template-columns:1fr;}}
+  .about-photo-left .about-photo{order:-1;}
+  @media(max-width:820px){.about-photo-left .about-photo{order:0;}}
+  .about-text-only{max-width:760px;color:#3a3a34;}
+  .about-text-only p{margin-bottom:14px;}
+  .about-list-intro{max-width:760px;color:#3a3a34;margin-bottom:20px;}
+  .about-list{max-width:760px;list-style:none;padding:0;}
+  .about-list li{position:relative;padding:12px 0 12px 30px;border-bottom:1px solid rgba(0,0,0,0.08);color:#3a3a34;}
+  .about-list li::before{content:"✓";position:absolute;left:0;top:12px;color:var(--accent);font-weight:800;}
+  .about-timeline{max-width:760px;position:relative;padding-left:28px;}
+  .about-timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--accent);}
+  .about-timeline-item{position:relative;padding:0 0 22px 20px;color:#3a3a34;}
+  .about-timeline-item::before{content:"";position:absolute;left:-28px;top:4px;width:11px;height:11px;border-radius:50%;background:var(--primary);border:2px solid var(--accent);}
+  .about-quote-grid{display:grid;grid-template-columns:0.8fr 1.2fr;gap:40px;align-items:center;}
+  @media(max-width:820px){.about-quote-grid{grid-template-columns:1fr;}}
+  .about-quote-photo{border-radius:50%;overflow:hidden;width:220px;height:220px;margin:0 auto;}
+  .about-quote-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .about-quote-mark{font-family:Georgia,serif;font-size:3.5rem;color:var(--accent);line-height:1;margin-bottom:-10px;}
+  .about-quote-text{color:#3a3a34;font-size:1.1rem;font-style:italic;}
+  .about-quote-author{margin-top:14px;font-weight:700;font-style:normal;color:var(--primary);}
+  .about-inline-stats{display:flex;gap:28px;margin-top:20px;flex-wrap:wrap;}
+  .about-inline-stat{display:flex;flex-direction:column;}
+  .about-inline-stat .num{font-size:1.6rem;font-weight:800;color:var(--primary);}
+  .about-inline-stat .label{font-size:0.78rem;color:#5c5c52;}
+
+  section#about{background:var(--bg);padding:60px 0;min-height:100vh;}
+
+  /* --- editor chrome - none of this exists on the live site --- */
+  .live-editor-topbar{position:sticky;top:0;z-index:50;background:#1C1C16;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .live-editor-topbar a.back-link{color:#fff;text-decoration:none;font-size:0.85rem;opacity:0.85;display:flex;align-items:center;gap:4px;}
+  .live-editor-topbar a.back-link:hover{opacity:1;}
+  .live-editor-topbar .title{font-weight:700;font-size:0.9rem;margin-right:auto;}
+  .save-indicator{font-size:0.78rem;color:#9FE3B0;opacity:0;transition:opacity .2s;}
+  .save-indicator.show{opacity:1;}
+  .save-indicator.err{color:#F4A0A0;}
+
+  .variant-switcher{display:flex;gap:6px;overflow-x:auto;padding:10px 20px;background:#F4F1E6;border-bottom:1px solid #E2DCC6;}
+  .variant-chip{display:flex;align-items:center;gap:6px;border:1.5px solid #ccc;border-radius:20px;padding:7px 14px;font-size:0.78rem;font-weight:600;white-space:nowrap;cursor:pointer;background:#fff;color:#333;}
+  .variant-chip .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:17px;}
+  .variant-chip.active{border-color:var(--primary);background:var(--primary);color:#fff;}
+  .variant-chip.disabled{opacity:0.4;cursor:not-allowed;}
+
+  [contenteditable="true"]{outline:2px dashed transparent;border-radius:3px;transition:outline-color .15s;cursor:text;min-width:20px;}
+  [contenteditable="true"]:hover{outline-color:rgba(15,82,87,0.35);}
+  [contenteditable="true"]:focus{outline:2px dashed var(--primary);background:rgba(255,255,255,0.5);}
+  [contenteditable="true"]:empty::before{content:attr(data-placeholder);color:#999;font-style:italic;}
+
+  .live-photo-wrap{position:relative;}
+  .live-photo-wrap .photo-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.0);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s,background .15s;cursor:pointer;}
+  .live-photo-wrap:hover .photo-overlay{opacity:1;background:rgba(0,0,0,0.35);}
+  .live-photo-wrap .photo-overlay-btn{background:#fff;color:#1C1C16;border-radius:6px;padding:8px 14px;font-size:0.78rem;font-weight:700;display:flex;align-items:center;gap:6px;}
+  .live-photo-wrap.empty{background:#e9e5d6;min-height:220px;display:flex;align-items:center;justify-content:center;}
+  .live-photo-wrap.empty .photo-overlay{opacity:1;position:static;background:none;}
+  .live-photo-wrap.empty .photo-overlay-btn{background:var(--primary);color:#fff;}
+
+  .live-list-item{display:flex;align-items:flex-start;gap:8px;}
+  .live-list-item [contenteditable]{flex:1;}
+  .live-list-remove{border:none;background:none;color:#b33;cursor:pointer;font-size:1rem;line-height:1;padding:10px 4px;}
+  .live-list-add{border:1.5px dashed #999;background:none;border-radius:6px;padding:8px 14px;font-size:0.8rem;font-weight:600;color:#555;cursor:pointer;margin-top:6px;}
+</style>
+</head>
+<body>
+
+<div class="live-editor-topbar">
+  <a href="sections.php" class="back-link">&larr; Back to sections</a>
+  <span class="title"><?= esc($section['label']) ?> — live editor</span>
+  <span class="save-indicator" id="saveIndicator">Saved</span>
+</div>
+
+<div class="variant-switcher" id="variantSwitcher">
+  <?php foreach ($config['options'] as $value => $opt):
+      $needed = $opt['photos_needed'];
+      $isDisabled = $needed > 0 && $photoCount < $needed;
+      $reason = $isDisabled ? "Needs {$needed} photo" . ($needed > 1 ? 's' : '') . ' uploaded first' : '';
+  ?>
+    <button type="button" class="variant-chip<?= $aboutVariant === $value ? ' active' : '' ?><?= $isDisabled ? ' disabled' : '' ?>"
+            data-variant="<?= esc($value) ?>" <?= $isDisabled ? 'disabled title="' . esc($reason) . '"' : '' ?>
+            onclick="somahubSwitchVariant('<?= esc($value) ?>')">
+      <span class="material-symbols-outlined"><?= esc($opt['icon']) ?></span>
+      <?= esc($opt['label']) ?>
+    </button>
+  <?php endforeach; ?>
+</div>
+
+<?php
+// A tiny helper that renders one photo slot with its upload/replace overlay
+// baked in - every variant below that shows an image uses this instead of
+// a bare <img>, so clicking the photo on the live canvas is how you change it.
+function live_photo_block(string $field, string $src, string $wrapClass = 'about-photo'): void { ?>
+  <div class="<?= esc($wrapClass) ?> live-photo-wrap<?= $src ? '' : ' empty' ?>" data-photo-field="<?= esc($field) ?>">
+    <?php if ($src): ?><img src="<?= esc($src) ?>" alt=""><?php endif; ?>
+    <div class="photo-overlay" onclick="somahubTriggerPhotoUpload('<?= esc($field) ?>')">
+      <span class="photo-overlay-btn">
+        <span class="material-symbols-outlined" style="font-family:'Material Symbols Outlined';font-size:16px;">photo_camera</span>
+        <?= $src ? 'Replace photo' : 'Upload photo' ?>
+      </span>
+    </div>
+  </div>
+<?php }
+?>
+
+<section id="about">
+  <div class="wrap">
+    <div class="section-head"><h2 contenteditable="true" data-field="_label_readonly" style="pointer-events:none;"><?= esc($section['label']) ?></h2></div>
+
+    <?php if ($aboutVariant === 'text_only'): ?>
+      <div class="about-text-only" data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
+
+    <?php elseif ($aboutVariant === 'photo_left'): ?>
+      <div class="about-grid about-photo-left">
+        <?php live_photo_block('photo', $aboutPhotos['photo'] ? img($aboutPhotos['photo']) : ''); ?>
+        <div data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
+      </div>
+
+    <?php elseif ($aboutVariant === 'list'): ?>
+      <?php if (!empty($content['body'])): ?><div class="about-list-intro" data-field="body" contenteditable="true"><?= nl2p_live($content['body']) ?></div><?php else: ?><div class="about-list-intro" data-field="body" contenteditable="true" data-placeholder="Optional intro line..."></div><?php endif; ?>
+      <ul class="about-list" id="liveListItems" data-field="list_items">
+        <?php foreach ($listItems as $item): ?><li class="live-list-item"><span contenteditable="true"><?= esc($item) ?></span><button type="button" class="live-list-remove" onclick="somahubRemoveListItem(this)">&times;</button></li><?php endforeach; ?>
+      </ul>
+      <button type="button" class="live-list-add" onclick="somahubAddListItem()">+ Add point</button>
+
+    <?php elseif ($aboutVariant === 'timeline'): ?>
+      <?php if (!empty($content['body'])): ?><div class="about-list-intro" data-field="body" contenteditable="true"><?= nl2p_live($content['body']) ?></div><?php else: ?><div class="about-list-intro" data-field="body" contenteditable="true" data-placeholder="Optional intro line..."></div><?php endif; ?>
+      <div class="about-timeline" id="liveListItems" data-field="list_items" data-item-tag="div" data-item-class="about-timeline-item">
+        <?php foreach ($listItems as $item): ?><div class="about-timeline-item live-list-item"><span contenteditable="true"><?= esc($item) ?></span><button type="button" class="live-list-remove" onclick="somahubRemoveListItem(this)">&times;</button></div><?php endforeach; ?>
+      </div>
+      <button type="button" class="live-list-add" onclick="somahubAddListItem()">+ Add milestone</button>
+
+    <?php elseif ($aboutVariant === 'quote'): ?>
+      <div class="about-quote-grid">
+        <?php live_photo_block('photo', $aboutPhotos['photo'] ? img($aboutPhotos['photo']) : '', 'about-quote-photo'); ?>
+        <div class="about-quote-text">
+          <div class="about-quote-mark">&ldquo;</div>
+          <div data-field="body" contenteditable="true" data-placeholder="A short, warm quote about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
+          <div class="about-quote-author">— <span data-field="author_name" contenteditable="true" data-placeholder="Author name"><?= esc($content['author_name'] ?? '') ?></span></div>
+        </div>
+      </div>
+
+    <?php elseif ($aboutVariant === 'stats_inline'): ?>
+      <div class="about-grid">
+        <div>
+          <div data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
+          <div class="about-inline-stats">
+            <div class="about-inline-stat"><span class="num" data-field="inline_stat_1" contenteditable="true" data-placeholder="15+"><?= esc($content['inline_stat_1'] ?? '') ?></span><span class="label" data-field="inline_stat_1_label" contenteditable="true" data-placeholder="Years running"><?= esc($content['inline_stat_1_label'] ?? '') ?></span></div>
+            <div class="about-inline-stat"><span class="num" data-field="inline_stat_2" contenteditable="true" data-placeholder="500+"><?= esc($content['inline_stat_2'] ?? '') ?></span><span class="label" data-field="inline_stat_2_label" contenteditable="true" data-placeholder="Students"><?= esc($content['inline_stat_2_label'] ?? '') ?></span></div>
+          </div>
+        </div>
+        <?php live_photo_block('photo', $aboutPhotos['photo'] ? img($aboutPhotos['photo']) : ''); ?>
+      </div>
+
+    <?php else: /* photo_right - default */ ?>
+      <div class="about-grid">
+        <div data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
+        <?php live_photo_block('photo', $aboutPhotos['photo'] ? img($aboutPhotos['photo']) : ''); ?>
+      </div>
+    <?php endif; ?>
+  </div>
+</section>
+
+<input type="file" id="livePhotoInput" accept="image/*" style="display:none;">
+
+<script>
+(function(){
+  var sectionId = <?= (int)$section['id'] ?>;
+  var saveIndicator = document.getElementById('saveIndicator');
+  var pendingField = null;
+
+  function showSaved(ok, msg) {
+    saveIndicator.textContent = msg || (ok ? 'Saved' : 'Could not save');
+    saveIndicator.classList.toggle('err', !ok);
+    saveIndicator.classList.add('show');
+    clearTimeout(showSaved._t);
+    showSaved._t = setTimeout(function(){ saveIndicator.classList.remove('show'); }, 1800);
+  }
+
+  function saveField(field, value) {
+    var fd = new FormData();
+    fd.append('section_id', sectionId);
+    fd.append(field, value);
+    fetch('section-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(data){ showSaved(!!data.ok, data.ok ? 'Saved' : (Object.values(data.errors||{})[0] || 'Could not save')); })
+      .catch(function(){ showSaved(false); });
+  }
+
+  // Plain contenteditable fields (body, author_name, stat numbers/labels) -
+  // save on blur, not on every keystroke, same as a normal form field would.
+  document.querySelectorAll('[contenteditable="true"][data-field]').forEach(function(el){
+    if (el.dataset.field === '_label_readonly') return;
+    el.addEventListener('blur', function(){
+      var value = el.innerText.replace(/\n{3,}/g, '\n\n').trim();
+      saveField(el.dataset.field, value);
+    });
+  });
+
+  // List-based fields (About's "list" and "timeline" variants) - every item
+  // is one line of the underlying list_items textarea, newline-joined.
+  var listWrap = document.getElementById('liveListItems');
+  function serializeList() {
+    if (!listWrap) return;
+    var lines = Array.prototype.map.call(listWrap.querySelectorAll('.live-list-item span'), function(span){
+      return span.innerText.trim();
+    }).filter(function(line){ return line.length > 0; });
+    saveField('list_items', lines.join('\n'));
+  }
+  if (listWrap) {
+    listWrap.addEventListener('focusout', function(e){
+      if (e.target.matches('span[contenteditable]')) serializeList();
+    });
+  }
+  window.somahubRemoveListItem = function(btn) {
+    btn.closest('.live-list-item').remove();
+    serializeList();
+  };
+  window.somahubAddListItem = function() {
+    if (!listWrap) return;
+    var tag = listWrap.dataset.itemTag || 'li';
+    var extraClass = listWrap.dataset.itemClass || '';
+    var item = document.createElement(tag);
+    item.className = ('live-list-item ' + extraClass).trim();
+    var span = document.createElement('span');
+    span.setAttribute('contenteditable', 'true');
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'live-list-remove';
+    btn.innerHTML = '&times;';
+    btn.onclick = function(){ somahubRemoveListItem(btn); };
+    item.appendChild(span);
+    item.appendChild(btn);
+    listWrap.appendChild(item);
+    span.addEventListener('focusout', serializeList);
+    span.focus();
+  };
+
+  // Photo upload - click the overlay on any photo, pick a file, it uploads
+  // immediately and swaps the image in place (no page reload).
+  var fileInput = document.getElementById('livePhotoInput');
+  window.somahubTriggerPhotoUpload = function(field) {
+    pendingField = field;
+    fileInput.click();
+  };
+  fileInput.addEventListener('change', function(){
+    if (!fileInput.files.length || !pendingField) return;
+    var fd = new FormData();
+    fd.append('section_id', sectionId);
+    fd.append(pendingField, fileInput.files[0]);
+    var wrap = document.querySelector('.live-photo-wrap[data-photo-field="' + pendingField + '"]');
+    fetch('section-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data.ok && data.content && data.content[pendingField]) {
+          var newSrc = '../' + data.content[pendingField] + '?t=' + Date.now();
+          var img = wrap.querySelector('img');
+          if (!img) { img = document.createElement('img'); wrap.insertBefore(img, wrap.firstChild); }
+          img.src = newSrc;
+          wrap.classList.remove('empty');
+          showSaved(true, 'Photo updated');
+        } else {
+          showSaved(false, (data.errors && Object.values(data.errors)[0]) || 'Upload failed');
+        }
+      })
+      .catch(function(){ showSaved(false); });
+    fileInput.value = '';
+  });
+
+  // Variant switching - same save endpoint the old Design tab used. On
+  // success we just reload, since a different variant can need a field
+  // that isn't on screen yet (e.g. switching into "list" needs the
+  // list-items UI, which only this page's PHP render knows how to build).
+  window.somahubSwitchVariant = function(variant) {
+    var fd = new FormData();
+    fd.append('section_id', sectionId);
+    fd.append('layout_variant', variant);
+    fetch('section-design-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data.ok) { window.location.reload(); }
+        else { showSaved(false, (data.errors && Object.values(data.errors)[0]) || 'Could not switch layout'); }
+      })
+      .catch(function(){ showSaved(false); });
+  };
+})();
+</script>
+</body>
+</html>
