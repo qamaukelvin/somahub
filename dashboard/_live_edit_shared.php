@@ -234,7 +234,9 @@ function render_live_edit_head(array $theme, string $extraCss = ''): void { ?>
   .carousel-grid-toolbar .mini-btn:hover{background:rgba(255,255,255,0.2);}
   .carousel-grid-toolbar .mini-btn.danger{border-color:rgba(244,160,160,0.6);color:#F4A0A0;}
 
-  .carousel-grid-items{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:10px;margin-top:12px;}
+  .carousel-grid-items{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-auto-rows:minmax(0,1fr);gap:10px;margin-top:12px;}
+  .carousel-grid-items .live-photo-wrap{overflow:hidden;}
+  .carousel-grid-items .live-photo-wrap > img{position:absolute;inset:0;width:100%;height:100%;max-height:none;object-fit:cover;display:block;}
   .carousel-grid-items .live-photo-wrap{border-radius:6px;min-height:0;height:100%;}
   .carousel-grid-items .live-photo-wrap.empty{background:rgba(255,255,255,0.1);min-height:0;}
   .carousel-grid-items .live-photo-wrap.span-full{grid-column:1 / -1;}
