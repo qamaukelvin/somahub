@@ -17,13 +17,15 @@
       $hasDesignOptions = !empty($registryEntry['options']);
       // Sections with a live editor built get one button that replaces both
       // Edit and Design - everything happens on the rendered section itself.
-      $liveEditorReady = in_array($s['key_name'], ['about'], true);
+      $liveEditorFiles = ['about' => 'section-live-edit.php', 'hero' => 'section-live-edit-hero.php'];
+      $liveEditorReady = isset($liveEditorFiles[$s['key_name']]);
+      $liveEditorHref = $liveEditorReady ? $liveEditorFiles[$s['key_name']] . '?id=' . (int)$s['id'] : '';
     ?>
 
     <!-- Desktop: original inline button layout, Edit now opens the same inline accordion as mobile -->
     <div class="desktop-actions">
       <?php if ($liveEditorReady): ?>
-        <a href="section-live-edit.php?id=<?= $s['id'] ?>" class="btn-live-edit">Edit live</a>
+        <a href="<?= htmlspecialchars($liveEditorHref) ?>" class="btn-live-edit">Edit live</a>
       <?php else: ?>
         <button type="button" onclick="toggleAccordion(<?= $s['id'] ?>)">Edit</button>
         <?php if ($hasDesignOptions): ?>
@@ -38,7 +40,7 @@
     <!-- Mobile: pencil opens inline accordion, ... hides the rest -->
     <div class="mobile-actions">
       <?php if ($liveEditorReady): ?>
-        <a href="section-live-edit.php?id=<?= $s['id'] ?>" class="icon-btn" title="Edit live"><span class="material-symbols-outlined" style="font-family:'Material Symbols Outlined';font-size:20px;">edit_square</span></a>
+        <a href="<?= htmlspecialchars($liveEditorHref) ?>" class="icon-btn" title="Edit live"><span class="material-symbols-outlined" style="font-family:'Material Symbols Outlined';font-size:20px;">edit_square</span></a>
       <?php else: ?>
         <button type="button" class="icon-btn" onclick="toggleAccordion(<?= $s['id'] ?>)" title="Edit">✎</button>
         <?php if ($hasDesignOptions): ?>
