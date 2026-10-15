@@ -1,82 +1,100 @@
 <?php
 /**
- * Per-text colour picker for live editors. Mark any editable element with
- * data-color-field="<key>" (and an inline style="color:..." when set). A
- * small toolbar appears above it on focus: curated theme swatches, a custom
- * colour, and Auto (back to the template default). Fonts stay site-wide.
+ * Per-text colour control for live editors. Mark any editable element with
+ * data-color-field="<key>" (and inline style="color:..." when set). A small
+ * pencil appears at the element's top-right on hover/focus; clicking it opens
+ * a compact popover: recent colours, common colours, custom picker + hex +
+ * Auto (template default). Fonts stay site-wide.
  */
 function render_live_edit_color_tools(int $sectionId, array $theme): void {
-    $themeSw = array_values(array_unique(array_filter([
-        $theme['accent'] ?? '', $theme['primary'] ?? '', $theme['bg'] ?? '',
-    ], fn($c) => preg_match('/^#[0-9a-fA-F]{6}$/', $c))));
-    $basic = ['#FFFFFF','#F7F2E7','#E5E5E0','#9A9A90','#4A4A42','#1C1C16',
-              '#FFD54A','#F4A340','#E8573C','#D6336C','#9B51E0','#4C6FFF',
-              '#1FA3C7','#2FB67C','#7BC043','#0F5257','#7A4A1E','#000000'];
+    $common = ['#FFFFFF', '#1C1C16', '#FFD54A', '#E8573C', '#4C6FFF', '#2FB67C', '#9B51E0', '#F7F2E7'];
+    foreach (['accent', 'primary'] as $k) {
+        if (preg_match('/^#[0-9a-fA-F]{6}$/', $theme[$k] ?? '') && !in_array(strtoupper($theme[$k]), $common, true)) array_unshift($common, strtoupper($theme[$k]));
+    }
+    $common = array_slice($common, 0, 8);
 ?>
 <style>
-  .color-tool{position:absolute;z-index:9999;display:none;flex-direction:column;gap:8px;width:236px;background:#1C1C16;border-radius:8px;padding:6px 8px;box-shadow:0 6px 18px rgba(0,0,0,.35);font-family:Arial,sans-serif;}
-  .color-tool.show{display:flex;}
-  .color-tool .ct-grid{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
-  .color-tool .ct-sep{width:100%;height:0;}
-  .color-tool .sw.theme{border-color:#fff;}
-  .color-tool .ct-row{display:flex;gap:6px;align-items:center;}
-  .color-tool .ct-custom{display:flex;align-items:center;gap:4px;color:#fff;font-size:.72rem;cursor:pointer;}
-  .color-tool #colorToolHex{width:76px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:5px;padding:4px 6px;font-size:.72rem;}
-  .color-tool .sw{width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.6);cursor:pointer;padding:0;}
-  .color-tool input[type=color]{width:24px;height:24px;border:none;background:none;padding:0;cursor:pointer;}
-  .color-tool .auto{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;font-size:.7rem;font-weight:600;padding:3px 8px;cursor:pointer;}
-  .color-tool .lbl{color:rgba(255,255,255,.65);font-size:.68rem;margin-right:2px;}
+  .color-pencil{position:absolute;z-index:9998;display:none;width:28px;height:28px;border-radius:50%;background:#1C1C16;color:#fff;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer;align-items:center;justify-content:center;padding:0;}
+  .color-pencil.show{display:flex;}
+  .color-pencil .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:16px;}
+  .color-pop{position:absolute;z-index:9999;display:none;flex-direction:column;gap:9px;width:224px;background:#1C1C16;border-radius:10px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.4);font-family:Arial,sans-serif;}
+  .color-pop.show{display:flex;}
+  .color-pop .row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .color-pop .lbl{width:100%;color:rgba(255,255,255,.6);font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;}
+  .color-pop .sw{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.55);cursor:pointer;padding:0;}
+  .color-pop .sw:hover{border-color:#fff;}
+  .color-pop .none{color:rgba(255,255,255,.4);font-size:.72rem;}
+  .color-pop .ct-custom{display:flex;align-items:center;gap:5px;color:#fff;font-size:.72rem;cursor:pointer;}
+  .color-pop input[type=color]{width:26px;height:26px;border:none;background:none;padding:0;cursor:pointer;}
+  .color-pop #cpHex{width:74px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:5px;padding:4px 6px;font-size:.72rem;}
+  .color-pop .auto{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;font-size:.7rem;font-weight:600;padding:4px 8px;cursor:pointer;margin-left:auto;}
 </style>
-<div class="color-tool" id="colorTool">
-  <span class="lbl">Text colour</span>
-  <div class="ct-grid">
-    <?php foreach ($themeSw as $c): ?><button type="button" class="sw theme" title="Theme colour" style="background:<?= htmlspecialchars($c) ?>" data-c="<?= htmlspecialchars($c) ?>"></button><?php endforeach; ?>
-    <span class="ct-sep"></span>
-    <?php foreach ($basic as $c): ?><button type="button" class="sw" style="background:<?= htmlspecialchars($c) ?>" data-c="<?= htmlspecialchars($c) ?>"></button><?php endforeach; ?>
+<button type="button" class="color-pencil" id="colorPencil" title="Change text colour"><span class="material-symbols-outlined">edit</span></button>
+<div class="color-pop" id="colorPop">
+  <div class="row"><span class="lbl">Recent</span><span id="cpRecent"></span></div>
+  <div class="row"><span class="lbl">Common</span>
+    <?php foreach ($common as $c): ?><button type="button" class="sw" style="background:<?= htmlspecialchars($c) ?>" data-c="<?= htmlspecialchars($c) ?>"></button><?php endforeach; ?>
   </div>
-  <div class="ct-row">
-    <label class="ct-custom" title="Pick any colour"><input type="color" id="colorToolCustom" value="#ffffff"><span>Custom</span></label>
-    <input type="text" id="colorToolHex" maxlength="7" placeholder="#RRGGBB" spellcheck="false">
-    <button type="button" class="auto" id="colorToolAuto">Auto</button>
+  <div class="row">
+    <label class="ct-custom" title="Pick any colour"><input type="color" id="cpPicker" value="#ffffff"><span>Custom</span></label>
+    <input type="text" id="cpHex" maxlength="7" placeholder="#RRGGBB" spellcheck="false">
+    <button type="button" class="auto" id="cpAuto">Auto</button>
   </div>
 </div>
 <script>
 (function(){
-  var tool = document.getElementById('colorTool');
-  var custom = document.getElementById('colorToolCustom');
-  var target = null;
-  function place(el) {
-    var r = el.getBoundingClientRect();
-    tool.style.top = (window.scrollY + Math.max(r.top - tool.offsetHeight - 8, 60)) + 'px';
-    tool.style.left = (window.scrollX + Math.max(r.left, 8)) + 'px';
+  var pencil = document.getElementById('colorPencil'), pop = document.getElementById('colorPop');
+  var picker = document.getElementById('cpPicker'), hex = document.getElementById('cpHex'), recentEl = document.getElementById('cpRecent');
+  var target = null, hideT = null, KEY = 'somahubRecentColors';
+  function getRecent(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
+  function pushRecent(c){ try { var r = getRecent().filter(function(x){return x!==c;}); r.unshift(c); localStorage.setItem(KEY, JSON.stringify(r.slice(0,6))); } catch(e){} }
+  function renderRecent(){
+    var r = getRecent(); recentEl.innerHTML = '';
+    if (!r.length) { recentEl.innerHTML = '<span class="none">None yet</span>'; return; }
+    r.forEach(function(c){ var b = document.createElement('button'); b.type='button'; b.className='sw'; b.style.background=c; b.setAttribute('data-c',c); recentEl.appendChild(b); });
   }
-  function save(value) {
+  function placePencil(el){
+    var r = el.getBoundingClientRect();
+    pencil.style.top = (window.scrollY + r.top - 12) + 'px';
+    pencil.style.left = (window.scrollX + r.right - 16) + 'px';
+    pencil.classList.add('show');
+  }
+  function save(value){
     if (!target) return;
-    var field = target.getAttribute('data-color-field');
     target.style.color = value || '';
+    if (value) { pushRecent(value); hex.value = value; picker.value = value; }
     var fd = new FormData();
-    fd.append('section_id', <?= $sectionId ?>);
-    fd.append('field', field);
-    fd.append('value', value);
-    fetch('section-style-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+    fd.append('section_id', <?= $sectionId ?>); fd.append('field', target.getAttribute('data-color-field')); fd.append('value', value);
+    fetch('section-style-save-ajax.php', { method:'POST', body:fd, credentials:'same-origin' })
       .then(function(r){ return r.json(); })
-      .then(function(d){ window.somahubShowSaved && window.somahubShowSaved(!!d.ok, d.ok ? 'Colour saved' : 'Could not save colour'); })
+      .then(function(d){ window.somahubShowSaved && window.somahubShowSaved(!!d.ok, d.ok ? 'Colour saved' : 'Could not save colour'); renderRecent(); })
       .catch(function(){ window.somahubShowSaved && window.somahubShowSaved(false); });
   }
   document.querySelectorAll('[data-color-field]').forEach(function(el){
-    el.addEventListener('focus', function(){ target = el; place(el); tool.classList.add('show'); });
+    function show(){ clearTimeout(hideT); target = el; if (!pop.classList.contains('show')) placePencil(el); }
+    function later(){ hideT = setTimeout(function(){ if (!pop.classList.contains('show')) pencil.classList.remove('show'); }, 400); }
+    el.addEventListener('mouseenter', show); el.addEventListener('focus', show);
+    el.addEventListener('mouseleave', later);
   });
-  // mousedown on the toolbar must not blur the text field being styled.
-  tool.addEventListener('mousedown', function(e){ if (e.target !== custom && e.target.id !== 'colorToolHex') e.preventDefault(); });
-  tool.querySelectorAll('.sw').forEach(function(b){ b.addEventListener('click', function(){ save(b.getAttribute('data-c')); }); });
-  document.getElementById('colorToolAuto').addEventListener('click', function(){ save(''); });
-  custom.addEventListener('change', function(){ hex.value = custom.value; save(custom.value); });
-  var hex = document.getElementById('colorToolHex');
-  hex.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); hex.blur(); } });
-  hex.addEventListener('change', function(){ var v = hex.value.trim(); if (v && v[0] !== '#') v = '#' + v; if (/^#[0-9a-fA-F]{6}$/.test(v)) { custom.value = v; save(v); } });
+  pencil.addEventListener('mouseenter', function(){ clearTimeout(hideT); });
+  pencil.addEventListener('mouseleave', function(){ hideT = setTimeout(function(){ if (!pop.classList.contains('show')) pencil.classList.remove('show'); }, 400); });
+  pencil.addEventListener('mousedown', function(e){ e.preventDefault(); });
+  pencil.addEventListener('click', function(){
+    renderRecent();
+    var r = pencil.getBoundingClientRect();
+    pop.style.top = (window.scrollY + r.bottom + 6) + 'px';
+    pop.style.left = (window.scrollX + Math.max(8, Math.min(r.right - 224, window.innerWidth - 232))) + 'px';
+    pop.classList.add('show');
+  });
+  pop.addEventListener('mousedown', function(e){ if (e.target !== picker && e.target !== hex) e.preventDefault(); });
+  pop.addEventListener('click', function(e){ var b = e.target.closest && e.target.closest('.sw'); if (b) save(b.getAttribute('data-c')); });
+  document.getElementById('cpAuto').addEventListener('click', function(){ hex.value=''; save(''); });
+  picker.addEventListener('change', function(){ save(picker.value); });
+  hex.addEventListener('keydown', function(e){ if (e.key==='Enter'){ e.preventDefault(); hex.blur(); } });
+  hex.addEventListener('change', function(){ var v = hex.value.trim(); if (v && v[0] !== '#') v = '#'+v; if (/^#[0-9a-fA-F]{6}$/.test(v)) save(v.toUpperCase()); });
   document.addEventListener('mousedown', function(e){
-    if (tool.contains(e.target) || (e.target.closest && e.target.closest('[data-color-field]'))) return;
-    tool.classList.remove('show');
+    if (pop.contains(e.target) || pencil.contains(e.target)) return;
+    pop.classList.remove('show'); if (!(e.target.closest && e.target.closest('[data-color-field]'))) pencil.classList.remove('show');
   });
 })();
 </script>

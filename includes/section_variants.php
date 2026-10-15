@@ -382,6 +382,8 @@ function get_hero_variant_override_css(): string {
   .hero.hero-own-layout::before{display:none !important;}
   .hero.hero-split{position:relative;overflow:visible;padding:80px 24px 60px;}
   .hero.hero-split .hero-inner{position:static;display:grid;grid-template-columns:1.1fr 0.9fr;gap:40px;align-items:center;width:100%;max-width:1080px;margin:0 auto;text-align:left;}
+  .hero.hero-split .hero-inner > div:first-child{position:static;background:none;padding:0;min-height:0;display:block;order:0;z-index:auto;width:auto;}
+  .hero.hero-split .hero-inner > div:first-child::before,.hero.hero-split .hero-inner > div:first-child::after{display:none !important;}
   .hero.hero-split .hero-photo,.hero.hero-split .hero-mosaic{position:static;inset:auto;z-index:auto;margin:0;}
   .hero.hero-split .hero-photo{border-radius:10px;overflow:hidden;}
   .hero.hero-split .hero-photo img{width:100%;height:auto;max-height:420px;object-fit:cover;border-radius:0;}
