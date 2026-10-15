@@ -1,4 +1,12 @@
 <?php
+if (!function_exists('live_color_attr')) {
+    /** data-color-field + inline colour for an editable element, e.g. live_color_attr($content,'body'). */
+    function live_color_attr(array $content, string $field): string {
+        $v = $content[$field . '_color'] ?? '';
+        $style = preg_match('/^#[0-9a-fA-F]{6}$/', $v) ? ' style="color:' . $v . ';"' : '';
+        return ' data-color-field="' . htmlspecialchars($field) . '_color"' . $style;
+    }
+}
 /**
  * Per-text colour control for live editors. Mark any editable element with
  * data-color-field="<key>" (and inline style="color:..." when set). A small

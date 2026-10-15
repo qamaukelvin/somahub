@@ -126,8 +126,8 @@ $extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 <section id="gallery">
   <div class="wrap">
     <div class="section-head">
-      <h2 style="pointer-events:none;"><?= esc($section['label']) ?></h2>
-      <?php if ($hasCaption): ?><p class="gallery-head-caption" data-field="caption" contenteditable="true" data-placeholder="Add a short caption (optional)"><?= esc($content['caption'] ?? '') ?></p><?php endif; ?>
+      <h2<?= live_color_attr($content, 'title') ?>><?= esc($section['label']) ?></h2>
+      <?php if ($hasCaption): ?><p class="gallery-head-caption" data-field="caption"<?= live_color_attr($content, 'caption') ?> contenteditable="true" data-placeholder="Add a short caption (optional)"><?= esc($content['caption'] ?? '') ?></p><?php endif; ?>
     </div>
 
     <?php if ($photoCount === 0): ?>
@@ -199,5 +199,26 @@ $extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 </section>
 
 <?php render_live_edit_script((int)$section['id'], $variant); ?>
+<?php render_live_edit_color_tools((int)$section['id'], $theme); ?>
+<script>
+// Keep the tab-button preview in step with the category boxes as they're edited.
+(function(){
+  var cats = document.querySelectorAll('[data-field^="category_"]');
+  if (!cats.length) return;
+  function rebuild(){
+    var names = [];
+    cats.forEach(function(el){
+      if (!el.closest('.g-cell')) return;
+      var v = el.textContent.trim() || 'Other';
+      if (names.indexOf(v) === -1) names.push(v);
+    });
+    var wrap = document.querySelector('.g-tabs-preview');
+    if (!wrap) { wrap = document.createElement('div'); wrap.className = 'g-tabs-preview'; var grid = document.querySelector('.gallery-grid'); grid.parentNode.insertBefore(wrap, grid); }
+    wrap.innerHTML = '';
+    names.forEach(function(n){ var sp = document.createElement('span'); sp.textContent = n; wrap.appendChild(sp); });
+  }
+  cats.forEach(function(el){ el.addEventListener('input', rebuild); el.addEventListener('blur', rebuild); });
+})();
+</script>
 </body>
 </html>

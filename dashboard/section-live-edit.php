@@ -10,6 +10,7 @@ require_once __DIR__ . '/../includes/section_variants.php';
 require_once __DIR__ . '/../includes/appearance.php';
 require_once __DIR__ . '/_live_edit_shared.php';
 require_once __DIR__ . '/_live_edit_script.php';
+require_once __DIR__ . '/_live_edit_color.php';
 $user = require_school_login();
 $db = get_db();
 
@@ -110,15 +111,15 @@ $extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 
 <section id="about">
   <div class="wrap">
-    <div class="section-head"><h2 contenteditable="true" data-field="_label_readonly" style="pointer-events:none;"><?= esc($section['label']) ?></h2></div>
+    <div class="section-head"><h2<?= live_color_attr($content, 'title') ?>><?= esc($section['label']) ?></h2></div>
 
     <?php if ($aboutVariant === 'text_only'): ?>
-      <div class="about-text-only" data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
+      <div class="about-text-only" data-field="body"<?= live_color_attr($content, 'body') ?> contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
 
     <?php elseif ($aboutVariant === 'photo_left'): ?>
       <div class="about-grid about-photo-left">
         <?php live_photo_block('photo', $aboutPhotos['photo'] ? img($aboutPhotos['photo']) : ''); ?>
-        <div data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
+        <div data-field="body"<?= live_color_attr($content, 'body') ?> contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
       </div>
 
     <?php elseif ($aboutVariant === 'carousel_left'): ?>
@@ -130,18 +131,18 @@ $extraCss .= "\n" . ($appearance['custom_css'] ?? '');
             'preview' => 'rotate',
             'emptyLabel' => 'Upload multiple photos',
         ]); ?>
-        <div data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
+        <div data-field="body"<?= live_color_attr($content, 'body') ?> contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
       </div>
 
     <?php elseif ($aboutVariant === 'list'): ?>
-      <?php if (!empty($content['body'])): ?><div class="about-list-intro" data-field="body" contenteditable="true"><?= nl2p_live($content['body']) ?></div><?php else: ?><div class="about-list-intro" data-field="body" contenteditable="true" data-placeholder="Optional intro line..."></div><?php endif; ?>
+      <?php if (!empty($content['body'])): ?><div class="about-list-intro" data-field="body"<?= live_color_attr($content, 'body') ?> contenteditable="true"><?= nl2p_live($content['body']) ?></div><?php else: ?><div class="about-list-intro" data-field="body"<?= live_color_attr($content, 'body') ?> contenteditable="true" data-placeholder="Optional intro line..."></div><?php endif; ?>
       <ul class="about-list" id="liveListItems" data-field="list_items">
         <?php foreach ($listItems as $item): ?><li class="live-list-item"><span contenteditable="true"><?= esc($item) ?></span><button type="button" class="live-list-remove" onclick="somahubRemoveListItem(this)">&times;</button></li><?php endforeach; ?>
       </ul>
       <button type="button" class="live-list-add" onclick="somahubAddListItem()">+ Add point</button>
 
     <?php elseif ($aboutVariant === 'timeline'): ?>
-      <?php if (!empty($content['body'])): ?><div class="about-list-intro" data-field="body" contenteditable="true"><?= nl2p_live($content['body']) ?></div><?php else: ?><div class="about-list-intro" data-field="body" contenteditable="true" data-placeholder="Optional intro line..."></div><?php endif; ?>
+      <?php if (!empty($content['body'])): ?><div class="about-list-intro" data-field="body"<?= live_color_attr($content, 'body') ?> contenteditable="true"><?= nl2p_live($content['body']) ?></div><?php else: ?><div class="about-list-intro" data-field="body"<?= live_color_attr($content, 'body') ?> contenteditable="true" data-placeholder="Optional intro line..."></div><?php endif; ?>
       <div class="about-timeline" id="liveListItems" data-field="list_items" data-item-tag="div" data-item-class="about-timeline-item">
         <?php foreach ($listItems as $item): ?><div class="about-timeline-item live-list-item"><span contenteditable="true"><?= esc($item) ?></span><button type="button" class="live-list-remove" onclick="somahubRemoveListItem(this)">&times;</button></div><?php endforeach; ?>
       </div>
@@ -152,18 +153,18 @@ $extraCss .= "\n" . ($appearance['custom_css'] ?? '');
         <?php live_photo_block('photo', $aboutPhotos['photo'] ? img($aboutPhotos['photo']) : '', 'about-quote-photo'); ?>
         <div class="about-quote-text">
           <div class="about-quote-mark">&ldquo;</div>
-          <div data-field="body" contenteditable="true" data-placeholder="A short, warm quote about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
-          <div class="about-quote-author">— <span data-field="author_name" contenteditable="true" data-placeholder="Author name"><?= esc($content['author_name'] ?? '') ?></span></div>
+          <div data-field="body"<?= live_color_attr($content, 'body') ?> contenteditable="true" data-placeholder="A short, warm quote about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
+          <div class="about-quote-author">— <span data-field="author_name"<?= live_color_attr($content, 'author_name') ?> contenteditable="true" data-placeholder="Author name"><?= esc($content['author_name'] ?? '') ?></span></div>
         </div>
       </div>
 
     <?php elseif ($aboutVariant === 'stats_inline'): ?>
       <div class="about-grid">
         <div>
-          <div data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
+          <div data-field="body"<?= live_color_attr($content, 'body') ?> contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
           <div class="about-inline-stats">
-            <div class="about-inline-stat"><span class="num" data-field="inline_stat_1" contenteditable="true" data-placeholder="15+"><?= esc($content['inline_stat_1'] ?? '') ?></span><span class="label" data-field="inline_stat_1_label" contenteditable="true" data-placeholder="Years running"><?= esc($content['inline_stat_1_label'] ?? '') ?></span></div>
-            <div class="about-inline-stat"><span class="num" data-field="inline_stat_2" contenteditable="true" data-placeholder="500+"><?= esc($content['inline_stat_2'] ?? '') ?></span><span class="label" data-field="inline_stat_2_label" contenteditable="true" data-placeholder="Students"><?= esc($content['inline_stat_2_label'] ?? '') ?></span></div>
+            <div class="about-inline-stat"><span class="num" data-field="inline_stat_1"<?= live_color_attr($content, 'inline_stat_1') ?> contenteditable="true" data-placeholder="15+"><?= esc($content['inline_stat_1'] ?? '') ?></span><span class="label" data-field="inline_stat_1_label"<?= live_color_attr($content, 'inline_stat_1_label') ?> contenteditable="true" data-placeholder="Years running"><?= esc($content['inline_stat_1_label'] ?? '') ?></span></div>
+            <div class="about-inline-stat"><span class="num" data-field="inline_stat_2"<?= live_color_attr($content, 'inline_stat_2') ?> contenteditable="true" data-placeholder="500+"><?= esc($content['inline_stat_2'] ?? '') ?></span><span class="label" data-field="inline_stat_2_label"<?= live_color_attr($content, 'inline_stat_2_label') ?> contenteditable="true" data-placeholder="Students"><?= esc($content['inline_stat_2_label'] ?? '') ?></span></div>
           </div>
         </div>
         <?php live_photo_block('photo', $aboutPhotos['photo'] ? img($aboutPhotos['photo']) : ''); ?>
@@ -171,7 +172,7 @@ $extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 
     <?php else: /* photo_right - default */ ?>
       <div class="about-grid">
-        <div data-field="body" contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
+        <div data-field="body"<?= live_color_attr($content, 'body') ?> contenteditable="true" data-placeholder="Tell families about your school..."><?= nl2p_live($content['body'] ?? '') ?></div>
         <?php live_photo_block('photo', $aboutPhotos['photo'] ? img($aboutPhotos['photo']) : ''); ?>
       </div>
     <?php endif; ?>
@@ -179,5 +180,6 @@ $extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 </section>
 
 <?php render_live_edit_script((int)$section['id'], $aboutVariant); ?>
+<?php render_live_edit_color_tools((int)$section['id'], $theme); ?>
 </body>
 </html>

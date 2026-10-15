@@ -398,3 +398,30 @@ function get_hero_variant_override_css(): string {
   }
 CSS;
 }
+
+
+/**
+ * Live-site CSS for per-text colours saved by the live editors
+ * (<field>_color keys in content_json). Returns '' when none are set.
+ */
+function get_section_text_color_css(string $sectionKey, array $content): string {
+    $map = [
+        'about' => [
+            'body' => "#about .about-text-only, #about .about-text-only p, #about .about-grid p, #about .about-list-intro, #about .about-list-intro p, #about .about-quote-text p",
+            'author_name' => "#about .about-quote-author",
+            'inline_stat_1' => "#about .about-inline-stat:nth-child(1) .num",
+            'inline_stat_1_label' => "#about .about-inline-stat:nth-child(1) .label",
+            'inline_stat_2' => "#about .about-inline-stat:nth-child(2) .num",
+            'inline_stat_2_label' => "#about .about-inline-stat:nth-child(2) .label",
+        ],
+        'gallery' => ['caption' => "#gallery .section-head p"],
+    ];
+    $css = '';
+    foreach ($content as $k => $v) {
+        if (!is_string($v) || !preg_match('/^#[0-9a-fA-F]{6}$/', $v) || !preg_match('/^([a-z0-9_]+)_color$/', $k, $m)) continue;
+        $base = $m[1];
+        $sel = $base === 'title' ? "#{$sectionKey} .section-head h2" : ($map[$sectionKey][$base] ?? null);
+        if ($sel) $css .= "  {$sel}{color:{$v} !important;}\n";
+    }
+    return $css;
+}

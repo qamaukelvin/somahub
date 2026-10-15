@@ -680,6 +680,7 @@ foreach ($sections as $s) {
     $c = json_decode($s['content_json'], true) ?: [];
     $key = $s['key_name'];
 ?>
+<?php if ($__tc = get_section_text_color_css($key, $c)): ?><style><?= $__tc ?></style><?php endif; ?>
 
 <?php if ($key === 'hero'):
     $heroPhotos = array_filter([$c['hero_photo'] ?? '', $c['hero_photo_2'] ?? '', $c['hero_photo_3'] ?? '']);
