@@ -82,10 +82,14 @@ function staff_card(array $c, int $i, bool $isNew, bool $withDept = false): void
 $extraCss = <<<CSS
   section#staff{background:var(--bg);padding:60px 0;min-height:70vh;}
   .staff-head-intro{color:#5a5a52;margin-top:6px;}
-  .staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:22px;}
+  .staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:22px;align-items:start;}
   .staff-card{text-align:center;position:relative;}
-  .staff-card .staff-photo{width:100%;aspect-ratio:1;border-radius:50%;overflow:hidden;margin:0 auto 12px;background:#e9e5d6;}
-  .staff-card .staff-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .staff-photo{border-radius:50%;overflow:hidden;aspect-ratio:1;background:#e9e5d6;}
+  .staff-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .staff-card{display:flex;flex-direction:column;align-items:center;min-width:0;}
+  .staff-card .staff-photo{width:100%;max-width:190px;margin:0 auto 12px;}
+  .staff-card .name,.staff-card .role,.staff-minimal-item .name,.staff-minimal-item .role{max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;}
+  .staff-card .name{min-height:1.3em;} .staff-card .role{min-height:2.6em;width:100%;}
   .staff-photo.live-photo-wrap.empty{min-height:0;aspect-ratio:1;}
   .staff-photo .photo-overlay-btn{font-size:0;gap:0;padding:7px;border-radius:50%;}
   .staff-photo .photo-delete-btn{top:6px;right:6px;width:22px;height:22px;}
@@ -104,15 +108,22 @@ $extraCss = <<<CSS
   .staff-carousel .staff-card{flex:0 0 170px;}
   .staff-list-bio{display:flex;flex-direction:column;gap:22px;max-width:760px;}
   .staff-bio-row{display:flex;gap:16px;align-items:flex-start;position:relative;}
-  .staff-bio-row .staff-photo{width:72px;flex:0 0 72px;margin:0;}
+  .staff-bio-row .staff-photo{width:92px;flex:0 0 92px;margin:0;}
   .staff-bio-row .name{font-weight:700;}
   .staff-bio-row .role{font-size:.82rem;color:#6b6b60;margin-bottom:6px;}
   .staff-bio-row .bio{color:#3a3a34;font-size:.9rem;display:block;}
   .staff-bio-row.is-new{opacity:.7;border:2px dashed rgba(0,0,0,.25);border-radius:12px;padding:12px;background:rgba(255,255,255,.4);}
   .staff-org-chart{display:flex;flex-direction:column;align-items:center;gap:28px;}
-  .org-tier{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;}
+  .org-tier{display:flex;gap:28px;justify-content:center;align-items:stretch;flex-wrap:wrap;}
+  .org-add{align-self:center;width:44px;height:44px;border-radius:50%;border:2px dashed rgba(0,0,0,.35);background:rgba(255,255,255,.5);color:#4A4A42;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex:0 0 44px;}
+  .org-add:hover{border-color:var(--primary);color:var(--primary);background:#fff;}
+  .org-add .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:22px;}
+  .org-tier-label{width:100%;text-align:center;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#8a8a7e;margin-bottom:-14px;}
   .org-tier-1 .staff-photo{width:120px;} .org-tier-2 .staff-photo{width:90px;} .org-tier-3 .staff-photo{width:70px;}
-  .org-tier .staff-card{width:150px;}
+  .org-tier .staff-card{width:160px;flex:0 0 160px;}
+  .g-tabs-preview{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .g-tabs-preview span{border:1.5px solid rgba(0,0,0,.15);background:#fff;padding:7px 16px;border-radius:20px;font-size:.82rem;font-weight:600;}
+  .g-tabs-preview span:first-child{background:var(--primary);color:#fff;border-color:var(--primary);}
   .staff-minimal-list{max-width:640px;margin:0 auto;}
   .staff-minimal-item{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.08);position:relative;}
   .staff-minimal-item .name{font-weight:700;} .staff-minimal-item .role{color:#6b6b60;font-size:.88rem;}
@@ -175,13 +186,22 @@ $extraCss .= "\n" . ($appearance['custom_css'] ?? '');
       </div>
 
     <?php elseif ($variant === 'org_chart'):
-        $ordered = array_merge($people, $blank ? [-$blank] : []);
-        $tiers = [array_slice($ordered, 0, 1), array_slice($ordered, 1, 2), array_slice($ordered, 3)];
+        $tiers = [array_slice($people, 0, 1), array_slice($people, 1, 2), array_slice($people, 3)];
+        // Where a new person lands for each level's "+" (level = position):
+        // a full level pushes its last slot down; the bottom level appends.
+        $insertAt = [0, 2, count($people)];
+        $tierHint = ['Add a new top person (the current one moves down a level)', 'Add a person on this level (a full level pushes the last one down)', 'Add a person on the bottom level'];
+        $tierName = ['Leadership', 'Second level', 'Team'];
     ?>
-      <p class="s-note"><span class="material-symbols-outlined">account_tree</span>The first person is the top tier, the next two sit below, and everyone else forms the bottom tier.</p>
+      <p class="s-note"><span class="material-symbols-outlined">account_tree</span>The first person is the top level, the next two sit below, and everyone else forms the bottom level. Use the + beside each level to add someone there.</p>
       <div class="staff-org-chart">
-        <?php foreach ($tiers as $t => $tier): if (!$tier) continue; ?>
-          <div class="org-tier org-tier-<?= $t + 1 ?>"><?php foreach ($tier as $k) staff_card($content, abs($k), $k < 0); ?></div>
+        <?php foreach ($tiers as $t => $tier): ?>
+          <div class="org-tier org-tier-<?= $t + 1 ?>">
+            <?php foreach ($tier as $i) staff_card($content, $i, false); ?>
+            <?php if (count($people) < $MAX): ?>
+              <button type="button" class="org-add" title="<?= esc($tierHint[$t]) ?>" onclick="somahubInsertPerson(<?= (int)$insertAt[$t] ?>)"><span class="material-symbols-outlined">add</span></button>
+            <?php endif; ?>
+          </div>
         <?php endforeach; ?>
       </div>
 
@@ -197,15 +217,15 @@ $extraCss .= "\n" . ($appearance['custom_css'] ?? '');
       </div>
 
     <?php elseif ($variant === 'grouped'):
-        $groups = [];
-        foreach ($people as $i) { $dept = trim($content["department_$i"] ?? '') ?: 'Other'; $groups[$dept][] = $i; }
+        $depts = [];
+        foreach ($people as $i) { if (empty($content["name_$i"])) continue; $d = trim($content["department_$i"] ?? '') ?: 'Other'; if (!in_array($d, $depts, true)) $depts[] = $d; }
     ?>
-      <p class="s-note"><span class="material-symbols-outlined">category</span>Type a department under each person - they're grouped under a heading for each one.</p>
-      <?php foreach ($groups as $deptName => $idxs): ?>
-        <h3 class="staff-dept-heading"<?= live_color_attr($content, 'depts') ?>><?= esc($deptName) ?></h3>
-        <div class="staff-grid"><?php foreach ($idxs as $i) staff_card($content, $i, false, true); ?></div>
-      <?php endforeach; ?>
-      <?php if ($blank): ?><h3 class="staff-dept-heading">Add someone</h3><div class="staff-grid"><?php staff_card($content, $blank, true, true); ?></div><?php endif; ?>
+      <p class="s-note"><span class="material-symbols-outlined">category</span>Type a department under each person - visitors see them grouped under a heading for each one.</p>
+      <?php if ($depts): ?><div class="g-tabs-preview"><?php foreach ($depts as $d): ?><span><?= esc($d) ?></span><?php endforeach; ?></div><?php endif; ?>
+      <div class="staff-grid">
+        <?php foreach ($people as $i) staff_card($content, $i, false, true); ?>
+        <?php if ($blank) staff_card($content, $blank, true, true); ?>
+      </div>
 
     <?php else: /* grid */ ?>
       <div class="staff-grid">
@@ -235,9 +255,38 @@ $extraCss .= "\n" . ($appearance['custom_css'] ?? '');
         else if (window.somahubShowSaved) window.somahubShowSaved(false, 'Could not remove');
       });
   };
+  window.somahubInsertPerson = function(position) {
+    var fd = new FormData();
+    fd.append('section_id', sectionId);
+    fd.append('position', position);
+    fetch('section-staff-insert-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.ok) { sessionStorage.setItem('somahubLiveEditNotice', 'Person added - type their name'); window.location.reload(); }
+        else if (window.somahubShowSaved) window.somahubShowSaved(false, (d.errors && d.errors._general) || 'Could not add');
+      });
+  };
+  // Keep the department chips in step with the boxes as they're edited.
+  var deptEls = document.querySelectorAll('[data-field^="department_"]');
+  function rebuildDepts(){
+    var wrap = document.querySelector('.g-tabs-preview');
+    if (!deptEls.length) return;
+    var names = [];
+    deptEls.forEach(function(el){
+      var card = el.closest('.staff-card');
+      if (!card || card.classList.contains('is-new')) return;
+      var v = el.textContent.trim() || 'Other';
+      if (names.indexOf(v) === -1) names.push(v);
+    });
+    if (!wrap) { wrap = document.createElement('div'); wrap.className = 'g-tabs-preview'; var g = document.querySelector('.staff-grid'); g.parentNode.insertBefore(wrap, g); }
+    wrap.innerHTML = '';
+    names.forEach(function(n){ var sp = document.createElement('span'); sp.textContent = n; wrap.appendChild(sp); });
+  }
+  deptEls.forEach(function(el){ el.addEventListener('input', rebuildDepts); el.addEventListener('blur', rebuildDepts); });
+
   // Typing a name into the blank card, or changing a department, changes
   // which cards/groups exist - reload once the save (fired on blur) is done.
-  document.querySelectorAll('.is-new [data-field^="name_"], [data-field^="department_"]').forEach(function(el){
+  document.querySelectorAll('.is-new [data-field^="name_"]').forEach(function(el){
     var before = el.textContent;
     el.addEventListener('blur', function(){
       if (el.textContent.trim() === before.trim()) return;

@@ -319,11 +319,14 @@ foreach ($sections as $s) {
   <?= get_hero_variant_override_css() ?>
 
   /* STAFF */
-  .staff-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px;}
+  .staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:20px;align-items:start;}
   .staff-card{text-align:center;}
   .staff-card img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:50%;margin-bottom:12px;}
   .staff-card .name{font-weight:700;font-size:0.95rem;}
   .staff-card .role{font-size:0.82rem;color:#6b6b60;}
+  .staff-card .name,.staff-card .role{overflow-wrap:anywhere;}
+  .staff-card img{max-width:190px;}
+  .staff-card{margin:0 auto;width:100%;}
 
   /* Universal cap: show first 6 on desktop, first 3 on mobile, reveal the
      rest via "View More" (adds .expanded, which the more specific rule
