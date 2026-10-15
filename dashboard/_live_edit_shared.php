@@ -185,8 +185,8 @@ function render_live_edit_head(array $theme, string $extraCss = ''): void { ?>
   .size-chip.active{border-color:var(--primary);background:var(--primary);color:#fff;}
 
   [contenteditable="true"]{outline:2px dashed transparent;border-radius:3px;transition:outline-color .15s;cursor:text;min-width:20px;}
-  [contenteditable="true"]:hover{outline-color:rgba(15,82,87,0.35);}
-  [contenteditable="true"]:focus{outline:2px dashed var(--primary);background:rgba(255,255,255,0.5);}
+  [contenteditable="true"]:hover{outline-color:rgba(140,140,140,0.7);}
+  [contenteditable="true"]:focus{outline:2px dashed var(--accent);background:none;}
   [contenteditable="true"]:empty::before{content:attr(data-placeholder);color:#999;font-style:italic;}
 
   .live-photo-wrap{position:relative;}
