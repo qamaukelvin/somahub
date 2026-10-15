@@ -419,6 +419,7 @@ foreach ($sections as $s) {
   .testimonial-photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;}
   .testimonial-photo-card{text-align:center;}
   .testimonial-photo-card img{width:88px;height:88px;border-radius:50%;object-fit:cover;margin:0 auto 14px;}
+  .testimonial-photo-card .staff-avatar{width:88px;height:88px;margin:0 auto 14px;}
   .testimonial-photo-card .quote{color:#3a3a34;}
   .testimonial-photo-card .author{margin-top:10px;font-weight:700;color:var(--primary);}
   .testimonial-card .quote{font-size:0.95rem;font-style:italic;color:#3a3a34;margin-bottom:14px;}
@@ -1699,7 +1700,7 @@ foreach ($sections as $s) {
         <div class="testimonial-photo-grid" id="testimonialsContainer">
           <?php foreach ($quotes as $q): ?>
             <div class="testimonial-photo-card">
-              <?php if (!empty($q['photo'])): ?><img src="<?= img($q['photo']) ?>" alt="<?= esc($q['author']) ?>"><?php endif; ?>
+              <?= staff_photo_html(['photo' => $q['photo'], 'name' => $q['author']]) ?>
               <div class="quote">"<?= esc($q['quote']) ?>"</div>
               <div class="author"><?= esc($q['author']) ?></div>
             </div>
