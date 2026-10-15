@@ -91,6 +91,8 @@ $extraCss = <<<CSS
   .about-inline-stat .label{font-size:0.78rem;color:#5c5c52;}
   section#about{background:var(--bg);padding:60px 0;min-height:100vh;}
 CSS;
+// Same template CSS the live site injects, so the editor matches it.
+$extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -28,6 +28,8 @@ function render_live_edit_script(int $sectionId, string $currentVariant, string 
     showSaved._t = setTimeout(function(){ toast.classList.remove('show'); }, 2600);
   }
 
+  window.somahubShowSaved = showSaved;
+
   // A notice can be queued just before a reload (e.g. after switching
   // layout) so it still shows up once the fresh page has loaded.
   var queuedNotice = sessionStorage.getItem('somahubLiveEditNotice');

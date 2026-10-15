@@ -26,7 +26,9 @@ if (!$section) {
 $schema = json_decode($section['schema_json'], true);
 $content = json_decode($section['content_json'], true);
 
-$newContent = [];
+// Keep extra keys that aren't schema fields (e.g. per-text colors saved by
+// section-style-save-ajax.php) so a normal text save never wipes them.
+$newContent = array_diff_key(is_array($content) ? $content : [], $schema);
 $errors = [];
 
 foreach ($schema as $field => $fieldType) {

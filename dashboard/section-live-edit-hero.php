@@ -8,6 +8,7 @@ require_once __DIR__ . '/../includes/appearance.php';
 require_once __DIR__ . '/../includes/plan.php';
 require_once __DIR__ . '/_live_edit_shared.php';
 require_once __DIR__ . '/_live_edit_script.php';
+require_once __DIR__ . '/_live_edit_color.php';
 $user = require_school_login();
 $db = get_db();
 
@@ -52,6 +53,8 @@ $heroPhotos = [
     'hero_photo_3' => $content['hero_photo_3'] ?? '',
 ];
 $photoCount = count(array_filter($heroPhotos));
+$sizeClass = $heroSize === 'full' ? ' hero-size-full' : ($heroSize === 'half' ? ' hero-size-half' : '');
+$hColor = function($f){ global $content; $v = $content[$f] ?? ''; return preg_match('/^#[0-9a-fA-F]{6}$/', $v) ? ' style="color:'.$v.';"' : ''; };
 $showCta = in_array($heroVariant, ['text_cta', 'split_cta', 'carousel', 'background_fixed'], true);
 
 // Hero's CTA buttons are a curated destination picker, never free text, so
@@ -127,7 +130,27 @@ $extraCss = <<<CSS
   .hero-bgfixed-variant .hero-bg-content [contenteditable],
   .hero-bgfixed-variant .hero-bg-content select,
   .hero-bgfixed-variant .hero-bg-content .cta-edit-row{pointer-events:auto;}
+  .hero-size-half{min-height:50vh !important;}
+  .hero-size-full{min-height:100vh !important;}
+  .hero-size-half.hero, .hero-size-full.hero{display:flex;align-items:center;}
+  .hero-size-half .hero-inner, .hero-size-full .hero-inner{width:100%;}
+  .hero-bgfixed-variant.hero-size-half, .hero-bgfixed-variant.hero-size-full{align-items:flex-end;}
 CSS;
+
+// The school's template can restyle the hero (e.g. photos as a full-bleed
+// background with an overlay). The live site injects that CSS, so the
+// editor must too or the two never match.
+$themeCss = $appearance['custom_css'] ?? '';
+$themePhotoBg = (bool)preg_match('/\.hero-(?:mosaic|photo)[^{}]*\{[^}]*position\s*:\s*absolute/i', $themeCss);
+$extraCss .= "\n" . $themeCss . <<<CSS2
+
+  .hero::before{pointer-events:none;}
+  .hero-themebg{position:relative;overflow:hidden;}
+  .hero-themebg .hero-inner{pointer-events:none;}
+  .hero-themebg .hero-inner [contenteditable],
+  .hero-themebg .hero-inner select,
+  .hero-themebg .hero-inner .cta-edit-row{pointer-events:auto;}
+CSS2;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -184,7 +207,7 @@ if ($showCta) {
 <?php if ($heroVariant === 'background_fixed'):
     $bgSrc = $heroPhotos['hero_photo'] ? img($heroPhotos['hero_photo']) : '';
 ?>
-  <section class="hero hero-bgfixed-variant live-photo-wrap<?= $bgSrc ? '' : ' empty' ?>" id="hero" data-photo-field="hero_photo" style="<?= $bgSrc ? "background-image:url('" . esc($bgSrc) . "');" : '' ?>">
+  <section class="hero hero-bgfixed-variant<?= $sizeClass ?> live-photo-wrap<?= $bgSrc ? '' : ' empty' ?>" id="hero" data-photo-field="hero_photo" style="<?= $bgSrc ? "background-image:url('" . esc($bgSrc) . "');" : '' ?>">
     <?php if ($bgSrc): ?>
       <button type="button" class="photo-delete-btn" title="Remove photo" onclick="event.stopPropagation();somahubDeletePhoto('hero_photo')">
         <span class="material-symbols-outlined">close</span>
@@ -198,8 +221,8 @@ if ($showCta) {
     </div>
     <div class="hero-bg-overlay"></div>
     <div class="hero-bg-content">
-      <h1 data-field="headline" contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
-      <p data-field="subheading" contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
+      <h1 data-field="headline" data-color-field="headline_color"<?= $hColor('headline_color') ?> contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
+      <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
       <div class="hero-cta-row">
         <?php foreach ($heroCtaLabels as $label): ?><span class="hero-cta"><?= esc($label) ?></span><?php endforeach; ?>
       </div>
@@ -209,7 +232,7 @@ if ($showCta) {
 
 <?php elseif ($heroVariant === 'carousel'): ?>
   <section class="hero" id="hero" style="padding:0;">
-    <div class="hero-bgfixed-variant" style="position:relative;">
+    <div class="hero-bgfixed-variant<?= $sizeClass ?>" style="position:relative;">
       <?php /* The photo box sits in its own absolutely-positioned layer behind
                the text (like the live site's carousel track), sized to fill
                the whole hero rather than the box's default 340px. */ ?>
@@ -224,8 +247,8 @@ if ($showCta) {
       </div>
       <div class="hero-bg-overlay" style="pointer-events:none;z-index:1;"></div>
       <div class="hero-bg-content" style="z-index:2;position:relative;">
-        <h1 data-field="headline" contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
-        <p data-field="subheading" contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
+        <h1 data-field="headline" data-color-field="headline_color"<?= $hColor('headline_color') ?> contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
+        <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
         <div class="hero-cta-row">
           <?php foreach ($heroCtaLabels as $label): ?><span class="hero-cta"><?= esc($label) ?></span><?php endforeach; ?>
         </div>
@@ -235,10 +258,10 @@ if ($showCta) {
   </section>
 
 <?php elseif (in_array($heroVariant, ['text_only', 'text_cta'], true)): ?>
-  <section class="hero hero-text-variant" id="hero">
+  <section class="hero hero-text-variant<?= $sizeClass ?>" id="hero">
     <div class="hero-inner-text">
-      <h1 data-field="headline" contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
-      <p data-field="subheading" contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
+      <h1 data-field="headline" data-color-field="headline_color"<?= $hColor('headline_color') ?> contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
+      <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
       <?php if ($showCta): ?>
         <div class="hero-cta-row">
           <?php foreach ($heroCtaLabels as $label): ?><span class="hero-cta"><?= esc($label) ?></span><?php endforeach; ?>
@@ -249,11 +272,24 @@ if ($showCta) {
   </section>
 
 <?php else: /* split / split_cta - text left, photo(s) right */ ?>
-  <section class="hero" id="hero">
+  <section class="hero<?= $sizeClass ?><?= $themePhotoBg ? ' hero-themebg' : '' ?>" id="hero">
+    <?php if ($themePhotoBg): ?>
+      <div class="hero-photo-layer">
+        <?php live_photo_box([
+            'id' => 'heroMosaicBox',
+            'fields' => $heroPhotoFields,
+            'photos' => array_map(fn($p) => $p ? img($p) : '', $heroPhotos),
+            'preview' => 'mosaic',
+            'mosaicSingleClass' => 'hero-photo',
+            'mosaicClass' => 'hero-mosaic',
+            'emptyLabel' => 'Upload photo(s)',
+        ]); ?>
+      </div>
+    <?php endif; ?>
     <div class="hero-inner">
       <div>
-        <h1 data-field="headline" contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
-        <p data-field="subheading" contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
+        <h1 data-field="headline" data-color-field="headline_color"<?= $hColor('headline_color') ?> contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
+        <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
         <?php if ($showCta): ?>
           <div class="hero-cta-row">
             <?php foreach ($heroCtaLabels as $label): ?><span class="hero-cta"><?= esc($label) ?></span><?php endforeach; ?>
@@ -261,7 +297,7 @@ if ($showCta) {
           <?php render_hero_cta_pickers($content, $availableCtaOptions); ?>
         <?php endif; ?>
       </div>
-      <?php live_photo_box([
+      <?php if (!$themePhotoBg) live_photo_box([
           'id' => 'heroMosaicBox',
           'fields' => $heroPhotoFields,
           'photos' => array_map(fn($p) => $p ? img($p) : '', $heroPhotos),
@@ -275,6 +311,7 @@ if ($showCta) {
 <?php endif; ?>
 
 <?php render_live_edit_script((int)$section['id'], $heroVariant, $heroSize); ?>
+<?php render_live_edit_color_tools((int)$section['id'], $theme); ?>
 <script>
 // A CTA choice changes the button label shown in the preview, so save then
 // reload to re-render it (same approach as layout/height changes).

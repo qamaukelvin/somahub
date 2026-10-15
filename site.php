@@ -136,6 +136,10 @@ if (in_array('fees', array_column($sections, 'key_name'))) {
 function img($path) {
     return $path ? htmlspecialchars($path) : '';
 }
+function hero_color_style($c, $field) {
+    $v = $c[$field] ?? '';
+    return preg_match('/^#[0-9a-fA-F]{6}$/', $v) ? ' style="color:' . $v . ';"' : '';
+}
 function esc($text) {
     return htmlspecialchars($text ?? '');
 }
@@ -714,8 +718,8 @@ foreach ($sections as $s) {
   <section class="hero hero-bgfixed-variant<?= $sizeClass ?>" id="hero" style="background-image:url('<?= img($heroPhotos[0]) ?>');">
     <div class="hero-bg-overlay"></div>
     <div class="hero-bg-content">
-      <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
-      <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
+      <h1<?= hero_color_style($c, 'headline_color') ?>><?= esc($c['headline'] ?: $school['name']) ?></h1>
+      <?php if (!empty($c['subheading'])): ?><p<?= hero_color_style($c, 'subheading_color') ?>><?= esc($c['subheading']) ?></p><?php endif; ?>
       <?php if ($heroCtaButtons): ?><div class="hero-cta-row"><?= $heroCtaHtml ?></div><?php endif; ?>
     </div>
   </section>
@@ -729,8 +733,8 @@ foreach ($sections as $s) {
     </div>
     <div class="hero-bg-overlay"></div>
     <div class="hero-bg-content">
-      <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
-      <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
+      <h1<?= hero_color_style($c, 'headline_color') ?>><?= esc($c['headline'] ?: $school['name']) ?></h1>
+      <?php if (!empty($c['subheading'])): ?><p<?= hero_color_style($c, 'subheading_color') ?>><?= esc($c['subheading']) ?></p><?php endif; ?>
       <?php if ($heroCtaButtons): ?><div class="hero-cta-row"><?= $heroCtaHtml ?></div><?php endif; ?>
     </div>
     <script>
@@ -750,8 +754,8 @@ foreach ($sections as $s) {
 <?php elseif (in_array($heroVariant, ['text_only', 'text_cta'], true)): ?>
   <section class="hero hero-text-variant<?= $sizeClass ?>" id="hero">
     <div class="hero-inner-text">
-      <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
-      <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
+      <h1<?= hero_color_style($c, 'headline_color') ?>><?= esc($c['headline'] ?: $school['name']) ?></h1>
+      <?php if (!empty($c['subheading'])): ?><p<?= hero_color_style($c, 'subheading_color') ?>><?= esc($c['subheading']) ?></p><?php endif; ?>
       <?php if ($heroCtaButtons): ?><div class="hero-cta-row"><?= $heroCtaHtml ?></div><?php endif; ?>
     </div>
   </section>
@@ -760,8 +764,8 @@ foreach ($sections as $s) {
   <section class="hero<?= $sizeClass ?>" id="hero">
     <div class="hero-inner">
       <div>
-        <h1><?= esc($c['headline'] ?: $school['name']) ?></h1>
-        <?php if (!empty($c['subheading'])): ?><p><?= esc($c['subheading']) ?></p><?php endif; ?>
+        <h1<?= hero_color_style($c, 'headline_color') ?>><?= esc($c['headline'] ?: $school['name']) ?></h1>
+        <?php if (!empty($c['subheading'])): ?><p<?= hero_color_style($c, 'subheading_color') ?>><?= esc($c['subheading']) ?></p><?php endif; ?>
         <?php if ($heroCtaButtons): ?><div class="hero-cta-row"><?= $heroCtaHtml ?></div><?php endif; ?>
       </div>
       <?php if (count($heroPhotos) >= 2): ?>
