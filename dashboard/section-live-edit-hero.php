@@ -141,7 +141,8 @@ CSS;
 // background with an overlay). The live site injects that CSS, so the
 // editor must too or the two never match.
 $themeCss = $appearance['custom_css'] ?? '';
-$themePhotoBg = (bool)preg_match('/\.hero-(?:mosaic|photo)[^{}]*\{[^}]*position\s*:\s*absolute/i', $themeCss);
+$themePhotoBg = false; // variant layout wins over template hero layout (see get_hero_variant_override_css)
+$unusedThemeProbe = (bool)preg_match('/\.hero-(?:mosaic|photo)[^{}]*\{[^}]*position\s*:\s*absolute/i', $themeCss);
 $extraCss .= "\n" . $themeCss . <<<CSS2
 
   .hero::before{pointer-events:none;}
@@ -151,6 +152,7 @@ $extraCss .= "\n" . $themeCss . <<<CSS2
   .hero-themebg .hero-inner select,
   .hero-themebg .hero-inner .cta-edit-row{pointer-events:auto;}
 CSS2;
+$extraCss .= "\n" . get_hero_variant_override_css() . "\n  .hero.hero-split .live-photo-box{height:420px;}\n  .hero.hero-split .live-photo-box > .hero-mosaic,.hero.hero-split .live-photo-box > .hero-photo{position:absolute;inset:0;height:100%;}\n  @media(max-width:820px){.hero.hero-split .live-photo-box{height:220px;}}\n";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -207,7 +209,7 @@ if ($showCta) {
 <?php if ($heroVariant === 'background_fixed'):
     $bgSrc = $heroPhotos['hero_photo'] ? img($heroPhotos['hero_photo']) : '';
 ?>
-  <section class="hero hero-bgfixed-variant<?= $sizeClass ?> live-photo-wrap<?= $bgSrc ? '' : ' empty' ?>" id="hero" data-photo-field="hero_photo" style="<?= $bgSrc ? "background-image:url('" . esc($bgSrc) . "');" : '' ?>">
+  <section class="hero hero-own-layout hero-bgfixed-variant<?= $sizeClass ?> live-photo-wrap<?= $bgSrc ? '' : ' empty' ?>" id="hero" data-photo-field="hero_photo" style="<?= $bgSrc ? "background-image:url('" . esc($bgSrc) . "');" : '' ?>">
     <?php if ($bgSrc): ?>
       <button type="button" class="photo-delete-btn" title="Remove photo" onclick="event.stopPropagation();somahubDeletePhoto('hero_photo')">
         <span class="material-symbols-outlined">close</span>
@@ -231,7 +233,7 @@ if ($showCta) {
   </section>
 
 <?php elseif ($heroVariant === 'carousel'): ?>
-  <section class="hero" id="hero" style="padding:0;">
+  <section class="hero hero-own-layout" id="hero" style="padding:0;">
     <div class="hero-bgfixed-variant<?= $sizeClass ?>" style="position:relative;">
       <?php /* The photo box sits in its own absolutely-positioned layer behind
                the text (like the live site's carousel track), sized to fill
@@ -258,7 +260,7 @@ if ($showCta) {
   </section>
 
 <?php elseif (in_array($heroVariant, ['text_only', 'text_cta'], true)): ?>
-  <section class="hero hero-text-variant<?= $sizeClass ?>" id="hero">
+  <section class="hero hero-own-layout hero-text-variant<?= $sizeClass ?>" id="hero">
     <div class="hero-inner-text">
       <h1 data-field="headline" data-color-field="headline_color"<?= $hColor('headline_color') ?> contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
       <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
@@ -272,7 +274,7 @@ if ($showCta) {
   </section>
 
 <?php else: /* split / split_cta - text left, photo(s) right */ ?>
-  <section class="hero<?= $sizeClass ?><?= $themePhotoBg ? ' hero-themebg' : '' ?>" id="hero">
+  <section class="hero hero-own-layout hero-split<?= $sizeClass ?><?= $themePhotoBg ? ' hero-themebg' : '' ?>" id="hero">
     <?php if ($themePhotoBg): ?>
       <div class="hero-photo-layer">
         <?php live_photo_box([

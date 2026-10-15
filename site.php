@@ -3,6 +3,7 @@ require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/plan.php';
 require_once __DIR__ . '/includes/reviews.php';
 require_once __DIR__ . '/includes/appearance.php';
+require_once __DIR__ . '/includes/section_variants.php';
 $db = get_db();
 
 // Subdomain routing sets this via .htaccess; fallback for local testing.
@@ -313,6 +314,7 @@ foreach ($sections as $s) {
 
   /* Theme-specific signature styling, injected per school's theme */
   <?= $theme_custom_css ?? '' ?>
+  <?= get_hero_variant_override_css() ?>
 
   /* STAFF */
   .staff-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px;}
@@ -715,7 +717,7 @@ foreach ($sections as $s) {
 ?>
 
 <?php if ($heroVariant === 'background_fixed'): ?>
-  <section class="hero hero-bgfixed-variant<?= $sizeClass ?>" id="hero" style="background-image:url('<?= img($heroPhotos[0]) ?>');">
+  <section class="hero hero-own-layout hero-bgfixed-variant<?= $sizeClass ?>" id="hero" style="background-image:url('<?= img($heroPhotos[0]) ?>');">
     <div class="hero-bg-overlay"></div>
     <div class="hero-bg-content">
       <h1<?= hero_color_style($c, 'headline_color') ?>><?= esc($c['headline'] ?: $school['name']) ?></h1>
@@ -725,7 +727,7 @@ foreach ($sections as $s) {
   </section>
 
 <?php elseif ($heroVariant === 'carousel'): ?>
-  <section class="hero hero-carousel-variant<?= $sizeClass ?>" id="hero">
+  <section class="hero hero-own-layout hero-carousel-variant<?= $sizeClass ?>" id="hero">
     <div class="hero-carousel-track">
       <?php foreach ($heroPhotos as $i => $photo): ?>
         <div class="hero-carousel-slide<?= $i === 0 ? ' active' : '' ?>"><img src="<?= img($photo) ?>" alt=""></div>
@@ -752,7 +754,7 @@ foreach ($sections as $s) {
   </section>
 
 <?php elseif (in_array($heroVariant, ['text_only', 'text_cta'], true)): ?>
-  <section class="hero hero-text-variant<?= $sizeClass ?>" id="hero">
+  <section class="hero hero-own-layout hero-text-variant<?= $sizeClass ?>" id="hero">
     <div class="hero-inner-text">
       <h1<?= hero_color_style($c, 'headline_color') ?>><?= esc($c['headline'] ?: $school['name']) ?></h1>
       <?php if (!empty($c['subheading'])): ?><p<?= hero_color_style($c, 'subheading_color') ?>><?= esc($c['subheading']) ?></p><?php endif; ?>
@@ -761,7 +763,7 @@ foreach ($sections as $s) {
   </section>
 
 <?php else: /* split or split_cta - text left, image right */ ?>
-  <section class="hero<?= $sizeClass ?>" id="hero">
+  <section class="hero hero-own-layout hero-split<?= $sizeClass ?>" id="hero">
     <div class="hero-inner">
       <div>
         <h1<?= hero_color_style($c, 'headline_color') ?>><?= esc($c['headline'] ?: $school['name']) ?></h1>
