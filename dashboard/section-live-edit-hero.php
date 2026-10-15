@@ -62,25 +62,37 @@ $showCta = in_array($heroVariant, ['text_cta', 'split_cta', 'carousel', 'backgro
 // Mirrors site.php's own $ctaDestinations/$availableCtaKeys computation,
 // scoped here to just this school.
 $ctaDestinations = [
-    'enroll' => 'Request Admission',
     'contact' => 'Contact Us',
+    'enroll' => 'Request Admission',
     'results' => 'Check Results',
     'fees' => 'School Fees',
 ];
-$ctaSectionKeys = ['enroll' => 'enrollment_form', 'contact' => 'contact', 'results' => 'results_lookup', 'fees' => 'fees'];
+$ctaSectionKeys = ['contact' => 'contact', 'enroll' => 'enrollment_form', 'results' => 'results_lookup', 'fees' => 'fees'];
+$ctaSectionNames = ['contact' => 'Contact', 'enroll' => 'Enrollment Form', 'results' => 'Results Lookup', 'fees' => 'Fees'];
 $locked = is_premium_locked($school);
 $availStmt = $db->prepare("
-    SELECT st.key_name FROM site_sections ss
+    SELECT st.key_name, ss.is_visible, st.is_premium FROM site_sections ss
     JOIN section_types st ON st.id = ss.section_type_id
-    WHERE ss.school_id = ? AND ss.is_visible = 1 AND (? = 0 OR st.is_premium = 0)
+    WHERE ss.school_id = ?
 ");
-$availStmt->execute([$user['school_id'], $locked ? 1 : 0]);
-$availableSectionKeys = array_column($availStmt->fetchAll(), 'key_name');
-$availableCtaOptions = [];
-foreach ($ctaDestinations as $ctaKey => $ctaLabel) {
-    if (in_array($ctaSectionKeys[$ctaKey], $availableSectionKeys, true)) $availableCtaOptions[$ctaKey] = $ctaLabel;
+$availStmt->execute([$user['school_id']]);
+$ctaSectionState = [];
+foreach ($availStmt->fetchAll() as $r) {
+    $ok = (int)$r['is_visible'] === 1 && !($locked && (int)$r['is_premium'] === 1);
+    $ctaSectionState[$r['key_name']] = ($ctaSectionState[$r['key_name']] ?? false) || $ok;
 }
-$defaultCta = isset($availableCtaOptions['enroll']) ? 'enroll' : (isset($availableCtaOptions['contact']) ? 'contact' : null);
+// Every destination is always selectable. If its section isn't live, the
+// reason is shown as a disclaimer (and the button is hidden on the real
+// site until the requirement is met).
+$ctaUnmet = [];
+foreach ($ctaDestinations as $ctaKey => $ctaLabel) {
+    if (!($ctaSectionState[$ctaSectionKeys[$ctaKey]] ?? false)) {
+        $ctaUnmet[$ctaKey] = "The " . $ctaSectionNames[$ctaKey] . " section isn't visible on your site, so this button won't show to visitors until you add or show it.";
+    }
+}
+$availableCtaOptions = $ctaDestinations;
+$defaultCta = 'contact';
+foreach (array_keys($ctaDestinations) as $k) { if (!isset($ctaUnmet[$k])) { $defaultCta = $k; break; } }
 
 $extraCss = <<<CSS
   .hero{background:var(--primary);color:var(--bg);padding:80px 24px 60px;}
@@ -118,6 +130,9 @@ $extraCss = <<<CSS
   .cta-edit-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
   .cta-edit-row select{background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:7px 10px;font-size:0.78rem;}
   .cta-edit-row select option{color:#1C1C16;}
+  .hero-cta.unmet{outline:2px dashed #F4A340;outline-offset:2px;}
+  .cta-warning{display:flex;gap:6px;align-items:flex-start;margin-top:8px;max-width:520px;background:rgba(244,163,64,.18);border:1px solid rgba(244,163,64,.6);color:#fff;border-radius:6px;padding:6px 9px;font-size:.74rem;line-height:1.35;}
+  .cta-warning .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:16px;color:#F4A340;}
   .cta-edit-label{font-size:0.7rem;color:rgba(255,255,255,0.65);align-self:center;}
   /* The CTA buttons themselves are a curated picker, not free text (see
      the dropdowns below), so they aren't contenteditable - this just
@@ -178,29 +193,34 @@ function render_hero_cta_pickers(array $content, array $availableCtaOptions): vo
     <select onchange="somahubSaveCta('cta_1', this.value)">
       <option value="">Use default</option>
       <?php foreach ($availableCtaOptions as $ctaKey => $ctaLabel): ?>
-        <option value="<?= esc($ctaKey) ?>" <?= ($content['cta_1'] ?? '') === $ctaKey ? 'selected' : '' ?>><?= esc($ctaLabel) ?></option>
+        <option value="<?= esc($ctaKey) ?>" <?= ($content['cta_1'] ?? '') === $ctaKey ? 'selected' : '' ?>><?= esc($ctaLabel) ?><?= isset($GLOBALS['ctaUnmet'][$ctaKey]) ? ' (not on your site yet)' : '' ?></option>
       <?php endforeach; ?>
     </select>
     <span class="cta-edit-label">Button 2</span>
     <select onchange="somahubSaveCta('cta_2', this.value)">
       <option value="">None</option>
       <?php foreach ($availableCtaOptions as $ctaKey => $ctaLabel): ?>
-        <option value="<?= esc($ctaKey) ?>" <?= ($content['cta_2'] ?? '') === $ctaKey ? 'selected' : '' ?>><?= esc($ctaLabel) ?></option>
+        <option value="<?= esc($ctaKey) ?>" <?= ($content['cta_2'] ?? '') === $ctaKey ? 'selected' : '' ?>><?= esc($ctaLabel) ?><?= isset($GLOBALS['ctaUnmet'][$ctaKey]) ? ' (not on your site yet)' : '' ?></option>
       <?php endforeach; ?>
     </select>
   </div>
+  <?php foreach ($GLOBALS['heroCtaWarnings'] ?? [] as $w): ?>
+    <div class="cta-warning"><span class="material-symbols-outlined">warning</span><span><?= esc($w) ?></span></div>
+  <?php endforeach; ?>
 <?php }
 
 // Resolve the same real button labels the live site would show, so the
 // preview reads correctly even before any dropdown is touched.
 $heroCtaLabels = [];
+$heroCtaWarnings = [];
 if ($showCta) {
     $chosen1 = $content['cta_1'] ?? '';
     $chosen2 = $content['cta_2'] ?? '';
-    if (empty($chosen1) && $defaultCta) $chosen1 = $defaultCta;
+    if (empty($chosen1)) $chosen1 = $defaultCta;
     foreach ([$chosen1, $chosen2] as $choice) {
         if ($choice && isset($availableCtaOptions[$choice]) && !isset($heroCtaLabels[$choice])) {
             $heroCtaLabels[$choice] = $availableCtaOptions[$choice];
+            if (isset($ctaUnmet[$choice])) $heroCtaWarnings[] = $availableCtaOptions[$choice] . ': ' . $ctaUnmet[$choice];
         }
     }
 }
@@ -226,7 +246,7 @@ if ($showCta) {
       <h1 data-field="headline" data-color-field="headline_color"<?= $hColor('headline_color') ?> contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
       <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
       <div class="hero-cta-row">
-        <?php foreach ($heroCtaLabels as $label): ?><span class="hero-cta"><?= esc($label) ?></span><?php endforeach; ?>
+        <?php foreach ($heroCtaLabels as $ck => $label): ?><span class="hero-cta<?= isset($ctaUnmet[$ck]) ? ' unmet' : '' ?>"><?= esc($label) ?></span><?php endforeach; ?>
       </div>
       <?php render_hero_cta_pickers($content, $availableCtaOptions); ?>
     </div>
@@ -252,7 +272,7 @@ if ($showCta) {
         <h1 data-field="headline" data-color-field="headline_color"<?= $hColor('headline_color') ?> contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
         <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
         <div class="hero-cta-row">
-          <?php foreach ($heroCtaLabels as $label): ?><span class="hero-cta"><?= esc($label) ?></span><?php endforeach; ?>
+          <?php foreach ($heroCtaLabels as $ck => $label): ?><span class="hero-cta<?= isset($ctaUnmet[$ck]) ? ' unmet' : '' ?>"><?= esc($label) ?></span><?php endforeach; ?>
         </div>
         <?php render_hero_cta_pickers($content, $availableCtaOptions); ?>
       </div>
@@ -266,7 +286,7 @@ if ($showCta) {
       <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
       <?php if ($showCta): ?>
         <div class="hero-cta-row">
-          <?php foreach ($heroCtaLabels as $label): ?><span class="hero-cta"><?= esc($label) ?></span><?php endforeach; ?>
+          <?php foreach ($heroCtaLabels as $ck => $label): ?><span class="hero-cta<?= isset($ctaUnmet[$ck]) ? ' unmet' : '' ?>"><?= esc($label) ?></span><?php endforeach; ?>
         </div>
         <?php render_hero_cta_pickers($content, $availableCtaOptions); ?>
       <?php endif; ?>
@@ -294,7 +314,7 @@ if ($showCta) {
         <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
         <?php if ($showCta): ?>
           <div class="hero-cta-row">
-            <?php foreach ($heroCtaLabels as $label): ?><span class="hero-cta"><?= esc($label) ?></span><?php endforeach; ?>
+            <?php foreach ($heroCtaLabels as $ck => $label): ?><span class="hero-cta<?= isset($ctaUnmet[$ck]) ? ' unmet' : '' ?>"><?= esc($label) ?></span><?php endforeach; ?>
           </div>
           <?php render_hero_cta_pickers($content, $availableCtaOptions); ?>
         <?php endif; ?>

@@ -102,8 +102,9 @@ if (is_premium_locked($school)) {
 // links to a section the school doesn't actually have (or has lost access
 // to since choosing it, e.g. a plan downgrade).
 $ctaDestinations = [
-    'enroll' => ['label' => 'Request Admission', 'key' => 'enrollment_form'],
+    // Priority order: Contact first (always free), then Enroll, Results, Fees.
     'contact' => ['label' => 'Contact Us', 'key' => 'contact'],
+    'enroll' => ['label' => 'Request Admission', 'key' => 'enrollment_form'],
     'results' => ['label' => 'Check Results', 'key' => 'results_lookup'],
     'fees' => ['label' => 'School Fees', 'key' => 'fees'],
 ];
@@ -112,7 +113,8 @@ $availableCtaKeys = array_filter(array_keys($ctaDestinations), fn($k) => in_arra
 // Sensible default when a school hasn't explicitly picked one: Enroll if
 // they have it (and it's not locked out), otherwise Contact, since that's
 // always free and always available.
-$defaultCta = in_array('enroll', $availableCtaKeys, true) ? 'enroll' : (in_array('contact', $availableCtaKeys, true) ? 'contact' : null);
+$defaultCta = null;
+foreach (['contact', 'enroll', 'results', 'fees'] as $k) { if (in_array($k, $availableCtaKeys, true)) { $defaultCta = $k; break; } }
 
 // Social share image: hero photo if set, else default
 $ogImage = 'https://somahub.top/assets/og-share-image.png';
