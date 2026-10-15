@@ -220,7 +220,7 @@ $extraCss .= "\n" . ($appearance['custom_css'] ?? '');
         $depts = [];
         foreach ($people as $i) { if (empty($content["name_$i"])) continue; $d = trim($content["department_$i"] ?? '') ?: 'Other'; if (!in_array($d, $depts, true)) $depts[] = $d; }
     ?>
-      <p class="s-note"><span class="material-symbols-outlined">category</span>Type a department under each person - visitors see them grouped under a heading for each one.</p>
+      <p class="s-note"><span class="material-symbols-outlined">category</span>Type a department under each person - visitors get a tab for each department.</p>
       <?php if ($depts): ?><div class="g-tabs-preview"><?php foreach ($depts as $d): ?><span><?= esc($d) ?></span><?php endforeach; ?></div><?php endif; ?>
       <div class="staff-grid">
         <?php foreach ($people as $i) staff_card($content, $i, false, true); ?>

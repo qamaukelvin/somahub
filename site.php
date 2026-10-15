@@ -139,6 +139,10 @@ if (in_array('fees', array_column($sections, 'key_name'))) {
 function img($path) {
     return $path ? htmlspecialchars($path) : '';
 }
+function staff_photo_html($p) {
+    if (!empty($p['photo'])) return '<img src="' . img($p['photo']) . '" alt="' . esc($p['name']) . '">';
+    return '<div class="staff-avatar" role="img" aria-label="' . esc($p['name']) . '"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2.25c-3.6 0-9 1.8-9 5.4V21h18v-1.35c0-3.6-5.4-5.4-9-5.4Z"/></svg></div>';
+}
 function hero_color_style($c, $field) {
     $v = $c[$field] ?? '';
     return preg_match('/^#[0-9a-fA-F]{6}$/', $v) ? ' style="color:' . $v . ';"' : '';
@@ -326,6 +330,14 @@ foreach ($sections as $s) {
   .staff-card .role{font-size:0.82rem;color:#6b6b60;}
   .staff-card .name,.staff-card .role{overflow-wrap:anywhere;}
   .staff-card img{max-width:190px;}
+  .staff-avatar{width:100%;max-width:190px;aspect-ratio:1;border-radius:50%;background:#e4dfd0;color:#a39e8f;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;overflow:hidden;}
+  .staff-avatar svg{width:58%;height:58%;margin-top:14%;}
+  .staff-bio-row .staff-avatar{width:64px;height:64px;flex-shrink:0;margin:0;}
+  .org-tier-1 .staff-card .staff-avatar{width:120px;height:120px;}
+  .org-tier-2 .staff-card .staff-avatar{width:90px;height:90px;}
+  .org-tier-3 .staff-card .staff-avatar{width:70px;height:70px;}
+  .staff-tab-panel{display:none;}
+  .staff-tab-panel.active{display:grid;}
   .staff-card{margin:0 auto;width:100%;}
 
   /* Universal cap: show first 6 on desktop, first 3 on mobile, reveal the
@@ -1515,7 +1527,7 @@ foreach ($sections as $s) {
         <div class="staff-carousel">
           <?php foreach ($people as $p): ?>
             <div class="staff-card">
-              <?php if (!empty($p['photo'])): ?><img src="<?= img($p['photo']) ?>" alt="<?= esc($p['name']) ?>"><?php endif; ?>
+              <?= staff_photo_html($p) ?>
               <div class="name"><?= esc($p['name']) ?></div>
               <div class="role"><?= esc($p['role']) ?></div>
             </div>
@@ -1526,7 +1538,7 @@ foreach ($sections as $s) {
         <div class="staff-list-bio" id="staffContainer">
           <?php foreach ($people as $p): ?>
             <div class="staff-bio-row">
-              <?php if (!empty($p['photo'])): ?><img src="<?= img($p['photo']) ?>" alt="<?= esc($p['name']) ?>"><?php endif; ?>
+              <?= staff_photo_html($p) ?>
               <div>
                 <div class="name"><?= esc($p['name']) ?></div>
                 <div class="role"><?= esc($p['role']) ?></div>
@@ -1542,7 +1554,7 @@ foreach ($sections as $s) {
           $tier3 = array_slice($people, 3);
           $renderOrgCard = function($p) { ?>
             <div class="staff-card">
-              <?php if (!empty($p['photo'])): ?><img src="<?= img($p['photo']) ?>" alt="<?= esc($p['name']) ?>"><?php endif; ?>
+              <?= staff_photo_html($p) ?>
               <div class="name"><?= esc($p['name']) ?></div>
               <div class="role"><?= esc($p['role']) ?></div>
             </div>
@@ -1567,14 +1579,19 @@ foreach ($sections as $s) {
               $dept = $p['department'] ?: 'Other';
               $groups[$dept][] = $p;
           }
+          $deptNames = array_keys($groups);
       ?>
-        <div id="staffContainer">
-          <?php foreach ($groups as $deptName => $deptPeople): ?>
-            <h3 class="staff-dept-heading"><?= esc($deptName) ?></h3>
-            <div class="staff-grid">
-              <?php foreach ($deptPeople as $p): ?>
+        <div class="gallery-tabs">
+          <div class="gallery-tab-buttons">
+            <?php foreach ($deptNames as $di => $deptName): ?>
+              <button type="button" class="gallery-tab-btn<?= $di === 0 ? ' active' : '' ?>" onclick="document.querySelectorAll('#staff .gallery-tab-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.querySelectorAll('#staff .staff-tab-panel').forEach(p=>p.classList.remove('active'));document.getElementById('stafftab-<?= $di ?>').classList.add('active');"><?= esc($deptName) ?></button>
+            <?php endforeach; ?>
+          </div>
+          <?php foreach ($deptNames as $di => $deptName): ?>
+            <div class="staff-tab-panel staff-grid<?= $di === 0 ? ' active' : '' ?>" id="stafftab-<?= $di ?>">
+              <?php foreach ($groups[$deptName] as $p): ?>
                 <div class="staff-card">
-                  <?php if (!empty($p['photo'])): ?><img src="<?= img($p['photo']) ?>" alt="<?= esc($p['name']) ?>"><?php endif; ?>
+                  <?= staff_photo_html($p) ?>
                   <div class="name"><?= esc($p['name']) ?></div>
                   <div class="role"><?= esc($p['role']) ?></div>
                 </div>
@@ -1587,7 +1604,7 @@ foreach ($sections as $s) {
         <div class="staff-grid" id="staffContainer">
           <?php foreach ($people as $p): ?>
             <div class="staff-card">
-              <?php if (!empty($p['photo'])): ?><img src="<?= img($p['photo']) ?>" alt="<?= esc($p['name']) ?>"><?php endif; ?>
+              <?= staff_photo_html($p) ?>
               <div class="name"><?= esc($p['name']) ?></div>
               <div class="role"><?= esc($p['role']) ?></div>
             </div>
