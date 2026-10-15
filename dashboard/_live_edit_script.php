@@ -157,7 +157,7 @@ function render_live_edit_script(int $sectionId, string $currentVariant, string 
     fd.append('section_id', sectionId);
     fd.append('remove_' + field, '1');
     var wrap = document.querySelector('.live-photo-wrap[data-photo-field="' + field + '"]');
-    var inBox = wrap && wrap.closest('.live-photo-box');
+    var inBox = wrap && wrap.closest('.live-photo-box, .bulk-box');
     fetch('section-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
       .then(function(r){ return r.json(); })
       .then(function(data){
@@ -185,12 +185,14 @@ function render_live_edit_script(int $sectionId, string $currentVariant, string 
   // the box's preview/grid is built by the PHP render.
   var bulkInput = document.getElementById('bulkPhotoInput');
   window.somahubTriggerBulkUpload = function(triggerEl) {
-    pendingBulkBox = triggerEl.closest('.live-photo-box');
+    pendingBulkBox = triggerEl.closest('.live-photo-box, .bulk-box');
     bulkInput.click();
   };
   bulkInput.addEventListener('change', function(){
     if (!bulkInput.files.length || !pendingBulkBox) return;
-    var fields = pendingBulkBox.dataset.fields.split(',');
+    // A .bulk-box with data-empty-fields only fills those still-empty slots
+    // (Gallery's "Add several"); a .live-photo-box fills/overwrites in order.
+    var fields = (pendingBulkBox.dataset.emptyFields !== undefined ? pendingBulkBox.dataset.emptyFields : pendingBulkBox.dataset.fields).split(',').filter(Boolean);
     var files = Array.prototype.slice.call(bulkInput.files);
     var chain = Promise.resolve();
     var filled = 0;
@@ -211,7 +213,7 @@ function render_live_edit_script(int $sectionId, string $currentVariant, string 
 
   // "Remove all" in a multi-photo box's hover toolbar.
   window.somahubRemoveAllPhotos = function(triggerEl) {
-    var box = triggerEl.closest('.live-photo-box');
+    var box = triggerEl.closest('.live-photo-box, .bulk-box');
     var fields = box.dataset.fields.split(',');
     if (!window.confirm('Remove all photos here?')) return;
     var chain = Promise.resolve();
