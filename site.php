@@ -713,8 +713,8 @@ foreach ($sections as $s) {
             }
         }
     }
-    ob_start();
-    foreach ($heroCtaButtons as $key => $dest): ?><a class="hero-cta" href="#<?= esc($dest['key']) ?>"><?= esc($dest['label']) ?></a><?php endforeach;
+    ob_start(); $ctaIdx = -1;
+    foreach ($heroCtaButtons as $key => $dest): $ctaIdx = ($ctaIdx ?? -1) + 1; ?><a class="hero-cta<?= $ctaIdx > 0 ? ' secondary' : '' ?>" href="#<?= esc($dest['key']) ?>"><?= esc($dest['label']) ?></a><?php endforeach;
     $heroCtaHtml = ob_get_clean();
 ?>
 

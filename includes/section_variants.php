@@ -380,6 +380,7 @@ function count_section_photos(array $content, array $photoFields): int {
 function get_hero_variant_override_css(): string {
     return <<<CSS
   .hero.hero-own-layout::before{display:none !important;}
+  .hero .hero-cta.secondary{background:transparent;color:inherit;border:2px solid currentColor;padding:11px 26px;}
   .hero.hero-split{position:relative;overflow:visible;padding:80px 24px 60px;}
   .hero.hero-split .hero-inner{position:static;display:grid;grid-template-columns:1.1fr 0.9fr;gap:40px;align-items:center;width:100%;max-width:1080px;margin:0 auto;text-align:left;}
   .hero.hero-split .hero-inner > div:first-child{position:static;background:none;padding:0;min-height:0;display:block;order:0;z-index:auto;width:auto;}

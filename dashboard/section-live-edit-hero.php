@@ -130,6 +130,19 @@ $extraCss = <<<CSS
   .cta-edit-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
   .cta-edit-row select{background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:7px 10px;font-size:0.78rem;}
   .cta-edit-row select option{color:#1C1C16;}
+  .hero-cta.secondary{background:transparent;color:inherit;border:2px solid currentColor;padding:11px 26px;}
+  .hero-cta.placeholder{opacity:.75;border-style:dashed;cursor:pointer;}
+  .cta-slot{position:relative;display:inline-block;}
+  .cta-menu{display:none;position:absolute;top:100%;left:0;padding-top:8px;z-index:50;}
+  .cta-slot:hover .cta-menu{display:block;}
+  .cta-menu-panel{background:#1C1C16;border-radius:10px;padding:6px;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);text-align:left;font-family:Arial,sans-serif;}
+  .cta-menu-title{color:rgba(255,255,255,.55);font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;padding:6px 8px 4px;}
+  .cta-opt{display:flex;align-items:center;gap:6px;width:100%;background:none;border:none;color:#fff;font-size:.8rem;padding:7px 8px;border-radius:6px;cursor:pointer;text-align:left;}
+  .cta-opt:hover{background:rgba(255,255,255,.12);}
+  .cta-opt.on{background:rgba(255,255,255,.08);font-weight:700;}
+  .cta-opt .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:16px;}
+  .cta-opt .warn{color:#F4A340;margin-left:auto;}
+  .cta-opt.remove{color:#F4A0A0;}
   .hero-cta.unmet{outline:2px dashed #F4A340;outline-offset:2px;}
   .cta-warning{display:flex;gap:6px;align-items:flex-start;margin-top:8px;max-width:520px;background:rgba(244,163,64,.18);border:1px solid rgba(244,163,64,.6);color:#fff;border-radius:6px;padding:6px 9px;font-size:.74rem;line-height:1.35;}
   .cta-warning .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:16px;color:#F4A340;}
@@ -144,7 +157,8 @@ $extraCss = <<<CSS
   .hero-bgfixed-variant .hero-bg-content{pointer-events:none;}
   .hero-bgfixed-variant .hero-bg-content [contenteditable],
   .hero-bgfixed-variant .hero-bg-content select,
-  .hero-bgfixed-variant .hero-bg-content .cta-edit-row{pointer-events:auto;}
+  .hero-bgfixed-variant .hero-bg-content .cta-edit-row,
+  .hero-bgfixed-variant .hero-bg-content .cta-slot{pointer-events:auto;}
   .hero-size-half{min-height:50vh !important;}
   .hero-size-full{min-height:100vh !important;}
   .hero-size-half.hero, .hero-size-full.hero{display:flex;align-items:center;}
@@ -165,7 +179,8 @@ $extraCss .= "\n" . $themeCss . <<<CSS2
   .hero-themebg .hero-inner{pointer-events:none;}
   .hero-themebg .hero-inner [contenteditable],
   .hero-themebg .hero-inner select,
-  .hero-themebg .hero-inner .cta-edit-row{pointer-events:auto;}
+  .hero-themebg .hero-inner .cta-edit-row,
+  .hero-themebg .hero-inner .cta-slot{pointer-events:auto;}
 CSS2;
 $extraCss .= "\n" . get_hero_variant_override_css() . "\n  .hero.hero-split .live-photo-box{height:420px;}\n  .hero.hero-split .live-photo-box > .hero-mosaic,.hero.hero-split .live-photo-box > .hero-photo{position:absolute;inset:0;height:100%;}\n  @media(max-width:820px){.hero.hero-split .live-photo-box{height:220px;}}\n";
 ?>
@@ -185,29 +200,38 @@ $extraCss .= "\n" . get_hero_variant_override_css() . "\n  .hero.hero-split .liv
 <div class="save-toast" id="saveToast"><span class="material-symbols-outlined">check_circle</span><span id="saveToastMsg">Saved</span></div>
 
 <?php
-// The CTA destination pickers - shared by every variant that shows
-// buttons. Rendered once, reused wherever $showCta is true.
-function render_hero_cta_pickers(array $content, array $availableCtaOptions): void { ?>
-  <div class="cta-edit-row">
-    <span class="cta-edit-label">Button 1</span>
-    <select onchange="somahubSaveCta('cta_1', this.value)">
-      <option value="">Use default</option>
-      <?php foreach ($availableCtaOptions as $ctaKey => $ctaLabel): ?>
-        <option value="<?= esc($ctaKey) ?>" <?= ($content['cta_1'] ?? '') === $ctaKey ? 'selected' : '' ?>><?= esc($ctaLabel) ?><?= isset($GLOBALS['ctaUnmet'][$ctaKey]) ? ' (not on your site yet)' : '' ?></option>
-      <?php endforeach; ?>
-    </select>
-    <span class="cta-edit-label">Button 2</span>
-    <select onchange="somahubSaveCta('cta_2', this.value)">
-      <option value="">None</option>
-      <?php foreach ($availableCtaOptions as $ctaKey => $ctaLabel): ?>
-        <option value="<?= esc($ctaKey) ?>" <?= ($content['cta_2'] ?? '') === $ctaKey ? 'selected' : '' ?>><?= esc($ctaLabel) ?><?= isset($GLOBALS['ctaUnmet'][$ctaKey]) ? ' (not on your site yet)' : '' ?></option>
-      <?php endforeach; ?>
-    </select>
-  </div>
-  <?php foreach ($GLOBALS['heroCtaWarnings'] ?? [] as $w): ?>
-    <div class="cta-warning"><span class="material-symbols-outlined">warning</span><span><?= esc($w) ?></span></div>
-  <?php endforeach; ?>
-<?php }
+// Hero buttons: shown as real buttons; hovering one opens a small menu to
+// choose where it goes. Slot 2 shows an editor-only "+ Add second button"
+// placeholder until chosen. Options whose section isn't live carry a warning.
+function render_hero_cta_row(array $content, array $options, array $unmet, string $defaultCta): void {
+    $c1 = $content['cta_1'] ?? ''; if ($c1 === '' || !isset($options[$c1])) $c1 = $defaultCta;
+    $c2 = $content['cta_2'] ?? ''; if (!isset($options[$c2]) || $c2 === $c1) $c2 = '';
+    echo '<div class="hero-cta-row">';
+    foreach ([1 => $c1, 2 => $c2] as $slot => $val) {
+        $field = 'cta_' . $slot;
+        echo '<div class="cta-slot">';
+        if ($val === '') {
+            echo '<span class="hero-cta secondary placeholder"><span class="material-symbols-outlined" style="font-family:\'Material Symbols Outlined\';font-size:16px;vertical-align:-3px;">add</span> Add second button</span>';
+        } else {
+            echo '<span class="hero-cta' . ($slot === 2 ? ' secondary' : '') . (isset($unmet[$val]) ? ' unmet' : '') . '">' . esc($options[$val]) . '</span>';
+        }
+        echo '<div class="cta-menu"><div class="cta-menu-panel"><div class="cta-menu-title">Button ' . $slot . ' goes to</div>';
+        foreach ($options as $k => $label) {
+            $warn = isset($unmet[$k]);
+            echo '<button type="button" class="cta-opt' . ($val === $k ? ' on' : '') . '" onclick="somahubSaveCta(\'' . $field . '\',\'' . esc($k) . '\')"' . ($warn ? ' title="' . esc($unmet[$k]) . '"' : '') . '>'
+               . '<span class="material-symbols-outlined">' . ($val === $k ? 'check' : 'chevron_right') . '</span>' . esc($label)
+               . ($warn ? '<span class="material-symbols-outlined warn">warning</span>' : '') . '</button>';
+        }
+        if ($slot === 2 && $val !== '') echo '<button type="button" class="cta-opt remove" onclick="somahubSaveCta(\'cta_2\',\'\')"><span class="material-symbols-outlined">close</span>Remove this button</button>';
+        echo '</div></div></div>';
+    }
+    echo '</div>';
+    foreach ([$c1, $c2] as $v) {
+        if ($v !== '' && isset($unmet[$v])) {
+            echo '<div class="cta-warning"><span class="material-symbols-outlined">warning</span><span>' . esc($options[$v]) . ': ' . esc($unmet[$v]) . '</span></div>';
+        }
+    }
+}
 
 // Resolve the same real button labels the live site would show, so the
 // preview reads correctly even before any dropdown is touched.
@@ -245,10 +269,7 @@ if ($showCta) {
     <div class="hero-bg-content">
       <h1 data-field="headline" data-color-field="headline_color"<?= $hColor('headline_color') ?> contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
       <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
-      <div class="hero-cta-row">
-        <?php foreach ($heroCtaLabels as $ck => $label): ?><span class="hero-cta<?= isset($ctaUnmet[$ck]) ? ' unmet' : '' ?>"><?= esc($label) ?></span><?php endforeach; ?>
-      </div>
-      <?php render_hero_cta_pickers($content, $availableCtaOptions); ?>
+      <?php render_hero_cta_row($content, $availableCtaOptions, $ctaUnmet, $defaultCta); ?>
     </div>
   </section>
 
@@ -271,10 +292,7 @@ if ($showCta) {
       <div class="hero-bg-content" style="z-index:2;position:relative;">
         <h1 data-field="headline" data-color-field="headline_color"<?= $hColor('headline_color') ?> contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
         <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
-        <div class="hero-cta-row">
-          <?php foreach ($heroCtaLabels as $ck => $label): ?><span class="hero-cta<?= isset($ctaUnmet[$ck]) ? ' unmet' : '' ?>"><?= esc($label) ?></span><?php endforeach; ?>
-        </div>
-        <?php render_hero_cta_pickers($content, $availableCtaOptions); ?>
+        <?php render_hero_cta_row($content, $availableCtaOptions, $ctaUnmet, $defaultCta); ?>
       </div>
     </div>
   </section>
@@ -285,10 +303,7 @@ if ($showCta) {
       <h1 data-field="headline" data-color-field="headline_color"<?= $hColor('headline_color') ?> contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
       <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
       <?php if ($showCta): ?>
-        <div class="hero-cta-row">
-          <?php foreach ($heroCtaLabels as $ck => $label): ?><span class="hero-cta<?= isset($ctaUnmet[$ck]) ? ' unmet' : '' ?>"><?= esc($label) ?></span><?php endforeach; ?>
-        </div>
-        <?php render_hero_cta_pickers($content, $availableCtaOptions); ?>
+        <?php render_hero_cta_row($content, $availableCtaOptions, $ctaUnmet, $defaultCta); ?>
       <?php endif; ?>
     </div>
   </section>
@@ -313,10 +328,7 @@ if ($showCta) {
         <h1 data-field="headline" data-color-field="headline_color"<?= $hColor('headline_color') ?> contenteditable="true" data-placeholder="<?= esc($school['name']) ?>"><?= esc($content['headline'] ?? '') ?></h1>
         <p data-field="subheading" data-color-field="subheading_color"<?= $hColor('subheading_color') ?> contenteditable="true" data-placeholder="A short line about your school"><?= esc($content['subheading'] ?? '') ?></p>
         <?php if ($showCta): ?>
-          <div class="hero-cta-row">
-            <?php foreach ($heroCtaLabels as $ck => $label): ?><span class="hero-cta<?= isset($ctaUnmet[$ck]) ? ' unmet' : '' ?>"><?= esc($label) ?></span><?php endforeach; ?>
-          </div>
-          <?php render_hero_cta_pickers($content, $availableCtaOptions); ?>
+          <?php render_hero_cta_row($content, $availableCtaOptions, $ctaUnmet, $defaultCta); ?>
         <?php endif; ?>
       </div>
       <?php if (!$themePhotoBg) live_photo_box([
