@@ -69,7 +69,8 @@ function render_live_edit_color_tools(int $sectionId, array $theme): void {
   }
   function save(value){
     if (!target) return;
-    target.style.color = value || '';
+    var cf = target.getAttribute('data-color-field');
+    document.querySelectorAll('[data-color-field="' + cf + '"]').forEach(function(el){ el.style.color = value || ''; });
     if (value) { pushRecent(value); hex.value = value; picker.value = value; }
     var fd = new FormData();
     fd.append('section_id', <?= $sectionId ?>); fd.append('field', target.getAttribute('data-color-field')); fd.append('value', value);

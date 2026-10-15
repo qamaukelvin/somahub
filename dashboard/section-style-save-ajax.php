@@ -23,7 +23,8 @@ if (!$row) { http_response_code(404); echo json_encode(['ok' => false, 'errors' 
 // section's schema can carry a colour.
 $schema = json_decode($row['schema_json'], true) ?: [];
 $base = $m[1];
-if ($base !== 'title' && (!isset($schema[$base]) || $schema[$base] === 'image')) {
+$virtual = ['title', 'names', 'roles', 'bios', 'depts']; // roles that apply to every matching text in a section
+if (!in_array($base, $virtual, true) && (!isset($schema[$base]) || $schema[$base] === 'image')) {
     echo json_encode(['ok' => false, 'errors' => ['_general' => 'Invalid colour target.']]);
     exit;
 }

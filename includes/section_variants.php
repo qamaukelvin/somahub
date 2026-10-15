@@ -415,6 +415,13 @@ function get_section_text_color_css(string $sectionKey, array $content): string 
             'inline_stat_2_label' => "#about .about-inline-stat:nth-child(2) .label",
         ],
         'gallery' => ['caption' => "#gallery .section-head p"],
+        'staff' => [
+            'intro_text' => "#staff .section-head p",
+            'names' => "#staff .name",
+            'roles' => "#staff .role",
+            'bios' => "#staff .bio",
+            'depts' => "#staff .staff-dept-heading",
+        ],
     ];
     $css = '';
     foreach ($content as $k => $v) {
