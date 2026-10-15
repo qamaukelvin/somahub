@@ -17,7 +17,7 @@
       $hasDesignOptions = !empty($registryEntry['options']);
       // Sections with a live editor built get one button that replaces both
       // Edit and Design - everything happens on the rendered section itself.
-      $liveEditorFiles = ['about' => 'section-live-edit.php', 'hero' => 'section-live-edit-hero.php', 'gallery' => 'section-live-edit-gallery.php', 'staff' => 'section-live-edit-staff.php', 'testimonials' => 'section-live-edit-testimonials.php'];
+      $liveEditorFiles = ['about' => 'section-live-edit.php', 'hero' => 'section-live-edit-hero.php', 'gallery' => 'section-live-edit-gallery.php', 'staff' => 'section-live-edit-staff.php', 'testimonials' => 'section-live-edit-testimonials.php', 'faq' => 'section-live-edit-faq.php', 'blog' => 'section-live-edit-blog.php'];
       $liveEditorReady = isset($liveEditorFiles[$s['key_name']]);
       $liveEditorHref = $liveEditorReady ? $liveEditorFiles[$s['key_name']] . '?id=' . (int)$s['id'] : '';
     ?>

@@ -415,6 +415,8 @@ function get_section_text_color_css(string $sectionKey, array $content): string 
             'inline_stat_2_label' => "#about .about-inline-stat:nth-child(2) .label",
         ],
         'gallery' => ['caption' => "#gallery .section-head p"],
+        'faq' => ['questions' => "#faq .q", 'answers' => "#faq .a"],
+        'blog' => ['titles' => "#blog h3", 'bodies' => "#blog .blog-item p"],
         'testimonials' => ['quotes' => "#testimonials .quote", 'authors' => "#testimonials .author"],
         'staff' => [
             'intro_text' => "#staff .section-head p",
