@@ -4,6 +4,7 @@
 Public facing files sit at the root, alongside the panel folders:
 ```
 /                       <- put this whole folder in htdocs (XAMPP) or your hosting's web root
+  get-started.php       <- signup (creates owner + school + starter site + 60-day trial)
   index.php             <- somahub.top homepage (portfolio, plans, contact form)
   site.php              <- renders a school's live website (?school=slug)
   results-check.php     <- public results lookup
@@ -43,20 +44,46 @@ you deploy to real hosting with a real domain.
 5. Set up wildcard DNS (`*.somahub.top` → your hosting) so subdomain routing in `.htaccess` works.
 
 ## Flow: onboarding a new school
-1. Log into `/admin`, click "Add School".
-2. Fill in school name, subdomain, theme, and the owner's email/phone.
-3. This creates: the school row, an owner login (temp password shown once), and 6 default
-   empty sections (hero, about, academics, admissions, gallery, contact).
-4. Send the login + temp password to the school directly (WhatsApp/SMS).
-5. They log into `/dashboard`, fill in each section, upload photos, and their site is live at
-   `site.php?school=theirslug` (or their real subdomain once wildcard DNS is set up).
+1. The school signs up at `/get-started.php`: their name, phone, email, password, **role at the
+   school** (head teacher, bursar, ...), school name, subdomain, county and map pin, plus a tick for
+   the Terms and Privacy Policy.
+2. `includes/school-provision.php` (`provision_school()`) creates the owner login, the school row, a
+   **60-day trial of every feature** (plan `promo_paid`) and the **starter layout** from
+   `get_starter_layout()`: hero, about, academics, admissions, enrollment form, gallery, staff,
+   testimonials, FAQ, fees (hidden until a fee is added), results lookup, contact. Sections can be
+   reordered, hidden or removed.
+3. They land on `/dashboard/sections.php` with a first-time welcome modal.
+4. The site is public straight away and must be verified within 7 days of first login
+   (`VERIFICATION_GRACE_PERIOD_DAYS`) or it goes offline to the public.
+5. Admin-created schools (`admin/school-new.php`, `leads-convert.php`) still seed the older six
+   sections; they are not on the starter layout yet.
+
+Signup tolerates missing optional columns, but run `sql/signup_consent_and_head_contact.sql` to store
+consent time, authorised-person flag and head teacher contact.
 
 ## Flow: school editing their site
-`/dashboard/sections.php` is the core screen — drag to reorder, click to edit, duplicate,
-hide, or remove. Each section's editable fields are defined in `section_types.schema_json`
-and rendered dynamically in both `section-edit.php` (the editor) and `site.php` (the live
-renderer), so adding a new section type later doesn't require new PHP code for basic fields,
-just a new schema_json row plus one rendering block in `site.php`.
+`/dashboard/sections.php` lists sections; "Add section" (top) opens a categorised picker and then the
+new section's **live editor** (`section-live-edit-*.php`), where text, photos, colours and layouts are
+edited in place on the real section. `dashboard/_live_editor_map.php` maps each section type to its
+live editor. Site-wide fonts and colours (preset palettes or custom colours) are in the live-editor
+top bar. Section content lives in `site_sections.content_json`; `site.php` renders it, and
+`includes/section_variants.php` is the registry of layouts and text-colour roles.
+
+## Dashboard navigation and notifications
+`dashboard/_nav.php` is the school navbar (Material Symbols icons, active-page highlight, dropdowns,
+mobile drawer). Live editors have a **Menu** dropdown in their top bar for jumping around the
+dashboard. Dashboard-wide nudges (verify, add email, set password) go through
+`nudge_notification()`: it keeps one unread copy, and once read it stays quiet for 24 hours instead
+of reappearing on every page load.
+
+## Public site visibility
+`site.php` shows the public a "temporarily unavailable" page once an unverified school is past its
+7 days. Logged-in owners and platform admins still see the real site, with a red banner saying it is
+offline to the public, so a locked phone and a live laptop usually means the laptop is logged in.
+
+## Consent
+`includes/consent.php` provides one checkbox (Terms + Privacy) used on every form that collects
+personal details; always call `consent_given()` server side.
 
 ## Flow: results checking (paid tier)
 School uploads a CSV via `/dashboard/results.php`. Parsed rows land in `result_rows`.
@@ -69,8 +96,8 @@ or date of birth together, so no one can browse by guessing sequential numbers.
 - Real MIME-type validation on uploaded files (currently trusts file extension).
 - Password reset flow for school owners.
 - Email/SMS notification when a new enrollment application or lead comes in.
-- Plan upgrade/payment page (`upgrade.php`, referenced but not built).
-- Privacy policy as a live page (currently only exists as a downloadable document).
+- Reordering of repeatable items (staff, FAQs, ...) inside live editors.
+- Head teacher contact is stored but not yet shown on the verify page or admin screens.
 
 ## Security notes already handled
 - All dashboard queries filter by `school_id` from the session, not from user input — a school

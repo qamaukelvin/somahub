@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     send_somahub_email(get_setting($db, 'admin_notify_email', 'admin@somahub.top'), "New school: " . $schoolData['school_name'], $adminBody, $email);
 
                     // Straight into the Hero live editor with the first-run welcome.
-                    header('Location: dashboard/' . ($res['hero_section_id'] ? 'section-live-edit-hero.php?id=' . $res['hero_section_id'] . '&welcome=1' : 'sections.php?welcome=1'));
+                    header('Location: dashboard/sections.php?welcome=1');
                     exit;
                 }
             }

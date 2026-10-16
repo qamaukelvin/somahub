@@ -156,6 +156,9 @@ function render_live_edit_head(array $theme, string $extraCss = ''): void { ?>
   .live-editor-topbar a.back-link{color:#fff;text-decoration:none;font-size:0.85rem;opacity:0.85;display:flex;align-items:center;gap:4px;}
   .live-editor-topbar a.back-link:hover{opacity:1;}
   .live-editor-topbar .title{font-weight:700;font-size:0.9rem;margin-right:auto;}
+  .le-menu{position:relative;} .le-menu-panel{display:none;position:absolute;top:calc(100% + 8px);left:0;background:#fff;color:#1C1C16;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.28);padding:6px;min-width:220px;z-index:70;}
+  .le-menu-panel.open{display:block;} .le-menu-panel a{display:flex;align-items:center;gap:10px;color:#1C1C16;text-decoration:none;font-size:.85rem;font-weight:600;padding:9px 12px;border-radius:8px;}
+  .le-menu-panel a:hover{background:#F0F6F4;} .le-menu-panel .material-symbols-outlined{color:#0F5257;font-size:19px;}
   .autosave-note{font-size:0.72rem;color:#C9C4B0;display:flex;align-items:center;gap:4px;}
   .autosave-note .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:15px;}
 
@@ -297,7 +300,19 @@ function render_live_edit_topbar(array $section, array $fontPairs, string $curre
   .welcome-bar .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:17px;}
 </style>
 <div class="live-editor-topbar">
-  <a href="sections.php" class="back-link">&larr; Back to sections</a>
+  <div class="le-menu" id="leMenu">
+    <button type="button" class="font-picker-btn" onclick="document.getElementById('leMenuPanel').classList.toggle('open')"><span class="material-symbols-outlined" style="font-size:18px;">menu</span> Menu</button>
+    <div class="le-menu-panel" id="leMenuPanel">
+      <a href="sections.php"><span class="material-symbols-outlined">arrow_back</span>Back to sections</a>
+      <a href="index.php"><span class="material-symbols-outlined">dashboard</span>Dashboard home</a>
+      <a href="enrollment.php"><span class="material-symbols-outlined">how_to_reg</span>Enrollment</a>
+      <a href="contact-messages.php"><span class="material-symbols-outlined">mail</span>Contact messages</a>
+      <a href="notifications.php"><span class="material-symbols-outlined">notifications</span>Notifications</a>
+      <a href="account.php"><span class="material-symbols-outlined">manage_accounts</span>Account</a>
+      <?php $__slug = $GLOBALS['school']['slug'] ?? ''; if ($__slug): ?><a href="https://<?= urlencode($__slug) ?>.somahub.top/" target="_blank" rel="noopener"><span class="material-symbols-outlined">open_in_new</span>View live site</a><?php endif; ?>
+    </div>
+  </div>
+  <a href="sections.php" class="back-link"><span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span> Sections</a>
   <span class="title"><?= esc($section['label']) ?> — live editor</span>
   <span class="autosave-note"><span class="material-symbols-outlined">cloud_done</span> Changes save automatically</span>
 
@@ -366,6 +381,7 @@ function render_live_edit_topbar(array $section, array $fontPairs, string $curre
       })
       .catch(function(){ window.somahubShowSaved && window.somahubShowSaved(false); });
   }
+  document.addEventListener('click', function(e){ var m=document.getElementById('leMenu'); if (m && !m.contains(e.target)) document.getElementById('leMenuPanel').classList.remove('open'); });
   window.somahubSetPalette = function(id) { var fd = new FormData(); fd.append('color_mode', 'preset'); fd.append('palette_id', id); somahubPostColours(fd, 'Colours updated'); };
   window.somahubSetCustomColours = function() {
     var fd = new FormData(); fd.append('color_mode', 'custom');

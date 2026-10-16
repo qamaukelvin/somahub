@@ -463,5 +463,29 @@ function removeSection(id) {
     }).then(() => location.reload());
 }
 </script>
+<?php if (isset($_GET['welcome'])): ?>
+<style>
+.wm-back{position:fixed;inset:0;background:rgba(15,30,32,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;}
+.wm-card{background:#fff;border-radius:18px;max-width:480px;width:100%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.wm-card h2{margin:0 0 6px;font-size:1.4rem;} .wm-card p{margin:0 0 14px;color:#4a5a5c;font-size:.92rem;line-height:1.5;}
+.wm-steps{list-style:none;margin:0 0 20px;padding:0;display:grid;gap:12px;}
+.wm-steps li{display:flex;gap:12px;align-items:flex-start;font-size:.9rem;line-height:1.4;}
+.wm-steps .material-symbols-outlined{font-family:'Material Symbols Outlined';color:#0F5257;background:#e3f1f2;border-radius:10px;padding:7px;font-size:20px;flex:0 0 auto;}
+.wm-btn{width:100%;background:#0F5257;color:#fff;border:none;border-radius:999px;padding:13px;font-weight:800;font-size:.95rem;cursor:pointer;}
+</style>
+<div class="wm-back" id="welcomeModal" role="dialog" aria-modal="true">
+  <div class="wm-card">
+    <h2>Welcome to Somahub, <?= htmlspecialchars(explode(' ', trim($user['name'] ?? ''))[0] ?: 'there') ?>!</h2>
+    <p>Your school website is already live. Here is how to make it yours:</p>
+    <ul class="wm-steps">
+      <li><span class="material-symbols-outlined">edit</span><div><strong>Edit each section.</strong> Open any section below and click text or photos right on the page to change them.</div></li>
+      <li><span class="material-symbols-outlined">palette</span><div><strong>Pick your colours.</strong> Open the Hero editor and use the Colours panel at the top.</div></li>
+      <li><span class="material-symbols-outlined">add_circle</span><div><strong>Add or hide sections.</strong> Use "Add section" at the top. Fees stays hidden until you add a fee.</div></li>
+      <li><span class="material-symbols-outlined">verified</span><div><strong>Verify your school</strong> when you are ready, and all features stay free for your 60-day trial.</div></li>
+    </ul>
+    <button type="button" class="wm-btn" onclick="document.getElementById('welcomeModal').remove();history.replaceState(null,'',location.pathname);">Got it, let's start</button>
+  </div>
+</div>
+<?php endif; ?>
 </body>
 </html>

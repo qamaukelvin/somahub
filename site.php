@@ -80,6 +80,9 @@ if (!$sitePubliclyVisible && !$isOwnerPreview) {
     exit;
 }
 
+// Owner/admin can still see an offline site. Say so loudly, otherwise it looks
+// "live on my laptop but locked on my phone" (the public only sees the lock page).
+$ownerSeesOfflineSite = (!$sitePubliclyVisible && $isOwnerPreview);
 $appearance = resolve_school_appearance($db, $school);
 $theme = $appearance['theme'];
 $theme_custom_css = $appearance['custom_css'];
@@ -667,6 +670,9 @@ foreach ($sections as $s) {
 </style>
 </head>
 <body>
+<?php if (!empty($ownerSeesOfflineSite)): ?>
+<div style="position:sticky;top:0;z-index:99999;background:#8C3B2E;color:#fff;font:700 13px/1.4 Arial,sans-serif;padding:10px 16px;text-align:center;">Only you can see this site. It is offline to the public until verification is complete. <a href="https://somahub.top/dashboard/verify.php" style="color:#fff;text-decoration:underline;">Verify now</a></div>
+<?php endif; ?>
 
 <header>
   <div class="navbar">

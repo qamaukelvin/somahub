@@ -6,8 +6,8 @@
  * before saving anything.
  */
 function consent_css(): string {
-    return '<style>.consent-check{display:flex;gap:9px;align-items:flex-start;font-size:.82rem;line-height:1.45;font-weight:500;margin:14px 0 4px;cursor:pointer;text-align:left;}'
-         . '.consent-check input{width:auto !important;margin:3px 0 0 !important;flex:0 0 auto;}'
+    return '<style>.consent-check{display:flex !important;width:100%;box-sizing:border-box;grid-column:1/-1;gap:9px;align-items:flex-start;font-size:.82rem;line-height:1.45;font-weight:500;margin:14px 0 4px;cursor:pointer;text-align:left;}'
+         . '.consent-check span{flex:1 1 auto;min-width:0;}.consent-check input{width:auto !important;margin:3px 0 0 !important;flex:0 0 auto;}'
          . '.consent-check a{color:inherit;font-weight:700;text-decoration:underline;}</style>';
 }
 
