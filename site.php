@@ -648,8 +648,10 @@ foreach ($sections as $s) {
   .callout-block{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:32px;text-align:center;max-width:520px;margin:0 auto;}
 
   .enroll-inline-form{max-width:none;margin:0;background:#fff;border-radius:10px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
-  .enroll-form-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 22px;align-items:start;}
-  .enroll-form-fields .ef{display:flex;flex-direction:column;min-width:0;}
+  .enroll-form-fields{display:grid;grid-template-columns:repeat(6,1fr);gap:0 22px;align-items:start;}
+  .enroll-form-fields .ef{display:flex;flex-direction:column;min-width:0;grid-column:span 6;}
+  @media(min-width:760px){.enroll-form-fields .ef-2{grid-column:span 2;}.enroll-form-fields .ef-3{grid-column:span 3;}.enroll-form-fields .ef-4{grid-column:span 4;}}
+  @media(min-width:480px) and (max-width:759px){.enroll-form-fields .ef-2{grid-column:span 3;}.enroll-form-fields .ef-4{grid-column:span 6;}}
   .enroll-form-fields input{width:100%;box-sizing:border-box;}
   .enroll-form-fields button{justify-self:start;}
   .enroll-form-fields label{font-size:0.85rem;font-weight:600;margin-bottom:6px;}
@@ -1377,8 +1379,8 @@ foreach ($sections as $s) {
           <!-- Submits to results-check.php's own handler rather than
                duplicating the lookup logic here. -->
           <form method="POST" action="<?= esc($checkUrl) ?>" class="enroll-form-fields">
-            <div class="ef"><label>Admission Number</label> <input type="text" name="admission_no" required></div>
-            <div class="ef"><label>Student's Full Name or Date of Birth (YYYY-MM-DD)</label> <input type="text" name="second_factor" required></div>
+            <div class="ef ef-2"><label>Admission Number</label> <input type="text" name="admission_no" required></div>
+            <div class="ef ef-4"><label>Student's Full Name or Date of Birth (YYYY-MM-DD)</label> <input type="text" name="second_factor" required></div>
             <button type="submit" class="btn-primary">Check Results</button>
           </form>
         </div>
@@ -1440,13 +1442,13 @@ foreach ($sections as $s) {
                  logic in two separate places to maintain in sync. -->
             <form method="POST" action="<?= esc($applyUrl) ?>" class="enroll-form-fields">
               <input type="hidden" name="return_to_homepage" value="1">
-              <div class="ef"><label>Child's Full Name</label> <input type="text" name="child_name" required></div>
-              <div class="ef"><label>Date of Birth</label> <input type="date" name="date_of_birth" required></div>
-              <div class="ef"><label>Grade Applying For</label> <input type="text" name="grade_applying_for" placeholder="e.g. Grade 3" required></div>
-              <div class="ef"><label>Previous School (if transferring)</label> <input type="text" name="previous_school"></div>
-              <div class="ef"><label>Parent / Guardian Name</label> <input type="text" name="parent_name" required></div>
-              <div class="ef"><label>Parent / Guardian Phone</label> <input type="tel" name="parent_phone" required></div>
-              <div class="ef"><label>Parent / Guardian Email (optional)</label> <input type="email" name="parent_email"></div>
+              <div class="ef ef-4"><label>Child's Full Name</label> <input type="text" name="child_name" required></div>
+              <div class="ef ef-2"><label>Date of Birth</label> <input type="date" name="date_of_birth" required></div>
+              <div class="ef ef-2"><label>Grade Applying For</label> <input type="text" name="grade_applying_for" placeholder="e.g. Grade 3" required></div>
+              <div class="ef ef-4"><label>Previous School (if transferring)</label> <input type="text" name="previous_school"></div>
+              <div class="ef ef-2"><label>Parent / Guardian Name</label> <input type="text" name="parent_name" required></div>
+              <div class="ef ef-2"><label>Parent / Guardian Phone</label> <input type="tel" name="parent_phone" required></div>
+              <div class="ef ef-2"><label>Parent / Guardian Email (optional)</label> <input type="email" name="parent_email"></div>
               <button type="submit" class="btn-primary">Submit Application</button>
             </form>
           <?php endif; ?>

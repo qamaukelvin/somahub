@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/_live_editor_map.php';
 $user = require_school_login();
 $db = get_db();
 
@@ -45,5 +46,11 @@ $insert->execute([
 ]);
 
 $newId = $db->lastInsertId();
-header('Location: section-edit.php?id=' . $newId);
+// Straight into the live editor when the section has one; the old form editor otherwise.
+$liveFiles = get_live_editor_files();
+if (isset($liveFiles[$type['key_name']])) {
+    header('Location: ' . $liveFiles[$type['key_name']] . '?id=' . $newId);
+} else {
+    header('Location: section-edit.php?id=' . $newId);
+}
 exit;

@@ -34,6 +34,7 @@ foreach ($availableTypes as $t) {
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Edit Website — Sections</title>
 <?php include __DIR__ . '/_styles.php'; ?>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined">
 <style>
   .section-row{background:#fff;border:1px solid #E2DCC6;border-radius:8px;padding:14px 16px;margin-bottom:10px;}
   .section-row.dragging{opacity:0.4;}
@@ -96,7 +97,28 @@ foreach ($availableTypes as $t) {
   .hidden-toggle[open] summary::before{content:"▾ ";}
   .hidden-toggle .section-row{opacity:0.7;}
 
-  .add-section{margin-top:28px;padding:18px;background:#F4F1E6;border-radius:8px;}
+  .page-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:4px;}
+  .page-head h1{margin:0;}
+  .add-section-btn{display:inline-flex;align-items:center;gap:6px;background:#0F5257;color:#fff;border:none;border-radius:999px;padding:11px 20px 11px 14px;font-size:.9rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(15,82,87,.3);transition:transform .12s,box-shadow .12s;}
+  .add-section-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(15,82,87,.4);}
+  .add-section-btn .material-symbols-outlined,.as-card .material-symbols-outlined,.as-close .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:22px;}
+  #addSectionModal{display:none;position:fixed;inset:0;background:rgba(20,20,16,.55);z-index:9000;align-items:flex-start;justify-content:center;padding:5vh 16px;overflow:auto;}
+  #addSectionModal.open{display:flex;}
+  .as-box{background:#fff;border-radius:16px;width:min(860px,100%);padding:22px 24px 26px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+  .as-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+  .as-top h2{margin:0;font-size:1.25rem;}
+  .as-close{background:none;border:none;cursor:pointer;color:#666;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;}
+  .as-close:hover{background:#f0ede2;}
+  .as-sub{color:#777;font-size:.85rem;margin:0 0 14px;}
+  .as-cat{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8a8a7e;margin:18px 0 8px;}
+  .as-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;}
+  .as-card{display:flex;align-items:center;gap:12px;text-align:left;background:#faf8f1;border:1.5px solid #E2DCC6;border-radius:12px;padding:12px 14px;cursor:pointer;font-family:inherit;color:#222;transition:border-color .12s,background .12s,transform .12s;}
+  .as-card:hover:not(:disabled){border-color:#0F5257;background:#fff;transform:translateY(-1px);}
+  .as-card .ico{width:40px;height:40px;border-radius:10px;background:#0F5257;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .as-card strong{display:block;font-size:.9rem;}
+  .as-card small{display:block;color:#888;font-size:.74rem;line-height:1.3;margin-top:2px;}
+  .as-card:disabled{opacity:.55;cursor:not-allowed;}
+  .as-card .paid{font-size:.64rem;font-weight:700;background:#FBF0D1;color:#8C6D1F;border-radius:10px;padding:1px 7px;margin-left:6px;vertical-align:middle;}
   select{padding:10px;border-radius:4px;border:1px solid #ccc;width:100%;max-width:320px;margin-bottom:10px;font-size:0.9rem;}
 </style>
 </head>
@@ -104,7 +126,10 @@ foreach ($availableTypes as $t) {
 <?php include __DIR__ . '/_nav.php'; ?>
 
 <main class="wrap">
-  <h1>Edit Your Website</h1>
+  <div class="page-head">
+    <h1>Edit Your Website</h1>
+    <button type="button" class="add-section-btn" onclick="openAddSection()"><span class="material-symbols-outlined">add</span>Add section</button>
+  </div>
   <p class="sub">Drag <span class="drag-handle" style="display:inline;padding:0;">☰</span> to reorder. On desktop, click Edit. On mobile, tap ✎ to edit inline. The palette icon opens layout options for sections that support them.</p>
 
   <?php if (isset($_GET['error']) && $_GET['error'] === 'upgrade_required'): ?>
@@ -133,25 +158,36 @@ foreach ($availableTypes as $t) {
     </details>
   <?php endif; ?>
 
-  <div class="add-section">
+</main>
+
+<?php
+$typeIcons = ['hero'=>'flag','about'=>'info','gallery'=>'photo_library','staff'=>'groups','testimonials'=>'format_quote','faq'=>'quiz','blog'=>'article','stats'=>'bar_chart','contact'=>'call','admissions'=>'how_to_reg','academics'=>'school','cta_banner'=>'campaign','fees'=>'payments','enrollment_form'=>'assignment','results_lookup'=>'fact_check'];
+$typeHints = ['hero'=>'The big welcome at the top','about'=>'Tell your school\'s story','gallery'=>'Photos of school life','staff'=>'Teachers and leadership','testimonials'=>'What parents say','faq'=>'Answers to common questions','blog'=>'News and updates','stats'=>'Key numbers at a glance','contact'=>'Address, phone, map','admissions'=>'How families join','academics'=>'Curriculum and grade levels','cta_banner'=>'A call-to-action banner','fees'=>'Published fee structure','enrollment_form'=>'Online applications','results_lookup'=>'Parents check results'];
+?>
+<div id="addSectionModal" onclick="if(event.target===this)closeAddSection()">
+  <div class="as-box" role="dialog" aria-label="Add a section">
+    <div class="as-top"><h2>Add a section</h2><button type="button" class="as-close" onclick="closeAddSection()" title="Close"><span class="material-symbols-outlined">close</span></button></div>
+    <p class="as-sub">Pick one and it opens straight in the live editor, so you can fill it in right where it will appear.</p>
     <form method="POST" action="section-add.php">
-      <label style="display:block;margin-bottom:8px;"><strong>Add a section</strong></label>
-      <select name="section_type_id" required>
-        <option value="">Choose a section type…</option>
-        <?php foreach ($groupedTypes as $category => $types): ?>
-          <optgroup label="<?= htmlspecialchars($category) ?>">
-            <?php foreach ($types as $t): ?>
-              <option value="<?= $t['id'] ?>">
-                <?= htmlspecialchars($t['label']) ?><?= $t['is_premium'] && $school['plan'] === 'free' ? ' (Paid plan)' : '' ?>
-              </option>
-            <?php endforeach; ?>
-          </optgroup>
-        <?php endforeach; ?>
-      </select><br>
-      <button type="submit" class="btn">Add Section</button>
+      <?php foreach ($groupedTypes as $category => $types): ?>
+        <div class="as-cat"><?= htmlspecialchars($category) ?></div>
+        <div class="as-grid">
+          <?php foreach ($types as $t): $locked = $t['is_premium'] && $school['plan'] === 'free'; ?>
+            <button type="submit" name="section_type_id" value="<?= (int)$t['id'] ?>" class="as-card"<?= $locked ? ' disabled title="Part of the paid plan. Upgrade to add this section."' : '' ?>>
+              <span class="ico"><span class="material-symbols-outlined"><?= htmlspecialchars($typeIcons[$t['key_name']] ?? 'widgets') ?></span></span>
+              <span><strong><?= htmlspecialchars($t['label']) ?><?php if ($locked): ?><span class="paid">Paid</span><?php endif; ?></strong><small><?= htmlspecialchars($typeHints[$t['key_name']] ?? '') ?></small></span>
+            </button>
+          <?php endforeach; ?>
+        </div>
+      <?php endforeach; ?>
     </form>
   </div>
-</main>
+</div>
+<script>
+function openAddSection(){ document.getElementById('addSectionModal').classList.add('open'); }
+function closeAddSection(){ document.getElementById('addSectionModal').classList.remove('open'); }
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAddSection(); });
+</script>
 
 <script>
 /* ---------- Drag to reorder — Pointer Events, works on mouse AND touch ---------- */

@@ -22,7 +22,9 @@ function render_live_edit_color_tools(int $sectionId, array $theme): void {
     $common = array_slice($common, 0, 8);
 ?>
 <style>
-  .color-pencil{position:absolute;z-index:9998;display:none;width:28px;height:28px;border-radius:50%;background:#1C1C16;color:#fff;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer;align-items:center;justify-content:center;padding:0;}
+  .color-pencil{position:absolute;z-index:9998;display:none;height:28px;border-radius:14px;background:#1C1C16;color:#fff;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer;align-items:center;justify-content:center;padding:0 10px 0 8px;gap:6px;font:700 11px Arial,sans-serif;white-space:nowrap;}
+  .color-pencil .dot{width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(255,255,255,.8);flex-shrink:0;}
+  [data-color-field]:hover{outline:1px dashed rgba(140,140,140,.8);outline-offset:3px;}
   .color-pencil.show{display:flex;}
   .color-pencil .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:16px;}
   .color-pop{position:absolute;z-index:9999;display:none;flex-direction:column;gap:9px;width:224px;background:#1C1C16;border-radius:10px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.4);font-family:Arial,sans-serif;}
@@ -37,7 +39,7 @@ function render_live_edit_color_tools(int $sectionId, array $theme): void {
   .color-pop #cpHex{width:74px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:5px;padding:4px 6px;font-size:.72rem;}
   .color-pop .auto{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;font-size:.7rem;font-weight:600;padding:4px 8px;cursor:pointer;margin-left:auto;}
 </style>
-<button type="button" class="color-pencil" id="colorPencil" title="Change text colour"><span class="material-symbols-outlined">edit</span></button>
+<button type="button" class="color-pencil" id="colorPencil" title="Change text colour"><span class="dot" id="cpDot"></span><span class="material-symbols-outlined">edit</span><span>Colour</span></button>
 <div class="color-pop" id="colorPop">
   <div class="row"><span class="lbl">Recent</span><span id="cpRecent"></span></div>
   <div class="row"><span class="lbl">Common</span>
@@ -62,15 +64,27 @@ function render_live_edit_color_tools(int $sectionId, array $theme): void {
     r.forEach(function(c){ var b = document.createElement('button'); b.type='button'; b.className='sw'; b.style.background=c; b.setAttribute('data-c',c); recentEl.appendChild(b); });
   }
   function placePencil(el){
-    var r = el.getBoundingClientRect();
-    pencil.style.top = (window.scrollY + r.top - 12) + 'px';
-    pencil.style.left = (window.scrollX + r.right - 16) + 'px';
+    // Sit at the end of the actual text, not the (often much wider) box.
+    var box = el.getBoundingClientRect(), top = box.top, right = box.right;
+    try {
+      var rg = document.createRange(); rg.selectNodeContents(el);
+      var rects = Array.prototype.filter.call(rg.getClientRects(), function(q){ return q.width > 0; });
+      if (rects.length) {
+        top = Math.min.apply(null, rects.map(function(q){ return q.top; }));
+        right = Math.max.apply(null, rects.map(function(q){ return q.right; }));
+      } else { right = box.left + 80; }
+    } catch(e){}
+    right = Math.min(right, box.right);
+    pencil.style.top = (window.scrollY + top - 16) + 'px';
+    pencil.style.left = (window.scrollX + right - 14) + 'px';
+    var dot = document.getElementById('cpDot'); if (dot) dot.style.background = getComputedStyle(el).color;
     pencil.classList.add('show');
   }
   function save(value){
     if (!target) return;
     var cf = target.getAttribute('data-color-field');
     document.querySelectorAll('[data-color-field="' + cf + '"]').forEach(function(el){ el.style.color = value || ''; });
+    var dot = document.getElementById('cpDot'); if (dot) dot.style.background = getComputedStyle(target).color;
     if (value) { pushRecent(value); hex.value = value; picker.value = value; }
     var fd = new FormData();
     fd.append('section_id', <?= $sectionId ?>); fd.append('field', target.getAttribute('data-color-field')); fd.append('value', value);
@@ -92,7 +106,7 @@ function render_live_edit_color_tools(int $sectionId, array $theme): void {
     renderRecent();
     var r = pencil.getBoundingClientRect();
     pop.style.top = (window.scrollY + r.bottom + 6) + 'px';
-    pop.style.left = (window.scrollX + Math.max(8, Math.min(r.right - 224, window.innerWidth - 232))) + 'px';
+    pop.style.left = (window.scrollX + Math.max(8, Math.min(r.left, window.innerWidth - 232))) + 'px';
     pop.classList.add('show');
   });
   pop.addEventListener('mousedown', function(e){ if (e.target !== picker && e.target !== hex) e.preventDefault(); });
