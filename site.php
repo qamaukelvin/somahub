@@ -596,8 +596,10 @@ foreach ($sections as $s) {
 
   .contact-map-only{position:relative;}
   .contact-map-only .school-map-embed{height:420px;margin-top:0;}
-  .contact-overlay-card{position:relative;margin-top:-60px;margin-left:24px;max-width:320px;background:#fff;border-radius:12px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:2;}
-  @media(max-width:820px){.contact-overlay-card{margin-left:0;margin-top:16px;max-width:none;}}
+  .contact-overlay-card{position:absolute;top:20px;left:64px;max-width:320px;max-height:calc(420px - 40px);overflow:auto;background:#fff;border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:1100;}
+  .contact-overlay-card .contact-grid{grid-template-columns:1fr;gap:8px;}
+  .contact-overlay-card .contact-item{box-shadow:none;padding:10px 12px;background:#f7f5ee;}
+  @media(max-width:820px){.contact-overlay-card{position:relative;top:auto;left:auto;margin-top:16px;max-width:none;max-height:none;}}
 
   .contact-form-box{background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
   .contact-form-box form{display:flex;flex-direction:column;gap:12px;}
@@ -645,11 +647,14 @@ foreach ($sections as $s) {
   /* LOOKUP / FORM CALLOUT BLOCKS */
   .callout-block{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:32px;text-align:center;max-width:520px;margin:0 auto;}
 
-  .enroll-inline-form{max-width:480px;margin:0 auto;background:#fff;border-radius:10px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
-  .enroll-form-fields{display:flex;flex-direction:column;}
+  .enroll-inline-form{max-width:none;margin:0;background:#fff;border-radius:10px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+  .enroll-form-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 22px;align-items:start;}
+  .enroll-form-fields .ef{display:flex;flex-direction:column;min-width:0;}
+  .enroll-form-fields input{width:100%;box-sizing:border-box;}
+  .enroll-form-fields button{justify-self:start;}
   .enroll-form-fields label{font-size:0.85rem;font-weight:600;margin-bottom:6px;}
   .enroll-form-fields input{padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:16px;font-family:inherit;}
-  .enroll-form-fields button{margin-top:4px;}
+  .enroll-form-fields button{margin-top:4px;grid-column:1/-1;}
   .enroll-inline-form .success{background:#E4F0E7;color:#1B4D3E;padding:16px;border-radius:6px;text-align:center;}
   .callout-block p{color:#5a5a52;margin-bottom:20px;font-size:0.95rem;}
   .btn-primary{background:var(--primary);color:var(--bg);padding:13px 28px;border-radius:6px;font-weight:600;font-size:0.9rem;display:inline-block;}
@@ -1372,10 +1377,8 @@ foreach ($sections as $s) {
           <!-- Submits to results-check.php's own handler rather than
                duplicating the lookup logic here. -->
           <form method="POST" action="<?= esc($checkUrl) ?>" class="enroll-form-fields">
-            <label>Admission Number</label>
-            <input type="text" name="admission_no" required>
-            <label>Student's Full Name or Date of Birth (YYYY-MM-DD)</label>
-            <input type="text" name="second_factor" required>
+            <div class="ef"><label>Admission Number</label> <input type="text" name="admission_no" required></div>
+            <div class="ef"><label>Student's Full Name or Date of Birth (YYYY-MM-DD)</label> <input type="text" name="second_factor" required></div>
             <button type="submit" class="btn-primary">Check Results</button>
           </form>
         </div>
@@ -1437,20 +1440,13 @@ foreach ($sections as $s) {
                  logic in two separate places to maintain in sync. -->
             <form method="POST" action="<?= esc($applyUrl) ?>" class="enroll-form-fields">
               <input type="hidden" name="return_to_homepage" value="1">
-              <label>Child's Full Name</label>
-              <input type="text" name="child_name" required>
-              <label>Date of Birth</label>
-              <input type="date" name="date_of_birth" required>
-              <label>Grade Applying For</label>
-              <input type="text" name="grade_applying_for" placeholder="e.g. Grade 3" required>
-              <label>Previous School (if transferring)</label>
-              <input type="text" name="previous_school">
-              <label>Parent / Guardian Name</label>
-              <input type="text" name="parent_name" required>
-              <label>Parent / Guardian Phone</label>
-              <input type="tel" name="parent_phone" required>
-              <label>Parent / Guardian Email (optional)</label>
-              <input type="email" name="parent_email">
+              <div class="ef"><label>Child's Full Name</label> <input type="text" name="child_name" required></div>
+              <div class="ef"><label>Date of Birth</label> <input type="date" name="date_of_birth" required></div>
+              <div class="ef"><label>Grade Applying For</label> <input type="text" name="grade_applying_for" placeholder="e.g. Grade 3" required></div>
+              <div class="ef"><label>Previous School (if transferring)</label> <input type="text" name="previous_school"></div>
+              <div class="ef"><label>Parent / Guardian Name</label> <input type="text" name="parent_name" required></div>
+              <div class="ef"><label>Parent / Guardian Phone</label> <input type="tel" name="parent_phone" required></div>
+              <div class="ef"><label>Parent / Guardian Email (optional)</label> <input type="email" name="parent_email"></div>
               <button type="submit" class="btn-primary">Submit Application</button>
             </form>
           <?php endif; ?>

@@ -87,8 +87,10 @@ $extraCss = <<<CSS
   .contact-side-by-side .school-map-embed{margin-top:0;min-height:300px;height:100%;}
   .contact-map-only{position:relative;}
   .contact-map-only .school-map-embed{height:420px;margin-top:0;}
-  .contact-overlay-card{position:relative;margin-top:-60px;margin-left:24px;max-width:340px;background:#fff;border-radius:12px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:600;}
-  .contact-overlay-card .contact-item{box-shadow:none;padding:10px 0;}
+  .contact-overlay-card{position:absolute;top:20px;left:64px;max-width:320px;max-height:calc(420px - 40px);overflow:auto;background:#fff;border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:1100;}
+  .contact-overlay-card .contact-grid{grid-template-columns:1fr;gap:8px;}
+  .contact-overlay-card .contact-item{box-shadow:none;padding:10px 12px;background:#f7f5ee;}
+  @media(max-width:820px){.contact-overlay-card{position:relative;top:auto;left:auto;margin-top:16px;max-width:none;max-height:none;}}
   .contact-form-box{background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
   .contact-form-box .fake{display:flex;flex-direction:column;gap:12px;}
   .contact-form-box .fake > div{padding:10px 12px;border:1px solid rgba(0,0,0,.15);border-radius:6px;font-size:.9rem;color:#9a9a8e;}

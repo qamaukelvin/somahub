@@ -72,9 +72,11 @@ $extraCss = <<<CSS
   .cta-banner p{opacity:.85;max-width:50ch;margin:0 auto 22px;}
   .cta-banner .btn-primary{background:var(--accent);color:var(--primary);}
   .btn-primary{background:var(--primary);color:var(--bg);padding:13px 28px;border-radius:6px;font-weight:600;font-size:.9rem;display:inline-block;cursor:default;}
-  .enroll-inline-form{max-width:480px;margin:0 auto;background:#fff;border-radius:10px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+  .enroll-inline-form{max-width:none;margin:0;background:#fff;border-radius:10px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
   .enroll-inline-form > p{margin-bottom:18px;color:#5a5a52;}
-  .enroll-form-fields{display:flex;flex-direction:column;}
+  .enroll-form-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 22px;align-items:start;}
+  .enroll-form-fields .ef{display:flex;flex-direction:column;min-width:0;}
+  .enroll-form-fields .demo-btn{grid-column:1/-1;justify-self:start;}
   .enroll-form-fields .lbl{font-size:.85rem;font-weight:600;margin-bottom:6px;}
   .enroll-form-fields .fake-input{padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:16px;color:#aaa;font-size:.88rem;background:#fafafa;}
   .live-list-item{position:relative;}
@@ -119,7 +121,7 @@ elseif ($variant === 'deadline_banner' && empty($content['deadline_text'])) $not
           <?php foreach ($isEnroll
               ? ["Child's Full Name", 'Date of Birth', 'Grade Applying For', 'Previous School (if transferring)', 'Parent / Guardian Name', 'Parent / Guardian Phone', 'Parent / Guardian Email (optional)']
               : ['Admission Number', "Student's Full Name or Date of Birth (YYYY-MM-DD)"] as $l): ?>
-            <span class="lbl"><?= esc($l) ?></span><span class="fake-input">&nbsp;</span>
+            <div class="ef"><span class="lbl"><?= esc($l) ?></span><span class="fake-input">&nbsp;</span></div>
           <?php endforeach; ?>
           <?= $btn($isEnroll ? 'Submit Application' : 'Check Results') ?>
         </div>
