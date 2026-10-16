@@ -34,6 +34,18 @@ function get_starter_layout(): array {
     ];
 }
 
+/** True if the column exists (lets the signup work before/after optional migrations). */
+function db_has_column(PDO $db, string $table, string $column): bool {
+    static $cache = [];
+    $k = $table . '.' . $column;
+    if (!isset($cache[$k])) {
+        $q = $db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+        $q->execute([$table, $column]);
+        $cache[$k] = (int)$q->fetchColumn() > 0;
+    }
+    return $cache[$k];
+}
+
 /** Job titles offered at signup; "Other" is free text. */
 function get_signup_roles(): array {
     return ['Head Teacher / Principal', 'Deputy Head Teacher', 'Proprietor / Director', 'School Administrator', 'Bursar', 'Teacher', 'IT / Communications Officer', 'Other'];
@@ -96,20 +108,28 @@ function provision_school(PDO $db, array $user, array $d): array {
 
     $db->beginTransaction();
     try {
-        $db->prepare("
-            INSERT INTO schools (name, slug, template_id, palette_id, color_mode, plan, status, verification_status, county, phone, email, first_login_at, head_teacher_name, head_teacher_phone)
-            VALUES (?, ?, ?, ?, 'preset', 'free', 'trial', 'pending', ?, ?, ?, NOW(), ?, ?)
-        ")->execute([$d['school_name'], $d['slug'], $templateId, $paletteId, $d['county'], $user['phone'] ?? '', $user['email'],
-                     role_is_authority($d['job_title']) ? null : ($d['head_name'] ?: null), role_is_authority($d['job_title']) ? null : ($d['head_phone'] ?: null)]);
+        $sCols = ['name' => $d['school_name'], 'slug' => $d['slug'], 'template_id' => $templateId, 'palette_id' => $paletteId, 'color_mode' => 'preset',
+                  'plan' => 'free', 'status' => 'trial', 'verification_status' => 'pending', 'county' => $d['county'], 'phone' => $user['phone'] ?? '', 'email' => $user['email']];
+        $isAuth = role_is_authority($d['job_title']);
+        if (db_has_column($db, 'schools', 'head_teacher_name')) $sCols['head_teacher_name'] = $isAuth ? null : ($d['head_name'] ?: null);
+        if (db_has_column($db, 'schools', 'head_teacher_phone')) $sCols['head_teacher_phone'] = $isAuth ? null : ($d['head_phone'] ?: null);
+        $db->prepare('INSERT INTO schools (' . implode(',', array_keys($sCols)) . ', first_login_at) VALUES (' . implode(',', array_fill(0, count($sCols), '?')) . ', NOW())')->execute(array_values($sCols));
         $schoolId = (int)$db->lastInsertId();
 
         start_trial($db, $schoolId, 60); // everyone starts with full access
 
-        $db->prepare("UPDATE users SET school_id = ?, job_title = ?, authorized_confirmed = ?, terms_accepted_at = COALESCE(terms_accepted_at, NOW()) WHERE id = ?")
-           ->execute([$schoolId, $d['job_title'], ($d['authorized'] || role_is_authority($d['job_title'])) ? 1 : 0, $user['id']]);
+        $uSet = ['school_id' => $schoolId];
+        if (db_has_column($db, 'users', 'job_title')) $uSet['job_title'] = $d['job_title'];
+        if (db_has_column($db, 'users', 'authorized_confirmed')) $uSet['authorized_confirmed'] = ($d['authorized'] || role_is_authority($d['job_title'])) ? 1 : 0;
+        $sql = 'UPDATE users SET ' . implode(', ', array_map(fn($c) => "$c = ?", array_keys($uSet)));
+        if (db_has_column($db, 'users', 'terms_accepted_at')) $sql .= ', terms_accepted_at = COALESCE(terms_accepted_at, NOW())';
+        $db->prepare($sql . ' WHERE id = ?')->execute(array_merge(array_values($uSet), [$user['id']]));
 
         $typeStmt = $db->prepare("SELECT id, schema_json FROM section_types WHERE key_name = ?");
-        $ins = $db->prepare("INSERT INTO site_sections (school_id, section_type_id, position, is_visible, layout_variant, content_json) VALUES (?, ?, ?, ?, ?, ?)");
+        $hasVariantCol = db_has_column($db, 'site_sections', 'layout_variant');
+        $ins = $db->prepare($hasVariantCol
+            ? "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, layout_variant, content_json) VALUES (?, ?, ?, ?, ?, ?)"
+            : "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, content_json) VALUES (?, ?, ?, ?, ?)");
         $pos = 0;
         foreach (get_starter_layout() as [$key, $variant, $visible]) {
             $typeStmt->execute([$key]);
@@ -129,7 +149,7 @@ function provision_school(PDO $db, array $user, array $d): array {
             if ($key === 'about' && role_is_authority($d['job_title']) && stripos($d['job_title'], 'head') !== false && array_key_exists('author_name', $content)) {
                 $content['author_name'] = $user['name'] ?? '';
             }
-            $ins->execute([$schoolId, $type['id'], $pos++, $visible, $variant, json_encode($content)]);
+            $ins->execute($hasVariantCol ? [$schoolId, $type['id'], $pos++, $visible, $variant, json_encode($content)] : [$schoolId, $type['id'], $pos++, $visible, json_encode($content)]);
             if ($key === 'hero') $heroId = (int)$db->lastInsertId();
         }
         $db->commit();

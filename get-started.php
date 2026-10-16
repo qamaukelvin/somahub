@@ -44,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!consent_given()) {
             $error = CONSENT_ERROR;
         } else {
+            try {
             $check = $db->prepare("SELECT id FROM users WHERE email = ?");
             $check->execute([$email]);
             if ($check->fetch()) {
@@ -56,11 +57,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($schoolError) {
                     $error = $schoolError;
                 } else {
-                    $insert = $db->prepare("
-                        INSERT INTO users (name, email, phone, password_hash, role, job_title, terms_accepted_at)
-                        VALUES (?, ?, ?, ?, 'school_owner', ?, NOW())
-                    ");
-                    $insert->execute([$name, $email, $phone, password_hash($password, PASSWORD_DEFAULT), $schoolData['job_title']]);
+                    $uCols = ['name' => $name, 'email' => $email, 'phone' => $phone, 'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'role' => 'school_owner'];
+                    if (db_has_column($db, 'users', 'job_title')) $uCols['job_title'] = $schoolData['job_title'];
+                    if (db_has_column($db, 'users', 'terms_accepted_at')) $uCols['terms_accepted_at'] = date('Y-m-d H:i:s');
+                    $db->prepare('INSERT INTO users (' . implode(',', array_keys($uCols)) . ') VALUES (' . implode(',', array_fill(0, count($uCols), '?')) . ')')->execute(array_values($uCols));
                     $newUserId = (int)$db->lastInsertId();
                     login($email, $password);
                     $newUser = current_user();
@@ -101,6 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: dashboard/' . ($res['hero_section_id'] ? 'section-live-edit-hero.php?id=' . $res['hero_section_id'] . '&welcome=1' : 'sections.php?welcome=1'));
                     exit;
                 }
+            }
+            } catch (\Throwable $e) {
+                app_log('get-started signup failed: ' . $e->getMessage());
+                $error = 'Something went wrong creating your site: ' . $e->getMessage();
             }
         }
     }
