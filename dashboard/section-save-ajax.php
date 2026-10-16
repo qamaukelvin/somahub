@@ -139,6 +139,16 @@ if (!empty($_FILES['bulk_photos']['tmp_name']) && is_array($_FILES['bulk_photos'
     }
 }
 
+// CTA Banner destinations are a curated picker - never accept anything but
+// one of the four real destinations (or empty).
+if ($section['key_name'] === 'cta_banner') {
+    foreach (['cta_destination_1', 'cta_destination_2'] as $ctaDestField) {
+        if (isset($newContent[$ctaDestField]) && !in_array($newContent[$ctaDestField], ['', 'contact', 'enroll', 'results', 'fees'], true)) {
+            $newContent[$ctaDestField] = $content[$ctaDestField] ?? '';
+        }
+    }
+}
+
 // Hero's cta_1/cta_2 aren't part of the generic schema loop above (they're
 // a curated destination picker, not free text) - preserve/update them
 // explicitly here so a normal content save never silently wipes them.
