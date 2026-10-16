@@ -103,7 +103,7 @@ $palettes = get_active_palettes($db);
 <section id="plans" style="padding-top:60px;">
   <div class="section-head" style="text-align:center;margin-left:auto;margin-right:auto;">
     <h2>Website plans</h2>
-    <p>Start on Free anytime, or try everything free for 60 days on Trial - no card required either way.</p>
+    <p>Every new school starts with a 60-day trial of everything, no card required. Afterwards, stay on Free or upgrade to Premium.</p>
   </div>
   <div class="plans-wrap">
     <div class="plan-card">
@@ -114,8 +114,7 @@ $palettes = get_active_palettes($db);
         <li><span class="check">＋</span> Full website with all core pages</li>
         <li><span class="check">＋</span> Free yourschool.somahub.top address</li>
         <li><span class="check">＋</span> Self service editing dashboard</li>
-        <li><span class="check">＋</span> Published fee structure</li>
-        <li><span class="check">＋</span> Term-by-term results checking</li>
+        <li><span class="check">＋</span> Optional: your own domain (add-on)</li>
       </ul>
       <a href="get-started.php" class="plan-cta">Get Started Free</a>
     </div>

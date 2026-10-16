@@ -201,7 +201,7 @@ $platformAvgRating = get_average_rating($platformReviews);
   <div class="hero-inner">
     <span class="hero-tag"><span class="dot"></span> Built for Kenyan schools</span>
     <h1>Your school deserves a <span class="accent">real website</span>, at no cost to you</h1>
-    <p>Somahub builds and hosts your school's site. You review it, edit it from a simple dashboard, and it goes live in days, not months.</p>
+    <p>Sign up, answer a few questions, and your site is live in minutes. We set up the pages and host them. You edit text, photos and colours right on the page.</p>
     <div class="hero-ctas">
       <a href="get-started.php" class="btn-primary">Get Started / Log In</a>
       <a href="#portfolio" class="btn-ghost">View Schools</a>
@@ -225,7 +225,7 @@ $platformAvgRating = get_average_rating($platformReviews);
       </div>
       <div class="bento-cell" style="grid-column:span 2;">
         <h4>Edit it yourself, anytime</h4>
-        <p>Update text and photos from your dashboard, no coding, no waiting on us for small changes.</p>
+        <p>Click text and photos right on your site to change them. No coding, no waiting on us.</p>
       </div>
     </div>
   </div>
@@ -240,18 +240,18 @@ $platformAvgRating = get_average_rating($platformReviews);
     <div class="steps-grid">
       <div class="step-card">
         <div class="num">01</div>
-        <h3>We build your site</h3>
-        <p>Send us your school's details and a few photos. We put together your pages, including Home, About, Academics, Admissions, Gallery, and Contact.</p>
+        <h3>Sign up in minutes</h3>
+        <p>Tell us your school's name, county and your role. We instantly set up a ready-made site: Home, About, Academics, Admissions, Gallery, Staff, Reviews, FAQ and Contact.</p>
       </div>
       <div class="step-card">
         <div class="num">02</div>
-        <h3>You review and edit</h3>
-        <p>Log into your dashboard to update text, swap photos, or reorder sections whenever you like.</p>
+        <h3>Make it yours</h3>
+        <p>Click any text or photo to edit it on the page itself. Pick your colours and font, add or hide sections, and reorder them whenever you like.</p>
       </div>
       <div class="step-card">
         <div class="num">03</div>
-        <h3>Your school goes live</h3>
-        <p>Your site is published immediately on a free Somahub address. Add your own domain whenever you are ready.</p>
+        <h3>Verify and stay live</h3>
+        <p>Your site is public straight away on a free Somahub address. Verify your school within 7 days to keep it online. Add your own domain whenever you are ready.</p>
       </div>
     </div>
   </div>
@@ -262,7 +262,7 @@ $platformAvgRating = get_average_rating($platformReviews);
     <div class="section-head">
       <span class="kicker">What is included</span>
       <h2>Free to start, more when you need it</h2>
-      <p style="margin-top:10px;font-size:0.92rem;color:var(--muted);">Everything tagged "Paid" below is free to try for 60 days on our <a href="#plans" style="color:var(--teal);font-weight:700;">Trial plan</a> - no card required.</p>
+      <p style="margin-top:10px;font-size:0.92rem;color:var(--muted);">Everything tagged "Paid" below is included in the 60-day trial every new school starts with, no card required. After the trial it needs <a href="#plans" style="color:var(--teal);font-weight:700;">Premium</a>.</p>
     </div>
     <div class="feature-grid">
       <div class="feature-card"><h3>Website and hosting</h3><p>Every core page your school needs, hosted and online, always free.</p></div>
@@ -282,7 +282,7 @@ $platformAvgRating = get_average_rating($platformReviews);
     <div class="section-head center">
       <span class="kicker">Plans</span>
       <h2>Pick what your school needs today</h2>
-      <p style="margin-top:10px;font-size:0.95rem;color:var(--muted);">Start on Free anytime, or try everything free for 60 days on Trial - no card required either way.</p>
+      <p style="margin-top:10px;font-size:0.95rem;color:var(--muted);">Every new school starts with a 60-day trial of everything, no card required. Afterwards, stay on Free or upgrade to Premium.</p>
     </div>
     <div class="plans-wrap">
       <div class="plan-card">
@@ -293,13 +293,12 @@ $platformAvgRating = get_average_rating($platformReviews);
           <li><span class="check">＋</span> Full website with all core pages</li>
           <li><span class="check">＋</span> Free yourschool.somahub.top address</li>
           <li><span class="check">＋</span> Self service editing dashboard</li>
-          <li><span class="check">＋</span> Published fee structure</li>
-          <li><span class="check">＋</span> Term-by-term results checking</li>
+          <li><span class="check">＋</span> Optional: your own domain (add-on)</li>
         </ul>
-        <a href="get-started.php" class="plan-cta">Get Started Free</a>
+        <a href="get-started.php" class="plan-cta">Get Started</a>
       </div>
       <div class="plan-card" style="border-color:var(--amber);">
-        <div class="plan-name">60-Day Trial</div>
+        <div class="plan-name">60-Day Trial <span style="font-size:.7rem;background:var(--amber);color:var(--teal-deep);padding:2px 9px;border-radius:20px;vertical-align:middle;">Starts automatically</span></div>
         <div class="plan-price">KSh 0 <span>for 60 days</span></div>
         <div class="plan-desc">Everything unlocked, free, so you can see the real value before deciding.</div>
         <ul>
@@ -370,7 +369,7 @@ $platformAvgRating = get_average_rating($platformReviews);
     </div>
 
     <?php if (isset($_GET['review_submitted'])): ?>
-      <p style="background:#DCEFE1;color:#1B4D3E;padding:10px 16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;max-width:480px;margin-left:auto;margin-right:auto;text-align:center;">✓ Thank you! Your review has been submitted and will appear once reviewed.</p>
+      <p style="background:#DCEFE1;color:#1B4D3E;padding:10px 16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;max-width:480px;margin-left:auto;margin-right:auto;text-align:center;">Thank you! Your review has been submitted and will appear once reviewed.</p>
     <?php elseif (!empty($_GET['review_error'])): ?>
       <p style="background:#FBE8E4;color:#8C3B2E;padding:10px 16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;max-width:480px;margin-left:auto;margin-right:auto;text-align:center;"><?= htmlspecialchars($_GET['review_error']) ?></p>
     <?php endif; ?>
