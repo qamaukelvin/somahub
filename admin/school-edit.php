@@ -218,14 +218,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'enrollment_applications' => 'school_id', 'content_audit_log' => 'school_id',
                     'site_sections' => 'school_id', 'notifications' => 'school_id',
                     'account_removal_requests' => 'school_id', 'reviews' => 'reviewable_id',
+                    'school_contact_messages' => 'school_id', 'media' => 'school_id',
                 ];
                 foreach ($tablesByColumn as $table => $col) {
                     if ($table === 'reviews') {
                         $db->prepare("DELETE FROM reviews WHERE reviewable_type = 'school' AND reviewable_id = ?")->execute([$id]);
                     } else {
-                        $db->prepare("DELETE FROM {$table} WHERE {$col} = ?")->execute([$id]);
+                        try {
+                            $db->prepare("DELETE FROM {$table} WHERE {$col} = ?")->execute([$id]);
+                        } catch (PDOException $e) {
+                            // A table that was never created on this server is fine to skip.
+                            if ($e->getCode() !== '42S02') throw $e;
+                        }
                     }
                 }
+
+                // Uploads recorded against this school's users (e.g. made while an
+                // admin was impersonating) also point at users.id, so they must go
+                // before the users do or the delete fails on media_ibfk_2.
+                if ($userIds) {
+                    $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+                    $db->prepare("DELETE FROM media WHERE uploaded_by_user_id IN ($placeholders)")->execute($userIds);
+                }
+                $db->prepare("UPDATE leads SET converted_school_id = NULL WHERE converted_school_id = ?")->execute([$id]);
 
                 // Users last — everything above that referenced user_id is already gone
                 $db->prepare("DELETE FROM users WHERE school_id = ?")->execute([$id]);
