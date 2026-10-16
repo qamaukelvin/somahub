@@ -70,11 +70,16 @@ $defaultLng = $locLng ?: 36.817223;
   // Try to center on the user's actual location if nothing is set yet —
   // makes first-time picking much faster for schools on mobile.
   <?php if (!$locLat || !$locLng): ?>
-  if (navigator.geolocation) {
+  var somahubRunGeo = function() {
+    if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(function(pos) {
       map.setView([pos.coords.latitude, pos.coords.longitude], 14);
     }, function() { /* silently ignore if denied */ });
-  }
+  };
+  // When the picker sits in a collapsed section, wait until it's opened so the
+  // browser's location prompt doesn't appear on page load.
+  if (window.somahubDeferGeo) window.addEventListener('somahub-map-open', somahubRunGeo, {once: true});
+  else somahubRunGeo();
   <?php endif; ?>
 })();
 </script>

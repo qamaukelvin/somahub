@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/consent.php';
 $db = get_db();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -25,6 +26,11 @@ if (!$school) {
 $name = trim($_POST['name'] ?? '');
 $email = trim($_POST['email'] ?? '');
 $message = trim($_POST['message'] ?? '');
+
+if (!consent_given()) {
+    header('Location: https://' . $school['slug'] . '.somahub.top/?msg_error=consent#contact');
+    exit;
+}
 
 if ($name && $email && $message && filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $insert = $db->prepare("INSERT INTO school_contact_messages (school_id, name, email, message) VALUES (?, ?, ?, ?)");

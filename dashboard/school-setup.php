@@ -1,9 +1,10 @@
 <?php
+// For accounts that exist but have no school yet (signed up before the signup
+// form was merged, or provisioning failed part-way). New signups never see this.
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/app_log.php';
-require_once __DIR__ . '/../includes/content-presets.php';
-require_once __DIR__ . '/../includes/payments.php';
-require_once __DIR__ . '/../includes/blog.php';
+require_once __DIR__ . '/../includes/school-provision.php';
+require_once __DIR__ . '/../includes/consent.php';
 $db = get_db();
 
 $user = current_user();
@@ -12,138 +13,30 @@ if (!$user || !in_array($user['role'], ['school_owner', 'school_editor'])) {
     exit;
 }
 if (!empty($user['school_id'])) {
-    // Already has a school - nothing to set up, send them to their real dashboard.
     header('Location: index.php');
     exit;
 }
 
-require_once __DIR__ . '/../includes/appearance.php';
-$templates = get_active_templates($db);
-$palettes = get_active_palettes($db);
 $contentPresets = get_school_content_presets();
+$subdomainCheckUrl = '../subdomain-check.php';
+$sf = [];
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $schoolName = trim($_POST['school_name'] ?? '');
-    $slug = strtolower(preg_replace('/[^a-z0-9]/', '', strtolower($_POST['slug'] ?? '')));
-    $county = trim($_POST['county'] ?? '');
-    $presetKey = $_POST['content_preset'] ?? 'blank';
-    $planChoice = $_POST['plan_choice'] ?? 'free'; // 'free' or 'trial'
-
-    // Template/colors are no longer chosen here - that used to be duplicated
-    // with the Website Design step (step 3) that immediately follows. This
-    // page assigns a sensible free default (first active free template,
-    // first active palette) and step 3 is the one real place to pick/change
-    // it, both right after signup and any time later.
-    $defaultTemplate = null;
-    foreach ($templates as $t) { if (empty($t['is_premium'])) { $defaultTemplate = $t; break; } }
-    $templateId = $defaultTemplate['id'] ?? ($templates[0]['id'] ?? null);
-    $colorMode = 'preset';
-    $paletteId = $palettes[0]['id'] ?? null;
-    $primaryOverride = $secondaryOverride = $accentOverride = $bgOverride = null;
-
-    if (!$schoolName || !$slug) {
-        $error = 'Please fill in all required fields.';
+    $sf = $_POST;
+    $sf['job_title_raw'] = $_POST['job_title'] ?? '';
+    if (!consent_given()) {
+        $error = CONSENT_ERROR;
     } else {
-        $check = $db->prepare("SELECT id FROM schools WHERE slug = ?");
-        $check->execute([$slug]);
-        if ($check->fetch()) {
-            $error = "The subdomain \"$slug\" was just taken by someone else - please pick another.";
-        } else {
-            $db->beginTransaction();
+        [$schoolData, $error] = validate_school_input($db, $_POST);
+        if (!$error) {
             try {
-                $insertSchool = $db->prepare("
-                    INSERT INTO schools (name, slug, template_id, palette_id, color_mode, primary_override, secondary_override, accent_override, bg_override, plan, status, verification_status, county, phone, email, first_login_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?, NOW())
-                ");
-                $insertSchool->execute([$schoolName, $slug, $templateId, $paletteId, $colorMode, $primaryOverride, $secondaryOverride, $accentOverride, $bgOverride, $county, $user['phone'] ?? '', $user['email']]);
-                $schoolId = $db->lastInsertId();
-
-                if ($planChoice === 'trial') {
-                    start_trial($db, $schoolId, 60); // full Paid-tier access for 60 days
-                }
-
-                // Attach this school to the already-logged-in user's account
-                $db->prepare("UPDATE users SET school_id = ? WHERE id = ?")->execute([$schoolId, $user['id']]);
-
-                $presetContent = $contentPresets[$presetKey]['content'] ?? [];
-                $defaultSectionKeys = ['hero','about','academics','admissions','gallery','contact'];
-                $typeStmt = $db->prepare("SELECT id, schema_json FROM section_types WHERE key_name = ?");
-                $insertSection = $db->prepare("
-                    INSERT INTO site_sections (school_id, section_type_id, position, is_visible, content_json)
-                    VALUES (?, ?, ?, 1, ?)
-                ");
-                foreach ($defaultSectionKeys as $i => $key) {
-                    $typeStmt->execute([$key]);
-                    $type = $typeStmt->fetch();
-                    if ($type) {
-                        $schema = json_decode($type['schema_json'], true);
-                        $emptyContent = array_fill_keys(array_keys($schema), '');
-                        if (!empty($presetContent[$key])) {
-                            foreach ($presetContent[$key] as $field => $text) {
-                                if (array_key_exists($field, $emptyContent)) {
-                                    $emptyContent[$field] = str_replace('{school}', $schoolName, $text);
-                                }
-                            }
-                        }
-                        $insertSection->execute([$schoolId, $type['id'], $i, json_encode($emptyContent)]);
-                    }
-                }
-
-                $db->commit();
-
-                // Everything below this point runs AFTER the transaction has
-                // committed — the school and its school_id are already safely
-                // saved. None of these steps may call $db->rollBack() (there is
-                // nothing left to roll back, and calling it anyway throws a
-                // fatal "no active transaction" error) or the user gets stuck:
-                // silently dropped with no redirect, even though their school
-                // was actually created. Each step is wrapped individually so
-                // one failing (e.g. a notification insert) can never block the
-                // others or the final redirect.
-
-                try {
-                    generate_school_joined_post($db, [
-                        'id' => $schoolId,
-                        'name' => $schoolName,
-                        'slug' => $slug,
-                        'county' => $county,
-                    ]);
-                    $totalSchools = (int)$db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
-                    maybe_generate_milestone_post($db, $totalSchools);
-                } catch (\Throwable $e) {
-                    app_log('Auto blog draft failed for school ' . $schoolId . ': ' . $e->getMessage());
-                }
-
-                try {
-                    // Refresh the session so $_SESSION['user']['school_id'] reflects
-                    // the school just attached - every other dashboard page reads
-                    // school_id straight from the session.
-                    $refreshed = $db->prepare("SELECT * FROM users WHERE id = ?");
-                    $refreshed->execute([$user['id']]);
-                    $refreshedUser = $refreshed->fetch();
-                    unset($refreshedUser['password_hash']);
-                    $_SESSION['user'] = $refreshedUser;
-                } catch (\Throwable $e) {
-                    app_log('Session refresh failed after creating school ' . $schoolId . ': ' . $e->getMessage());
-                }
-
-                try {
-                    require_once __DIR__ . '/../includes/notifications.php';
-                    create_notification($db, $schoolId, 'welcome',
-                        'Welcome to Somahub!',
-                        'Your site is live. Start by editing your Website content from the dashboard.',
-                        'sections.php');
-                } catch (\Throwable $e) {
-                    app_log('Welcome notification failed for school ' . $schoolId . ': ' . $e->getMessage());
-                }
-
-                header('Location: index.php?welcome=1');
+                $res = provision_school($db, $user, $schoolData);
+                header('Location: ' . ($res['hero_section_id'] ? 'section-live-edit-hero.php?id=' . $res['hero_section_id'] . '&welcome=1' : 'sections.php?welcome=1'));
                 exit;
-            } catch (Exception $e) {
-                $db->rollBack();
+            } catch (\Throwable $e) {
                 app_log('school-setup.php failed: ' . $e->getMessage());
-                $error = 'Something went wrong: ' . $e->getMessage();
+                $error = 'Something went wrong creating your site. Please try again, or contact us on WhatsApp.';
             }
         }
     }
@@ -162,161 +55,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Manrope',sans-serif;background:var(--sand);color:var(--ink);line-height:1.6;}
   a{color:inherit;}
-  .wrap{max-width:600px;margin:0 auto;padding:40px 20px;}
-  .step-indicator{font-size:0.78rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;}
-  h1{font-size:1.8rem;margin-bottom:8px;}
+  .wrap{max-width:680px;margin:0 auto;padding:40px 20px;}
+  h1{font-size:1.7rem;margin-bottom:8px;}
   .sub{color:var(--muted);margin-bottom:24px;}
   .card{background:#fff;border-radius:12px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
   label{display:block;font-size:0.85rem;font-weight:700;margin:16px 0 6px;}
-  label:first-of-type{margin-top:0;}
-  input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:0.95rem;}
-  .subdomain-row{display:flex;align-items:center;gap:8px;}
-  .subdomain-row input{flex:1;}
-  .subdomain-suffix{color:var(--muted);font-size:0.85rem;white-space:nowrap;}
-  .avail-msg{font-size:0.82rem;margin-top:6px;min-height:18px;}
-  .avail-ok{color:#1B4D3E;}
-  .avail-bad{color:#8C3B2E;}
-  .avail-checking{color:var(--muted);}
+  input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:0.95rem;background:#fff;}
   button[type=submit]{width:100%;margin-top:24px;background:var(--teal);color:var(--sand);border:none;padding:14px;border-radius:8px;font-weight:800;font-size:1rem;cursor:pointer;}
-  button[type=submit]:disabled{opacity:0.5;cursor:not-allowed;}
   .error{background:#FBE8E4;color:#8C3B2E;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:0.88rem;}
-  .flow-note{font-size:0.82rem;color:var(--muted);margin-top:20px;text-align:center;}
-
-  .plan-toggle{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px;}
-  .plan-option{position:relative;}
-  .plan-option input{position:absolute;opacity:0;}
-  .plan-option label{display:block;border:2px solid var(--line);border-radius:10px;padding:14px;cursor:pointer;background:#fff;}
-  .plan-option input:checked + label{border-color:var(--teal);box-shadow:0 0 0 2px rgba(15,82,87,0.15);background:#F4F8F6;}
-  .plan-name{font-weight:800;font-size:0.95rem;}
-  .plan-price{font-size:0.78rem;color:var(--muted);margin-top:2px;}
-  .plan-desc{font-size:0.78rem;color:var(--muted);margin-top:6px;line-height:1.4;}
-
-  .theme-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:8px;margin-bottom:6px;max-height:280px;overflow-y:auto;padding:2px;}
-  .theme-option{position:relative;}
-  .theme-option input{position:absolute;opacity:0;}
-  .theme-option label{display:block;border:2px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;background:#fff;}
-  .theme-option input:checked + label{border-color:var(--teal);box-shadow:0 0 0 2px rgba(15,82,87,0.15);}
-  .theme-preview{height:38px;position:relative;overflow:hidden;}
-  .theme-preview .tp-bar{height:9px;display:flex;align-items:center;padding:0 4px;gap:2px;}
-  .theme-preview .tp-dot{width:3px;height:3px;border-radius:50%;}
-  .theme-preview .tp-body{padding:4px;}
-  .theme-preview .tp-line{height:3px;border-radius:2px;margin-bottom:2px;}
-  .theme-meta{padding:5px 7px;}
-  .theme-option-name{font-size:0.68rem;font-weight:700;line-height:1.2;display:block;}
-  .premium-tag{display:inline-block;background:#F2A65A;color:#0A3A3E;font-size:0.56rem;font-weight:800;padding:0 4px;border-radius:6px;margin-top:2px;}
-  .theme-option.locked label{opacity:0.55;}
 </style>
 </head>
 <body>
 <?php $navRoot = '..'; include __DIR__ . '/../_public_nav.php'; ?>
 
 <main class="wrap">
-  <div class="step-indicator">Step 2 of 3 - School Details</div>
-  <h1>Now, tell us about your school</h1>
-  <p class="sub">Pick a plan, choose a theme, and pick your web address.</p>
-
+  <h1>Finish setting up your school</h1>
+  <p class="sub">A few details and your website goes live, with a free 60-day trial of every feature.</p>
   <div class="card">
     <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-
-    <form method="POST" id="schoolSetupForm" class="loader-on-submit">
-      <label>Choose Your Plan</label>
-      <div class="plan-toggle">
-        <div class="plan-option">
-          <input type="radio" name="plan_choice" id="plan_free" value="free" checked>
-          <label for="plan_free">
-            <div class="plan-name">Free</div>
-            <div class="plan-price">KSh 0</div>
-            <div class="plan-desc">Full website, free templates, any color palette. Enrollment, results & fees tools locked.</div>
-          </label>
-        </div>
-        <div class="plan-option">
-          <input type="radio" name="plan_choice" id="plan_trial" value="trial">
-          <label for="plan_trial">
-            <div class="plan-name">60-Day Trial</div>
-            <div class="plan-price">KSh 0 for 60 days</div>
-            <div class="plan-desc">Everything unlocked - premium themes, enrollment, results, fees. No card needed.</div>
-          </label>
-        </div>
-      </div>
-      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:14px;">After 60 days, the Trial reverts to Free automatically unless you upgrade to Paid - nothing is charged without you choosing to.</p>
-
-      <label>School Name</label>
-      <input type="text" name="school_name" required placeholder="e.g. Kinangop Pride Primary School">
-
-      <label>Choose Your Web Address</label>
-      <div class="subdomain-row">
-        <input type="text" name="slug" id="slugInput" required placeholder="kinangoppride" pattern="[a-z0-9]+" autocomplete="off">
-        <span class="subdomain-suffix">.somahub.top</span>
-      </div>
-      <div class="avail-msg" id="availMsg"></div>
-
-      <label>County</label>
-      <input type="text" name="county" placeholder="e.g. Nyandarua">
-
-      <p style="font-size:0.85rem;color:var(--muted);background:#F4F8F6;padding:10px 14px;border-radius:8px;">You'll pick your template and colors in the next step, right after this.</p>
-
-      <label>Starting Content</label>
-      <select name="content_preset">
-        <?php foreach ($contentPresets as $key => $p): ?>
-          <option value="<?= $key ?>" <?= $key === 'primary_day' ? 'selected' : '' ?>><?= htmlspecialchars($p['label']) ?></option>
-        <?php endforeach; ?>
-      </select>
-      <p style="font-size:0.78rem;color:var(--muted);margin-top:-4px;">Fills your About, Academics, and Admissions sections with a starting point matched to your school type - fully editable afterward.</p>
-
-      <button type="submit" id="submitBtn">Create My Site</button>
+    <form method="POST" class="loader-on-submit">
+      <?php include __DIR__ . '/../includes/_school_form_fields.php'; ?>
+      <?= consent_checkbox() ?>
+      <button type="submit">Create My Website</button>
     </form>
   </div>
-
-  <p class="flow-note">Next, you'll edit your site content and upload verification documents in your dashboard. Your site is live immediately for a preview window, and stays live once verified.</p>
 </main>
-
-<script>
-const slugInput = document.getElementById('slugInput');
-const availMsg = document.getElementById('availMsg');
-let debounceTimer, isAvailable = false;
-
-slugInput.addEventListener('input', () => {
-    slugInput.value = slugInput.value.toLowerCase().replace(/[^a-z0-9]/g, '');
-    clearTimeout(debounceTimer);
-    const val = slugInput.value.trim();
-    isAvailable = false;
-
-    if (val.length < 3) {
-        availMsg.textContent = val.length ? 'At least 3 characters' : '';
-        availMsg.className = 'avail-msg avail-bad';
-        return;
-    }
-
-    availMsg.textContent = 'Checking availability...';
-    availMsg.className = 'avail-msg avail-checking';
-
-    debounceTimer = setTimeout(() => {
-        fetch('../subdomain-check.php?slug=' + encodeURIComponent(val))
-            .then(r => r.json())
-            .then(data => {
-                if (data.available) {
-                    availMsg.textContent = '✓ ' + val + '.somahub.top is available';
-                    availMsg.className = 'avail-msg avail-ok';
-                    isAvailable = true;
-                } else {
-                    availMsg.textContent = '✗ That address is already taken';
-                    availMsg.className = 'avail-msg avail-bad';
-                }
-            })
-            .catch(() => { availMsg.textContent = ''; });
-    }, 400);
-});
-
-document.getElementById('schoolSetupForm').addEventListener('submit', (e) => {
-    if (!isAvailable) {
-        e.preventDefault();
-        availMsg.textContent = 'Please choose an available web address first';
-        availMsg.className = 'avail-msg avail-bad';
-        slugInput.focus();
-    }
-});
-
-</script>
 <?php include __DIR__ . '/../_loader.php'; ?>
 </body>
 </html>

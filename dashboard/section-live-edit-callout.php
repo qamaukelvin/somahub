@@ -80,6 +80,8 @@ $extraCss = <<<CSS
   .enroll-form-fields .demo-btn{grid-column:1/-1;justify-self:start;}
   .enroll-form-fields .lbl{font-size:.85rem;font-weight:600;margin-bottom:6px;}
   .enroll-form-fields .fake-input{padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:16px;color:#aaa;font-size:.88rem;background:#fafafa;}
+  .fake-consent{grid-column:1/-1;display:flex;gap:9px;align-items:flex-start;font-size:.8rem;color:#5a5a52;margin:2px 0 12px;}
+  .fake-consent i{width:15px;height:15px;border:1.5px solid #999;border-radius:3px;flex:0 0 auto;margin-top:2px;display:inline-block;}
   .live-list-item{position:relative;}
   .live-list-remove{position:absolute;top:0;right:0;width:22px;height:22px;border-radius:50%;border:none;background:#B3261E;color:#fff;cursor:pointer;opacity:0;line-height:1;padding:0;}
   .live-list-item:hover .live-list-remove{opacity:1;}
@@ -125,6 +127,7 @@ elseif ($variant === 'deadline_banner' && empty($content['deadline_text'])) $not
               : ['Admission Number', "Student's Full Name or Date of Birth (YYYY-MM-DD)"] as $li => $l): ?>
             <div class="ef ef-<?= $spans[$li] ?>"><span class="lbl"><?= esc($l) ?></span><span class="fake-input">&nbsp;</span></div>
           <?php endforeach; ?>
+          <span class="fake-consent"><i></i><span>I agree to the Terms of Service and Privacy Policy and agree that my details are shared with the school to handle this request.</span></span>
           <?= $btn($isEnroll ? 'Submit Application' : 'Check Results') ?>
         </div>
         <p class="i-note" style="margin:12px 0 0;"><span class="material-symbols-outlined">info</span>Preview only. Visitors fill in the real form on your live site.</p>

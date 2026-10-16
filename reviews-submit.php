@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/reviews.php';
+require_once __DIR__ . '/includes/consent.php';
 $db = get_db();
 
 $error = '';
@@ -17,7 +18,8 @@ if ($parsedHost !== null && !preg_match('/(^|\.)somahub\.top$/', $parsedHost)) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    submit_review($db, $_POST, $error);
+    if (!consent_given()) $error = CONSENT_ERROR;
+    else submit_review($db, $_POST, $error);
 }
 
 $separator = strpos($redirectBack, '?') !== false ? '&' : '?';

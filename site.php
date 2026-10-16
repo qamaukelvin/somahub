@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/consent.php';
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/plan.php';
 require_once __DIR__ . '/includes/reviews.php';
@@ -1235,6 +1236,7 @@ foreach ($sections as $s) {
           <div><?php $renderContactDetails(); ?></div>
           <div class="contact-form-box">
             <?php if (!empty($c['form_intro'])): ?><p style="margin-bottom:14px;color:#5a5a52;"><?= esc($c['form_intro']) ?></p><?php endif; ?>
+            <?php if (($_GET['msg_error'] ?? '') === 'consent'): ?><p class="contact-form-success" style="background:#FBE8E4;color:#8C3B2E;"><?= esc(CONSENT_ERROR) ?></p><?php endif; ?>
             <?php if (isset($_GET['msg_sent'])): ?>
               <p class="contact-form-success">Thanks - your message has been sent.</p>
             <?php else: ?>
@@ -1244,6 +1246,7 @@ foreach ($sections as $s) {
                 <input type="text" name="name" placeholder="Your name" required>
                 <input type="email" name="email" placeholder="Your email" required>
                 <textarea name="message" placeholder="Your message" required></textarea>
+                <?= consent_checkbox($school['name']) ?>
                 <button type="submit" class="btn-primary">Send Message</button>
               </form>
             <?php endif; ?>
@@ -1381,6 +1384,7 @@ foreach ($sections as $s) {
           <form method="POST" action="<?= esc($checkUrl) ?>" class="enroll-form-fields">
             <div class="ef ef-2"><label>Admission Number</label> <input type="text" name="admission_no" required></div>
             <div class="ef ef-4"><label>Student's Full Name or Date of Birth (YYYY-MM-DD)</label> <input type="text" name="second_factor" required></div>
+            <?= consent_checkbox($school['name']) ?>
             <button type="submit" class="btn-primary">Check Results</button>
           </form>
         </div>
@@ -1449,6 +1453,7 @@ foreach ($sections as $s) {
               <div class="ef ef-2"><label>Parent / Guardian Name</label> <input type="text" name="parent_name" required></div>
               <div class="ef ef-2"><label>Parent / Guardian Phone</label> <input type="tel" name="parent_phone" required></div>
               <div class="ef ef-2"><label>Parent / Guardian Email (optional)</label> <input type="email" name="parent_email"></div>
+              <?= consent_checkbox($school['name']) ?>
               <button type="submit" class="btn-primary">Submit Application</button>
             </form>
           <?php endif; ?>
@@ -1783,7 +1788,8 @@ foreach ($sections as $s) {
           <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Your Review</label>
           <textarea name="comment" rows="4" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:14px;box-sizing:border-box;"></textarea>
 
-          <button type="submit" class="btn-primary">Submit Review</button>
+          <?= consent_checkbox() ?>
+        <button type="submit" class="btn-primary">Submit Review</button>
         </form>
       </details>
     </div>

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/consent.php';
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/reviews.php';
 $db = get_db();
@@ -411,6 +412,7 @@ $platformAvgRating = get_average_rating($platformReviews);
         <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Your Review</label>
         <textarea name="comment" rows="4" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:14px;box-sizing:border-box;"></textarea>
 
+        <?= consent_checkbox() ?>
         <button type="submit" class="btn-primary" style="width:100%;">Submit Review</button>
       </form>
     </details>

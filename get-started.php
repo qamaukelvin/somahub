@@ -4,6 +4,11 @@ require_once __DIR__ . '/includes/settings.php';
 $db = get_db();
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/mailer.php';
+require_once __DIR__ . '/includes/app_log.php';
+require_once __DIR__ . '/includes/school-provision.php';
+require_once __DIR__ . '/includes/consent.php';
+$contentPresets = get_school_content_presets();
+$sf = [];
 
 $error = '';
 $mode = ($_GET['mode'] ?? 'signup') === 'login' ? 'login' : 'signup';
@@ -27,11 +32,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = trim($_POST['email'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
         $password = $_POST['password'] ?? '';
+        $sf = $_POST;
+        $sf['job_title_raw'] = $_POST['job_title'] ?? '';
 
-        if (!$name || !$email || !$password) {
+        if (!$name || !$email || !$password || !$phone) {
             $error = 'Please fill in all required fields.';
-        } elseif (strlen($password) < 6) {
-            $error = 'Password must be at least 6 characters.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = 'Please enter a valid email address.';
+        } elseif (strlen($password) < 8) {
+            $error = 'Password must be at least 8 characters.';
+        } elseif (!consent_given()) {
+            $error = CONSENT_ERROR;
         } else {
             $check = $db->prepare("SELECT id FROM users WHERE email = ?");
             $check->execute([$email]);
@@ -39,37 +50,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'An account with that email already exists. Try logging in instead.';
                 $mode = 'login';
             } else {
-                // No school yet - school_id stays NULL until school-setup.php is completed.
-                // role is 'school_owner' from the start so the same account owns whichever
-                // school gets attached to it next.
-                $insert = $db->prepare("
-                    INSERT INTO users (name, email, phone, password_hash, role)
-                    VALUES (?, ?, ?, ?, 'school_owner')
-                ");
-                $insert->execute([$name, $email, $phone, password_hash($password, PASSWORD_DEFAULT)]);
+                // Validate the school half BEFORE creating the account, so a bad
+                // address never leaves a half-finished signup behind.
+                [$schoolData, $schoolError] = validate_school_input($db, $_POST);
+                if ($schoolError) {
+                    $error = $schoolError;
+                } else {
+                    $insert = $db->prepare("
+                        INSERT INTO users (name, email, phone, password_hash, role, job_title, terms_accepted_at)
+                        VALUES (?, ?, ?, ?, 'school_owner', ?, NOW())
+                    ");
+                    $insert->execute([$name, $email, $phone, password_hash($password, PASSWORD_DEFAULT), $schoolData['job_title']]);
+                    $newUserId = (int)$db->lastInsertId();
+                    login($email, $password);
+                    $newUser = current_user();
 
-                $welcomeBody = "
-                    <h2 style='color:#0F5257;margin-top:0;'>Welcome to Somahub, {$name}!</h2>
-                    <p>Your account is ready. Next, set up your school's details to get your website started.</p>
-                    <p><a href='https://somahub.top/dashboard/school-setup.php' style='color:#0F5257;font-weight:700;'>Continue to school setup &rarr;</a></p>
-                    <p style='margin-top:20px;color:#6E6A5C;'>Questions? Just reply to this email or message us on WhatsApp.</p>
-                ";
-                send_somahub_email($email, 'Welcome to Somahub', $welcomeBody);
+                    try {
+                        $res = provision_school($db, $newUser, $schoolData);
+                    } catch (\Throwable $e) {
+                        // Account exists and is logged in; they can finish on the setup page.
+                        app_log('get-started provisioning failed for user ' . $newUserId . ': ' . $e->getMessage());
+                        header('Location: dashboard/school-setup.php?retry=1');
+                        exit;
+                    }
 
-                $adminBody = "
-                    <h2 style='color:#0F5257;margin-top:0;'>New Account Created</h2>
-                    <table style='width:100%;font-size:14px;margin:16px 0;'>
-                        <tr><td style='color:#6E6A5C;padding:4px 0;'>Name</td><td><strong>" . htmlspecialchars($name) . "</strong></td></tr>
-                        <tr><td style='color:#6E6A5C;padding:4px 0;'>Email</td><td>" . htmlspecialchars($email) . "</td></tr>
-                        <tr><td style='color:#6E6A5C;padding:4px 0;'>Phone</td><td>" . htmlspecialchars($phone ?: 'Not provided') . "</td></tr>
-                    </table>
-                    <p style='color:#6E6A5C;'>No school attached yet - they're mid signup.</p>
-                ";
-                send_somahub_email(get_setting($db, 'admin_notify_email', 'admin@somahub.top'), "New signup: {$name}", $adminBody, $email);
+                    $siteUrl = 'https://' . $schoolData['slug'] . '.somahub.top';
+                    $welcomeBody = "
+                        <h2 style='color:#0F5257;margin-top:0;'>Welcome to Somahub, " . htmlspecialchars($name) . "!</h2>
+                        <p>Your website for <strong>" . htmlspecialchars($schoolData['school_name']) . "</strong> is live at <a href='{$siteUrl}' style='color:#0F5257;font-weight:700;'>{$siteUrl}</a>, and your 60-day trial with every feature unlocked has started.</p>
+                        <p><a href='https://somahub.top/dashboard/sections.php' style='color:#0F5257;font-weight:700;'>Keep editing your site &rarr;</a></p>
+                        <p style='margin-top:20px;color:#6E6A5C;'>Questions? Just reply to this email or message us on WhatsApp.</p>
+                    ";
+                    send_somahub_email($email, 'Your school website is live', $welcomeBody);
 
-                login($email, $password);
-                header('Location: dashboard/school-setup.php');
-                exit;
+                    $adminBody = "
+                        <h2 style='color:#0F5257;margin-top:0;'>New School Signup</h2>
+                        <table style='width:100%;font-size:14px;margin:16px 0;'>
+                            <tr><td style='color:#6E6A5C;padding:4px 0;'>School</td><td><strong>" . htmlspecialchars($schoolData['school_name']) . "</strong> (" . htmlspecialchars($schoolData['slug']) . ")</td></tr>
+                            <tr><td style='color:#6E6A5C;padding:4px 0;'>Name</td><td>" . htmlspecialchars($name) . "</td></tr>
+                            <tr><td style='color:#6E6A5C;padding:4px 0;'>Role</td><td>" . htmlspecialchars($schoolData['job_title']) . (role_is_authority($schoolData['job_title']) ? '' : ' (not head/owner, authorised: ' . ($schoolData['authorized'] ? 'yes' : 'no') . ')') . "</td></tr>
+                            " . (role_is_authority($schoolData['job_title']) ? '' : "<tr><td style='color:#6E6A5C;padding:4px 0;'>Head teacher</td><td>" . htmlspecialchars($schoolData['head_name']) . ' / ' . htmlspecialchars($schoolData['head_phone']) . "</td></tr>") . "
+                            <tr><td style='color:#6E6A5C;padding:4px 0;'>Email</td><td>" . htmlspecialchars($email) . "</td></tr>
+                            <tr><td style='color:#6E6A5C;padding:4px 0;'>Phone</td><td>" . htmlspecialchars($phone) . "</td></tr>
+                            <tr><td style='color:#6E6A5C;padding:4px 0;'>County</td><td>" . htmlspecialchars($schoolData['county'] ?: 'Not given') . "</td></tr>
+                        </table>
+                    ";
+                    send_somahub_email(get_setting($db, 'admin_notify_email', 'admin@somahub.top'), "New school: " . $schoolData['school_name'], $adminBody, $email);
+
+                    // Straight into the Hero live editor with the first-run welcome.
+                    header('Location: dashboard/' . ($res['hero_section_id'] ? 'section-live-edit-hero.php?id=' . $res['hero_section_id'] . '&welcome=1' : 'sections.php?welcome=1'));
+                    exit;
+                }
             }
         }
     }
@@ -90,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Manrope',sans-serif;background:var(--sand);color:var(--ink);line-height:1.6;}
   a{color:inherit;}
-  .wrap{max-width:440px;margin:0 auto;padding:40px 20px;}
+  .wrap{max-width:<?= $mode === 'signup' ? '680px' : '440px' ?>;margin:0 auto;padding:40px 20px;}
   h1{font-size:1.6rem;margin-bottom:6px;}
   .sub{color:var(--muted);margin-bottom:24px;font-size:0.92rem;}
   .card{background:#fff;border-radius:12px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
@@ -99,7 +130,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   .mode-toggle a.active{background:#fff;color:var(--teal);box-shadow:0 1px 3px rgba(0,0,0,0.08);}
   label{display:block;font-size:0.85rem;font-weight:700;margin:16px 0 6px;}
   label:first-of-type{margin-top:0;}
-  input{width:100%;padding:11px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:0.95rem;}
+  input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:0.95rem;background:#fff;}
+  .pw-row{position:relative;} .pw-row input{padding-right:64px;} .pw-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--teal);font-weight:700;font-size:.78rem;cursor:pointer;width:auto;margin:0;padding:4px 6px;}
   button[type=submit]{width:100%;margin-top:24px;background:var(--teal);color:var(--sand);border:none;padding:14px;border-radius:8px;font-weight:800;font-size:1rem;cursor:pointer;}
   .error{background:#FBE8E4;color:#8C3B2E;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:0.88rem;}
   .flow-note{font-size:0.82rem;color:var(--muted);margin-top:20px;text-align:center;}
@@ -109,8 +141,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php $navRoot = '.'; include __DIR__ . '/_public_nav.php'; ?>
 
 <main class="wrap">
-  <h1><?= $mode === 'login' ? 'Welcome back' : 'Create your account' ?></h1>
-  <p class="sub"><?= $mode === 'login' ? 'Log in to manage your school\'s site.' : 'Just your details for now - your school comes next.' ?></p>
+  <h1><?= $mode === 'login' ? 'Welcome back' : 'Create your school website' ?></h1>
+  <p class="sub"><?= $mode === 'login' ? 'Log in to manage your school\'s site.' : 'One short form and your site is live. Fine-tune everything afterwards.' ?></p>
 
   <div class="card">
     <div class="mode-toggle">
@@ -123,16 +155,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="POST" class="loader-on-submit">
       <input type="hidden" name="mode" value="<?= $mode ?>">
 
-      <?php if ($mode === 'signup'): ?>
-        <label>Your Name</label>
-        <input type="text" name="name" required autofocus>
-        <label>Email (used to log in)</label>
-        <input type="email" name="email" required>
-        <label>Phone</label>
-        <input type="text" name="phone" placeholder="07XXXXXXXX">
-        <label>Create a Password</label>
-        <input type="password" name="password" required minlength="6" placeholder="At least 6 characters">
-        <button type="submit">Continue</button>
+      <?php if ($mode === 'signup'): $subdomainCheckUrl = 'subdomain-check.php'; ?>
+        <div class="sf-grid">
+          <div class="sf-h">About you</div>
+          <div><label>Your Name</label><input type="text" name="name" required autofocus value="<?= htmlspecialchars($_POST['name'] ?? '') ?>"></div>
+          <div><label>Phone</label><input type="text" name="phone" required placeholder="07XXXXXXXX" value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>"></div>
+          <div><label>Email (used to log in)</label><input type="email" name="email" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"></div>
+          <div><label>Create a Password</label><div class="pw-row"><input type="password" name="password" id="pwField" required minlength="8" placeholder="At least 8 characters"><button type="button" class="pw-toggle" onclick="var f=document.getElementById('pwField');f.type=f.type==='password'?'text':'password';this.textContent=f.type==='password'?'Show':'Hide';">Show</button></div></div>
+        </div>
+        <?php include __DIR__ . '/includes/_school_form_fields.php'; ?>
+        <?= consent_checkbox() ?>
+        <p class="sub" style="margin:10px 0 0;font-size:.82rem;">Your site goes live straight away with a free 60-day trial of every feature. Nothing is charged unless you choose to upgrade.</p>
+        <button type="submit">Create My Website</button>
       <?php else: ?>
         <label>Email</label>
         <input type="email" name="email" required autofocus>
@@ -144,9 +178,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
   </div>
 
-  <?php if ($mode === 'signup'): ?>
-    <p class="flow-note">After this, you'll set up your school's details, pick a plan and theme, then build your site.</p>
-  <?php endif; ?>
 </main>
 
 <?php include __DIR__ . '/_loader.php'; ?>

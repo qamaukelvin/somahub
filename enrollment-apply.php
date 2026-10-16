@@ -3,6 +3,7 @@ require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/mailer.php';
 require_once __DIR__ . '/includes/plan.php';
 require_once __DIR__ . '/includes/appearance.php';
+require_once __DIR__ . '/includes/consent.php';
 $db = get_db();
 
 $slug = $_GET['school'] ?? '';
@@ -23,8 +24,11 @@ if (is_premium_locked($school)) {
 $theme = resolve_school_appearance($db, $school)['theme'];
 
 $success = false;
+$consentError = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !consent_given()) {
+    $consentError = CONSENT_ERROR;
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $db->prepare("
         INSERT INTO enrollment_applications
         (school_id, child_name, date_of_birth, grade_applying_for, previous_school, parent_name, parent_phone, parent_email)
@@ -113,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   <?php else: ?>
     <h1>Apply for Admission - <?= htmlspecialchars($school['name']) ?></h1>
+    <?php if ($consentError): ?><div style="background:#FBE8E4;color:#8C3B2E;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:.85rem;"><?= htmlspecialchars($consentError) ?></div><?php endif; ?>
     <form method="POST">
       <label>Child's Full Name</label>
       <input type="text" name="child_name" required>
@@ -128,7 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="tel" name="parent_phone" required>
       <label>Parent / Guardian Email (optional)</label>
       <input type="email" name="parent_email">
-      <button type="submit">Submit Application</button>
+      <?= consent_checkbox($school['name']) ?>
+      <button type="submit" style="margin-top:14px;">Submit Application</button>
     </form>
   <?php endif; ?>
 </div>

@@ -2,6 +2,7 @@
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/plan.php';
 require_once __DIR__ . '/includes/appearance.php';
+require_once __DIR__ . '/includes/consent.php';
 $db = get_db();
 
 $slug = $_GET['school'] ?? '';
@@ -36,6 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$admissionNo || !$secondFactor) {
         $error = 'Please enter both fields.';
+    } elseif (!consent_given()) {
+        $error = CONSENT_ERROR;
     } else {
         $stmt = $db->prepare("
             SELECT r.*, u.term_label
@@ -101,7 +104,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <input type="text" name="admission_no" required value="<?= htmlspecialchars($_POST['admission_no'] ?? '') ?>">
     <label>Student's Full Name or Date of Birth (YYYY-MM-DD)</label>
     <input type="text" name="second_factor" required value="<?= htmlspecialchars($_POST['second_factor'] ?? '') ?>">
-    <button type="submit">Check Results</button>
+    <?= consent_checkbox($school['name']) ?>
+    <button type="submit" style="margin-top:14px;">Check Results</button>
   </form>
 
   <?php if ($result): foreach ($result as $r): $scores = json_decode($r['scores_json'], true); ?>

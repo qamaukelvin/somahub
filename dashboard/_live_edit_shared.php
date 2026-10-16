@@ -261,11 +261,73 @@ function render_live_edit_head(array $theme, string $extraCss = ''): void { ?>
  * Topbar: back link, section label, autosave note, font picker. Identical
  * on every live-edit page.
  */
-function render_live_edit_topbar(array $section, array $fontPairs, string $currentFontPair): void { ?>
+function render_live_edit_topbar(array $section, array $fontPairs, string $currentFontPair): void {
+    // Site-wide colours control. Reads the school the editor already loaded.
+    $school = $GLOBALS['school'] ?? [];
+    $palettes = [];
+    try { $palettes = get_active_palettes(get_db()); } catch (\Throwable $e) {}
+    $isCustom = ($school['color_mode'] ?? 'preset') === 'custom';
+    $curPal = (int)($school['palette_id'] ?? 0);
+    $theme = $GLOBALS['theme'] ?? [];
+    $custom = [
+        'primary' => $school['primary_override'] ?? ($theme['primary'] ?? '#0F5257'),
+        'secondary' => $school['secondary_override'] ?? ($theme['secondary'] ?? '#1C1C16'),
+        'accent' => $school['accent_override'] ?? ($theme['accent'] ?? '#F2A65A'),
+        'bg' => $school['bg_override'] ?? ($theme['bg'] ?? '#F7F2E7'),
+    ];
+    $welcome = isset($_GET['welcome']);
+?>
+<style>
+  .col-picker{position:relative;}
+  .col-picker-panel{display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;color:#1C1C16;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:12px;width:300px;z-index:60;}
+  .col-picker-panel.open{display:block;}
+  .col-picker-panel h4{margin:0 0 8px;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:#777;}
+  .pal-list{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:240px;overflow:auto;margin-bottom:10px;}
+  .pal-opt{display:flex;align-items:center;gap:7px;border:1.5px solid #E2DCC6;border-radius:8px;padding:6px 8px;background:#fff;cursor:pointer;font-size:.74rem;font-weight:700;text-align:left;color:#1C1C16;}
+  .pal-opt:hover{border-color:#0F5257;} .pal-opt.on{border-color:#0F5257;background:#F0F6F4;}
+  .pal-dots{display:flex;flex-shrink:0;} .pal-dots span{width:13px;height:13px;border-radius:50%;border:1.5px solid #fff;margin-left:-4px;box-shadow:0 0 0 1px rgba(0,0,0,.1);} .pal-dots span:first-child{margin-left:0;}
+  .cc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+  .cc-grid label{font-size:.68rem;font-weight:700;color:#555;display:flex;align-items:center;gap:6px;}
+  .cc-grid input[type=color]{width:30px;height:30px;border:1px solid #ddd;border-radius:6px;padding:1px;cursor:pointer;}
+  .cc-apply{width:100%;background:#0F5257;color:#fff;border:none;border-radius:8px;padding:9px;font-weight:700;font-size:.8rem;cursor:pointer;}
+  .welcome-bar{background:linear-gradient(90deg,#0F5257,#157a82);color:#fff;padding:12px 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:.86rem;}
+  .welcome-bar strong{font-size:.95rem;}
+  .welcome-bar button,.welcome-bar a{background:#fff;color:#0F5257;border:none;border-radius:999px;padding:7px 14px;font-weight:800;font-size:.78rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
+  .welcome-bar .wb-x{background:none;color:#fff;margin-left:auto;padding:4px 8px;opacity:.8;}
+  .welcome-bar .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:17px;}
+</style>
 <div class="live-editor-topbar">
   <a href="sections.php" class="back-link">&larr; Back to sections</a>
   <span class="title"><?= esc($section['label']) ?> — live editor</span>
   <span class="autosave-note"><span class="material-symbols-outlined">cloud_done</span> Changes save automatically</span>
+
+  <?php if ($palettes): ?>
+  <div class="col-picker" id="colPicker">
+    <button type="button" class="font-picker-btn" onclick="document.getElementById('colPickerPanel').classList.toggle('open')">
+      <span class="material-symbols-outlined" style="font-size:17px;">palette</span> Colours
+    </button>
+    <div class="col-picker-panel" id="colPickerPanel">
+      <h4>Colour schemes</h4>
+      <div class="pal-list">
+        <?php foreach ($palettes as $p): $v = json_decode($p['css_variables_json'], true) ?: []; ?>
+          <button type="button" class="pal-opt<?= (!$isCustom && $curPal === (int)$p['id']) ? ' on' : '' ?>" onclick="somahubSetPalette(<?= (int)$p['id'] ?>)">
+            <span class="pal-dots"><span style="background:<?= esc($v['primary'] ?? '#ccc') ?>"></span><span style="background:<?= esc($v['accent'] ?? '#ccc') ?>"></span><span style="background:<?= esc($v['bg'] ?? '#eee') ?>"></span></span>
+            <?= esc($p['name']) ?>
+          </button>
+        <?php endforeach; ?>
+      </div>
+      <h4>Or use your school's own colours</h4>
+      <div class="cc-grid">
+        <label><input type="color" id="ccPrimary" value="<?= esc($custom['primary']) ?>">Main</label>
+        <label><input type="color" id="ccAccent" value="<?= esc($custom['accent']) ?>">Accent</label>
+        <label><input type="color" id="ccBg" value="<?= esc($custom['bg']) ?>">Background</label>
+        <label><input type="color" id="ccSecondary" value="<?= esc($custom['secondary']) ?>">Dark text</label>
+      </div>
+      <button type="button" class="cc-apply" onclick="somahubSetCustomColours()">Use these colours</button>
+      <p style="font-size:.68rem;color:#888;margin:8px 0 0;">Applies across your whole site.</p>
+    </div>
+  </div>
+  <?php endif; ?>
 
   <div class="font-picker">
     <button type="button" class="font-picker-btn" onclick="document.getElementById('fontPickerPanel').classList.toggle('open')">
@@ -281,6 +343,37 @@ function render_live_edit_topbar(array $section, array $fontPairs, string $curre
     </div>
   </div>
 </div>
+<?php if ($welcome): ?>
+<div class="welcome-bar" id="welcomeBar">
+  <span><strong>Your website is live!</strong> Make it yours:</span>
+  <button type="button" onclick="document.getElementById('colPickerPanel').classList.add('open')"><span class="material-symbols-outlined">palette</span>Choose your colours</button>
+  <span>then add a hero photo below and edit any text by clicking it.</span>
+  <a href="sections.php"><span class="material-symbols-outlined">view_list</span>All sections</a>
+  <button type="button" class="wb-x" title="Dismiss" onclick="document.getElementById('welcomeBar').remove()"><span class="material-symbols-outlined">close</span></button>
+</div>
+<script>
+  // Nudge towards the colour panel once, on first arrival.
+  window.addEventListener('load', function(){ var p = document.getElementById('colPickerPanel'); if (p) setTimeout(function(){ p.classList.add('open'); }, 500); });
+</script>
+<?php endif; ?>
+<script>
+  function somahubPostColours(fd, msg) {
+    fetch('colors-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.ok) { sessionStorage.setItem('somahubLiveEditNotice', msg); var u = new URL(window.location.href); u.searchParams.delete('welcome'); window.location.href = u.toString(); }
+        else if (window.somahubShowSaved) window.somahubShowSaved(false, d.error || 'Could not change colours');
+      })
+      .catch(function(){ window.somahubShowSaved && window.somahubShowSaved(false); });
+  }
+  window.somahubSetPalette = function(id) { var fd = new FormData(); fd.append('color_mode', 'preset'); fd.append('palette_id', id); somahubPostColours(fd, 'Colours updated'); };
+  window.somahubSetCustomColours = function() {
+    var fd = new FormData(); fd.append('color_mode', 'custom');
+    fd.append('primary', document.getElementById('ccPrimary').value); fd.append('accent', document.getElementById('ccAccent').value);
+    fd.append('bg', document.getElementById('ccBg').value); fd.append('secondary', document.getElementById('ccSecondary').value);
+    somahubPostColours(fd, 'Colours updated');
+  };
+</script>
 <?php }
 
 /**

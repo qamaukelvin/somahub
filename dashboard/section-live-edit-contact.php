@@ -96,6 +96,8 @@ $extraCss = <<<CSS
   .contact-form-box .fake > div{padding:10px 12px;border:1px solid rgba(0,0,0,.15);border-radius:6px;font-size:.9rem;color:#9a9a8e;}
   .contact-form-box .fake .ta{min-height:100px;}
   .contact-form-box .fake .sendbtn{background:var(--primary);color:#fff;text-align:center;font-weight:700;border:none;}
+  .fake-consent{display:flex;gap:9px;align-items:flex-start;font-size:.8rem;color:#5a5a52;margin:2px 0 12px;}
+  .fake-consent i{width:15px;height:15px;border:1.5px solid #999;border-radius:3px;flex:0 0 auto;margin-top:2px;display:inline-block;}
   .wa-card{margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
   .wa-btn{display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;font-weight:700;padding:12px 22px;border-radius:30px;}
   .wa-btn .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:22px;}
@@ -151,7 +153,7 @@ $extraCss .= "\n" . ($appearance['custom_css'] ?? '');
         <div><?php ct_details($content); ?></div>
         <div class="contact-form-box">
           <p style="margin-bottom:14px;color:#5a5a52;"><span data-field="form_intro" contenteditable="true" data-placeholder="Add a short intro above the form"><?= esc($content['form_intro'] ?? '') ?></span></p>
-          <div class="fake"><div>Your name</div><div>Your email</div><div class="ta">Your message</div><div class="sendbtn">Send Message</div></div>
+          <div class="fake"><div>Your name</div><div>Your email</div><div class="ta">Your message</div><div class="fake-consent" style="border:none;padding:0;"><i></i><span>I agree to the Terms of Service and Privacy Policy and agree that my details are shared with the school to handle this request.</span></div><div class="sendbtn">Send Message</div></div>
           <p class="i-note" style="margin-top:10px;"><span class="material-symbols-outlined">mail</span>Preview only. Messages arrive in your inbox.</p>
         </div>
       </div>

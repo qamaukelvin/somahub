@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/consent.php';
 $db = get_db();
 
 $slug = $_GET['slug'] ?? '';
@@ -26,6 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
     if ($honeypot !== '') {
         // Silently drop — don't tip off the bot, just pretend it worked
         $commentSuccess = true;
+    } elseif (!consent_given()) {
+        $commentError = CONSENT_ERROR;
     } elseif (!$name || !filter_var($email, FILTER_VALIDATE_EMAIL) || !$comment) {
         $commentError = 'Please fill in your name, a valid email, and a comment.';
     } else {
@@ -164,6 +167,7 @@ $jsonLd = [
         <input type="text" name="name" placeholder="Your name" required>
         <input type="email" name="email" placeholder="Your email (not published)" required>
         <textarea name="comment" rows="4" placeholder="Your comment" required></textarea>
+        <?= consent_checkbox() ?>
         <button type="submit">Post Comment</button>
       </form>
     </div>
