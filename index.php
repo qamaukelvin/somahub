@@ -8,12 +8,12 @@ $db = get_db();
 $schools = $db->query("
     SELECT name, slug, plan, county, verification_status
     FROM schools
-    WHERE status IN ('active','trial')
+    WHERE status IN ('active','trial') AND slug <> 'demo'
     ORDER BY created_at DESC
     LIMIT 60
 ")->fetchAll();
 
-$schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('active','trial')")->fetch()['c'];
+$schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('active','trial') AND slug <> 'demo'")->fetch()['c'];
 
 $platformReviews = get_approved_reviews($db, 'platform', null, 12);
 $platformAvgRating = get_average_rating($platformReviews);
@@ -48,6 +48,7 @@ $platformAvgRating = get_average_rating($platformReviews);
 <meta name="twitter:image" content="https://somahub.top/assets/og-share-image.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -110,6 +111,19 @@ $platformAvgRating = get_average_rating($platformReviews);
   .bento-cell.tall{grid-row:span 2;display:flex;flex-direction:column;justify-content:space-between;}
   .bento-num{font-size:2rem;font-weight:800;}
 
+  .mock{max-width:860px;margin:48px auto 0;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px rgba(10,58,62,.14);overflow:hidden;text-align:left;}
+  .mock-bar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:#EFE9D8;border-bottom:1px solid var(--line);}
+  .mock-bar i{width:10px;height:10px;border-radius:50%;background:#cfc7ae;} .mock-bar span{margin-left:10px;background:#fff;border-radius:20px;padding:3px 14px;font-size:.74rem;color:var(--muted);font-family:'Space Mono',monospace;}
+  .mock-body{display:grid;grid-template-columns:1fr 210px;gap:0;} @media(max-width:700px){.mock-body{grid-template-columns:1fr}.mock-side{display:none}}
+  .mock-hero{background:var(--teal);color:var(--sand);padding:38px 28px;} .mock-h{font-size:1.5rem;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .mock-edit{outline:2px dashed var(--amber);outline-offset:4px;border-radius:4px;} .mock-h em{font-style:normal;background:var(--amber);color:var(--teal-deep);border-radius:50%;padding:5px;font-size:16px;}
+  .mock-sub{margin:10px 0 18px;color:#BFD8D9;font-size:.9rem;} .mock-btn{display:inline-block;background:var(--amber);color:var(--teal-deep);font-weight:800;font-size:.8rem;padding:9px 16px;border-radius:20px;}
+  .mock-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:18px 28px;} .mock-row div{height:60px;background:var(--sand);border-radius:10px;}
+  .mock-side{background:#FAF7EE;border-left:1px solid var(--line);padding:16px;display:grid;gap:12px;align-content:start;}
+  .mock-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:.78rem;} .mock-card b{display:block;margin-bottom:8px;font-size:.78rem;}
+  .mock-card .sw{display:flex;gap:6px;} .mock-card .sw i{width:22px;height:22px;border-radius:50%;box-shadow:0 0 0 2px #fff,0 0 0 3px var(--line);}
+  .mock-card p{display:flex;align-items:center;gap:6px;padding:4px 0;color:var(--muted);} .mock-card p .material-symbols-outlined{font-size:16px;color:var(--teal);}
+  .material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:400;font-style:normal;line-height:1;display:inline-block;}
   section{padding:70px 24px;}
   .section-head{margin-bottom:44px;max-width:60ch;}
   .section-head.center{margin-left:auto;margin-right:auto;text-align:center;}
@@ -203,29 +217,27 @@ $platformAvgRating = get_average_rating($platformReviews);
     <h1>Your school deserves a <span class="accent">real website</span>, at no cost to you</h1>
     <p>Sign up, answer a few questions, and your site is live in minutes. We set up the pages and host them. You edit text, photos and colours right on the page.</p>
     <div class="hero-ctas">
-      <a href="get-started.php" class="btn-primary">Get Started / Log In</a>
-      <a href="#portfolio" class="btn-ghost">View Schools</a>
+      <a href="get-started.php" class="btn-primary">Create my school site</a>
+      <a href="https://demo.somahub.top/" target="_blank" rel="noopener" class="btn-ghost">See a live demo school</a>
     </div>
+    <p style="margin-top:14px;font-size:.84rem;color:var(--muted);">60 days of everything free, no card needed. Already have a site? <a href="dashboard/login.php" style="color:var(--teal);font-weight:700;text-decoration:underline;">Log in</a></p>
 
-    <div class="bento">
-      <div class="bento-cell tall dark">
-        <div>
-          <h4>Zero setup cost</h4>
-          <p>Your core pages, hosted and online, at no charge to your school.</p>
+    <div class="mock" aria-hidden="true">
+      <div class="mock-bar"><i></i><i></i><i></i><span>mwangaza.somahub.top</span></div>
+      <div class="mock-body">
+        <div class="mock-site">
+          <div class="mock-hero">
+            <div class="mock-h"><span class="mock-edit">Welcome to Mwangaza Academy</span><em class="material-symbols-outlined">edit</em></div>
+            <div class="mock-sub">Click any text or photo to change it, right on the page.</div>
+            <div class="mock-btn">Apply for Admission</div>
+          </div>
+          <div class="mock-row"><div></div><div></div><div></div></div>
         </div>
-        <div class="bento-num">KSh 0</div>
-      </div>
-      <div class="bento-cell amber">
-        <div class="bento-num"><?= $schoolCount ?></div>
-        <h4 style="margin-top:6px;">School<?= $schoolCount == 1 ? '' : 's' ?> live already</h4>
-      </div>
-      <div class="bento-cell">
-        <h4>Free subdomain</h4>
-        <p>yourschool.somahub.top, ready from day one.</p>
-      </div>
-      <div class="bento-cell" style="grid-column:span 2;">
-        <h4>Edit it yourself, anytime</h4>
-        <p>Click text and photos right on your site to change them. No coding, no waiting on us.</p>
+        <div class="mock-side">
+          <div class="mock-card"><b>Colours</b><div class="sw"><i style="background:#0F5257"></i><i style="background:#F2A65A"></i><i style="background:#7B3F8C"></i><i style="background:#1F6FB2"></i></div></div>
+          <div class="mock-card"><b>Sections</b>
+            <p><span class="material-symbols-outlined">visibility</span>Hero</p><p><span class="material-symbols-outlined">visibility</span>About</p><p><span class="material-symbols-outlined">visibility</span>Admissions</p><p><span class="material-symbols-outlined">add_circle</span>Add section</p></div>
+        </div>
       </div>
     </div>
   </div>

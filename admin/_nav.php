@@ -8,6 +8,7 @@
           <a href="index.php">All Schools</a>
           <a href="school-new.php">Add School</a>
           <a href="verifications.php">Verifications</a>
+          <a href="demo-school.php">Demo school</a>
           <a href="leads.php">Leads</a>
           <a href="outreach.php">Outreach</a>
         </div>
