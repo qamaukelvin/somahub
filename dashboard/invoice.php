@@ -24,7 +24,9 @@ $docLabel = $isPaid ? 'Receipt' : 'Invoice';
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $docLabel ?> <?= htmlspecialchars($order['reference_code']) ?></title>
+<?php include __DIR__ . '/_styles.php'; ?>
 <style>
+  @media print{.topnav,.admin-bar,.notif-panel,.no-print{display:none !important;} body{background:#fff !important;}}
   body{font-family:Arial,sans-serif;background:#F7F2E7;margin:0;color:#1C1C16;}
   .wrap{max-width:600px;margin:0 auto;padding:32px 20px;}
   .doc{background:#fff;border-radius:10px;padding:32px;}
@@ -43,6 +45,7 @@ $docLabel = $isPaid ? 'Receipt' : 'Invoice';
 </style>
 </head>
 <body>
+<?php include __DIR__ . '/_nav.php'; ?>
 <div class="wrap">
   <div class="doc">
     <div class="doc-header">

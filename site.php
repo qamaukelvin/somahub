@@ -200,8 +200,24 @@ foreach ($sections as $s) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?= esc($school['name']) ?></title>
-<meta name="description" content="<?= esc($school['name']) ?> - official website">
+<?php
+$seoPlace = trim(($school['town'] ?? '') . ((($school['town'] ?? '') && ($school['county'] ?? '')) ? ', ' : '') . ($school['county'] ?? ''));
+$seoTitle = $school['name'] . ($seoPlace ? ' | School in ' . $seoPlace : ' | Official website');
+$seoDesc = '';
+foreach ($sections as $__s) {
+    if ($__s['key_name'] === 'hero') { $__c = json_decode($__s['content_json'], true) ?: []; $seoDesc = trim((string)($__c['subheading'] ?? '')); break; }
+}
+if ($seoDesc === '') $seoDesc = $school['name'] . ' official website' . ($seoPlace ? ' in ' . $seoPlace : '') . ': admissions, academics, fees, results and contact.';
+$seoDesc = mb_substr($seoDesc, 0, 158);
+?>
+<title><?= esc($seoTitle) ?></title>
+<meta name="description" content="<?= esc($seoDesc) ?>">
+<script type="application/ld+json"><?= json_encode(array_filter([
+    '@context' => 'https://schema.org', '@type' => 'School',
+    'name' => $school['name'], 'url' => 'https://' . $school['slug'] . '.somahub.top/',
+    'telephone' => $school['phone'] ?? null,
+    'address' => $seoPlace ? ['@type' => 'PostalAddress', 'addressLocality' => $school['town'] ?? null, 'addressRegion' => $school['county'] ?? null, 'addressCountry' => 'KE'] : null,
+]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
 <link rel="canonical" href="https://<?= esc($school['slug']) ?>.somahub.top/">
 
 <!-- Favicons -->

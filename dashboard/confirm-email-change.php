@@ -46,7 +46,10 @@ if (preg_match('/^[a-f0-9]{64}$/', $token)) {
 ?>
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Confirm email change</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined">
-<style>body{font-family:Arial,sans-serif;background:#F7F2E7;color:#1C1C16;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;}
+<?php if (current_user()) include __DIR__ . '/_styles.php'; ?>
+<style>body{font-family:Arial,sans-serif;background:#F7F2E7;color:#1C1C16;margin:0;}
 .box{background:#fff;border-radius:16px;padding:32px;max-width:420px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.08);}
 .material-symbols-outlined{font-size:44px;color:<?= $ok ? '#1B7A4E' : '#8C3B2E' ?>;} a{display:inline-block;margin-top:18px;background:#0F5257;color:#fff;text-decoration:none;padding:11px 22px;border-radius:24px;font-weight:700;}</style></head>
-<body><div class="box"><span class="material-symbols-outlined"><?= $ok ? 'check_circle' : 'error' ?></span><h2><?= $ok ? 'Email updated' : 'Could not confirm' ?></h2><p><?= $msg ?></p><a href="account.php">Go to my account</a></div></body></html>
+<body style="display:block;padding:0;">
+<?php if (current_user()) { include __DIR__ . '/_nav.php'; } else { $navRoot = '..'; include __DIR__ . '/../_public_nav.php'; } ?>
+<div style="display:flex;align-items:center;justify-content:center;min-height:70vh;padding:20px;"><div class="box"><span class="material-symbols-outlined"><?= $ok ? 'check_circle' : 'error' ?></span><h2><?= $ok ? 'Email updated' : 'Could not confirm' ?></h2><p><?= $msg ?></p><a href="account.php">Go to my account</a></div></div></body></html>

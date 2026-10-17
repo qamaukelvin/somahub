@@ -10,6 +10,7 @@ $navRoot = $navRoot ?? '.';
     <nav><ul id="somahubPublicNavlinks">
       <li><a href="<?= $navRoot ?>/index.php#how">How it works</a></li>
       <li><a href="<?= $navRoot ?>/pricing.php">Pricing</a></li>
+      <li><a href="<?= $navRoot ?>/docs.php">Guide</a></li>
       <li><a href="<?= $navRoot ?>/index.php#portfolio">Schools</a></li>
       <li><a href="<?= $navRoot ?>/blog/">Blog</a></li>
       <li><a href="<?= $navRoot ?>/search.php">Search</a></li>

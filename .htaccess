@@ -8,8 +8,16 @@ RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Bare domain or www — goes to the homepage
-RewriteCond %{HTTP_HOST} ^(www\.)?somahub\.top$ [NC]
+# www -> apex (one canonical host for search engines)
+RewriteCond %{HTTP_HOST} ^www\.somahub\.top$ [NC]
+RewriteRule ^(.*)$ https://somahub.top/$1 [L,R=301]
+
+# Host-aware robots.txt and sitemap (each school subdomain gets its own)
+RewriteRule ^robots\.txt$ robots.php [L]
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+# Bare domain — goes to the homepage
+RewriteCond %{HTTP_HOST} ^somahub\.top$ [NC]
 RewriteRule ^$ index.php [L]
 
 # Any school subdomain's root request — route to site.php BEFORE the generic

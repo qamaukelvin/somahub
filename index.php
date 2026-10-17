@@ -25,6 +25,7 @@ $platformAvgRating = get_average_rating($platformReviews);
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Somahub: Free Websites for Kenyan Schools</title>
 <link rel="canonical" href="https://somahub.top/">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Somahub","url":"https://somahub.top/","logo":"https://somahub.top/assets/apple-touch-icon.png"},{"@type":"WebSite","name":"Somahub","url":"https://somahub.top/"}]}</script>
 <meta name="description" content="Get your school online free. Somahub builds and hosts your school's website, you just edit and go live.">
 
 <!-- Favicons -->
@@ -201,6 +202,7 @@ $platformAvgRating = get_average_rating($platformReviews);
       <li><a href="#features">What is included</a></li>
       <li><a href="#plans">Plans</a></li>
       <li><a href="pricing.php">Full Pricing</a></li>
+      <li><a href="docs.php">Guide</a></li>
       <li><a href="#portfolio">Schools</a></li>
       <li><a href="#reviews">Reviews</a></li>
       <li><a href="blog/">Blog</a></li>
