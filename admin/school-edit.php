@@ -20,7 +20,6 @@ $owner->execute([$id]);
 $owner = $owner->fetch();
 
 require_once __DIR__ . '/../includes/appearance.php';
-$templates = get_active_templates($db);
 $palettes = get_active_palettes($db);
 
 $message = '';
@@ -63,12 +62,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $colorMode = ($_POST['color_mode'] ?? 'preset') === 'custom' ? 'custom' : 'preset';
         $stmt = $db->prepare("
             UPDATE schools
-            SET name=?, template_id=?, palette_id=?, color_mode=?, accent_override=?, primary_override=?, secondary_override=?, bg_override=?, plan=?, status=?, promo_ends_at=?, county=?, town=?, phone=?, email=?
+            SET name=?, palette_id=?, color_mode=?, accent_override=?, primary_override=?, secondary_override=?, bg_override=?, plan=?, status=?, promo_ends_at=?, county=?, town=?, phone=?, email=?
             WHERE id=?
         ");
         $stmt->execute([
             trim($_POST['name']),
-            (int)$_POST['template_id'],
             $colorMode === 'preset' ? (int)$_POST['palette_id'] : null,
             $colorMode,
             trim($_POST['accent_override']) ?: null,
@@ -320,9 +318,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <label>School Name</label>
       <input type="text" name="name" value="<?= htmlspecialchars($school['name']) ?>" required>
-
-      <label>Template</label>
-      <?php $selectedTemplateId = $school['template_id']; include __DIR__ . '/_template_picker.php'; ?>
 
       <label>Colors</label>
       <?php

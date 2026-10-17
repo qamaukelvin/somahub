@@ -203,6 +203,7 @@ $platformAvgRating = get_average_rating($platformReviews);
       <li><a href="pricing.php">Full Pricing</a></li>
       <li><a href="#portfolio">Schools</a></li>
       <li><a href="#reviews">Reviews</a></li>
+      <li><a href="blog/">Blog</a></li>
       <li><a href="results-portal.php">Check Results</a></li>
       <li><a href="dashboard/login.php">School Login</a></li>
       <li><a href="get-started.php" class="navcta">Get Started</a></li>
@@ -284,7 +285,6 @@ $platformAvgRating = get_average_rating($platformReviews);
       <div class="feature-card"><h3>Online enrollment <span class="tag">Paid</span></h3><p>Parents apply directly through your site instead of calling the office.</p></div>
       <div class="feature-card"><h3>Results checking <span class="tag">Paid</span></h3><p>Upload term results and let parents check them securely by admission number.</p></div>
       <div class="feature-card"><h3>Fee structure <span class="tag">Paid</span></h3><p>Publish clear fees and payment details for every grade and term.</p></div>
-      <div class="feature-card"><h3>Premium templates <span class="tag">Paid</span></h3><p>Unlock every template in our gallery, plus any color palette to match your school's brand. <a href="pricing.php#addons" style="color:var(--teal);font-weight:600;">See templates</a></p></div>
     </div>
   </div>
 </section>
@@ -315,7 +315,6 @@ $platformAvgRating = get_average_rating($platformReviews);
         <div class="plan-desc">Everything unlocked, free, so you can see the real value before deciding.</div>
         <ul>
           <li><span class="check">＋</span> Everything in Free</li>
-          <li><span class="check">＋</span> Every premium template</li>
           <li><span class="check">＋</span> Online enrollment applications</li>
           <li><span class="check">＋</span> Full report: results, attendance, position, trends & fees</li>
         </ul>
@@ -327,7 +326,6 @@ $platformAvgRating = get_average_rating($platformReviews);
         <div class="plan-desc">About KSh 750 a term. Everything the Trial unlocks, permanently.</div>
         <ul>
           <li><span class="check">＋</span> Everything in Free</li>
-          <li><span class="check">＋</span> Every premium template</li>
           <li><span class="check">＋</span> Online enrollment applications</li>
           <li><span class="check">＋</span> Full report: results, attendance, position, trends & fees</li>
         </ul>
@@ -335,7 +333,7 @@ $platformAvgRating = get_average_rating($platformReviews);
       </div>
     </div>
     <p style="text-align:center;margin-top:24px;font-size:0.9rem;color:var(--muted);">
-      Want your own domain, custom templates, or a custom designed site? <a href="pricing.php" style="color:var(--teal);font-weight:600;">See full pricing</a>
+      Want your own domain or a custom designed site? <a href="pricing.php" style="color:var(--teal);font-weight:600;">See full pricing</a>
     </p>
   </div>
 </section>

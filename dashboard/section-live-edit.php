@@ -93,7 +93,6 @@ $extraCss = <<<CSS
   section#about{background:var(--bg);padding:60px 0;min-height:100vh;}
 CSS;
 // Same template CSS the live site injects, so the editor matches it.
-$extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="en">

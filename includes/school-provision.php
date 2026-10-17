@@ -95,11 +95,7 @@ function validate_school_input(PDO $db, array $post): array {
  * (nothing is saved in that case).
  */
 function provision_school(PDO $db, array $user, array $d): array {
-    $templates = get_active_templates($db);
     $palettes = get_active_palettes($db);
-    $templateId = null;
-    foreach ($templates as $t) { if (empty($t['is_premium'])) { $templateId = $t['id']; break; } }
-    $templateId = $templateId ?? ($templates[0]['id'] ?? null);
     $paletteId = $palettes[0]['id'] ?? null;
 
     $presets = get_school_content_presets();
@@ -108,7 +104,7 @@ function provision_school(PDO $db, array $user, array $d): array {
 
     $db->beginTransaction();
     try {
-        $sCols = ['name' => $d['school_name'], 'slug' => $d['slug'], 'template_id' => $templateId, 'palette_id' => $paletteId, 'color_mode' => 'preset',
+        $sCols = ['name' => $d['school_name'], 'slug' => $d['slug'], 'palette_id' => $paletteId, 'color_mode' => 'preset',
                   'plan' => 'free', 'status' => 'trial', 'verification_status' => 'pending', 'county' => $d['county'], 'phone' => $user['phone'] ?? '', 'email' => $user['email']];
         $isAuth = role_is_authority($d['job_title']);
         if (db_has_column($db, 'schools', 'head_teacher_name')) $sCols['head_teacher_name'] = $isAuth ? null : ($d['head_name'] ?: null);

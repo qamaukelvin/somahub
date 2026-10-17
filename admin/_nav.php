@@ -9,6 +9,7 @@
           <a href="school-new.php">Add School</a>
           <a href="verifications.php">Verifications</a>
           <a href="demo-school.php">Demo school</a>
+          <a href="optimize-images.php">Optimise images</a>
           <a href="leads.php">Leads</a>
           <a href="outreach.php">Outreach</a>
         </div>

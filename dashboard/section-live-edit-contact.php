@@ -113,7 +113,6 @@ $extraCss = <<<CSS
   .mm-actions button{border:none;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer;}
   .mm-actions .save{background:#1C1C16;color:#fff;} .mm-actions .save:disabled{opacity:.4;cursor:not-allowed;} .mm-actions .cancel{background:#eee;}
 CSS;
-$extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="en">

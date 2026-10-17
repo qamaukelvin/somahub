@@ -90,9 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </style>
 </head>
 <body>
-<header class="school-header">
-  <a href="site.php?school=<?= urlencode($school['slug']) ?>" class="school-brand"><?= htmlspecialchars($school['name']) ?></a>
-</header>
+<?php $portalActive = 'results'; include __DIR__ . '/_school_portal_nav.php'; ?>
 <div class="card">
   <h1><?= htmlspecialchars($school['name']) ?></h1>
   <p class="sub">Enter your child's admission number and full name (or date of birth) to view results.</p>

@@ -105,7 +105,7 @@ function plan_badge_text(array $school): array {
 
     <div class="navlinks" id="dashnavlinks">
       <a class="dl<?= nav_active(['index.php']) ?>" href="index.php"><span class="material-symbols-outlined">dashboard</span>Home</a>
-      <a class="dl<?= nav_active(['sections.php','section-edit.php','website-design.php']) ?><?= strpos($curPage,'section-live-edit') === 0 ? ' active' : '' ?>" href="sections.php"><span class="material-symbols-outlined">web</span>Website</a>
+      <a class="dl<?= nav_active(['sections.php','section-edit.php']) ?><?= strpos($curPage,'section-live-edit') === 0 ? ' active' : '' ?>" href="sections.php"><span class="material-symbols-outlined">web</span>Website</a>
       <div class="nav-group">
         <button type="button" class="dl nav-group-label<?= nav_active(['enrollment.php','contact-messages.php','results.php','attendance.php','fees.php']) ?>"><span class="material-symbols-outlined">folder_open</span>School data<span class="material-symbols-outlined caret">expand_more</span></button>
         <div class="nav-dropdown">

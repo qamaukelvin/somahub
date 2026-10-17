@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/settings.php';
 require_once __DIR__ . '/../includes/mailer.php';
+require_once __DIR__ . '/../includes/school-provision.php';
 $user = require_school_login();
 $db = get_db();
 
@@ -45,47 +46,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isImpersonating) {
     if ($action === 'update_profile') {
         $name = trim($_POST['name'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
-        $newEmail = trim($_POST['email'] ?? '');
+        $jobTitle = trim($_POST['job_title'] ?? '');
+        if ($jobTitle === 'Other') $jobTitle = mb_substr(trim($_POST['job_other'] ?? ''), 0, 60);
+        $jobTitle = mb_substr($jobTitle, 0, 60);
 
         if (!$name) {
             $error = 'Name cannot be empty.';
-        } elseif ($hasPlaceholderEmail && $newEmail && !filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
-            $error = 'Please enter a valid email address.';
-        } elseif ($hasPlaceholderEmail && $newEmail) {
-            $dupeCheck = $db->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
-            $dupeCheck->execute([$newEmail, $user['id']]);
-            if ($dupeCheck->fetch()) {
-                $error = 'That email is already in use by another account.';
-            }
         }
 
         if (!$error) {
             $avatarPath = store_avatar('avatar', $user['id'], $error);
             if (!$error) {
-                $wasPlaceholder = $hasPlaceholderEmail;
-                $finalEmail = ($hasPlaceholderEmail && $newEmail) ? $newEmail : $currentUser['email'];
-                if ($avatarPath) {
-                    $db->prepare("UPDATE users SET name = ?, phone = ?, email = ?, avatar_path = ? WHERE id = ?")
-                       ->execute([$name, $phone, $finalEmail, $avatarPath, $user['id']]);
-                    $currentUser['avatar_path'] = $avatarPath;
-                } else {
-                    $db->prepare("UPDATE users SET name = ?, phone = ?, email = ? WHERE id = ?")
-                       ->execute([$name, $phone, $finalEmail, $user['id']]);
+                $set = ['name' => $name, 'phone' => $phone];
+                if ($avatarPath) $set['avatar_path'] = $avatarPath;
+                if ($jobTitle !== '' && db_has_column($db, 'users', 'job_title')) $set['job_title'] = $jobTitle;
+                $db->prepare('UPDATE users SET ' . implode(', ', array_map(fn($c) => "$c = ?", array_keys($set))) . ' WHERE id = ?')
+                   ->execute(array_merge(array_values($set), [$user['id']]));
+                foreach ($set as $k => $v) $currentUser[$k] = $v;
+                $success = 'Profile updated.';
+            }
+        }
+    } elseif ($action === 'request_email_change') {
+        $newEmail = strtolower(trim($_POST['new_email'] ?? ''));
+        $pw = $_POST['email_password'] ?? '';
+        $isTemp = !empty($currentUser['password_is_temp']);
+        if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+            $error = 'Please enter a valid email address.';
+        } elseif (strtolower($currentUser['email']) === $newEmail) {
+            $error = 'That is already your login email.';
+        } elseif (!$isTemp && !password_verify($pw, $currentUser['password_hash'])) {
+            $error = 'Your password is incorrect, so the email was not changed.';
+        } else {
+            $dupe = $db->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+            $dupe->execute([$newEmail, $user['id']]);
+            $recent = $db->prepare("SELECT COUNT(*) FROM email_change_requests WHERE user_id = ? AND created_at > (NOW() - INTERVAL 1 HOUR)");
+            try { $recent->execute([$user['id']]); $tooMany = (int)$recent->fetchColumn() >= 3; } catch (\Throwable $e) { $tooMany = false; }
+            if ($dupe->fetch()) {
+                $error = 'That email is already in use by another account.';
+            } elseif ($tooMany) {
+                $error = 'Too many requests. Please wait an hour and try again.';
+            } else {
+                try {
+                    $token = bin2hex(random_bytes(32));
+                    $db->prepare("UPDATE email_change_requests SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL")->execute([$user['id']]);
+                    $db->prepare("INSERT INTO email_change_requests (user_id, new_email, token_hash, expires_at) VALUES (?, ?, ?, NOW() + INTERVAL 1 HOUR)")
+                       ->execute([$user['id'], $newEmail, hash('sha256', $token)]);
+                    $link = 'https://somahub.top/dashboard/confirm-email-change.php?token=' . $token;
+                    send_somahub_email($newEmail, 'Confirm your new Somahub login email',
+                        "<h2 style='color:#0F5257;margin-top:0;'>Confirm your new email</h2><p>Click the button to make this your Somahub login email. The link works for 1 hour.</p><p><a href='{$link}' style='background:#0F5257;color:#fff;padding:12px 22px;border-radius:24px;text-decoration:none;font-weight:700;display:inline-block;'>Confirm email</a></p><p style='color:#6E6A5C;font-size:13px;'>If you did not ask for this, ignore this email and nothing changes.</p>");
+                    if (filter_var($currentUser['email'], FILTER_VALIDATE_EMAIL)) {
+                        send_somahub_email($currentUser['email'], 'Somahub: email change requested',
+                            "<h2 style='color:#0F5257;margin-top:0;'>Email change requested</h2><p>Someone asked to change the login email on your Somahub account to <strong>" . htmlspecialchars($newEmail) . "</strong>. Nothing changes until that address is confirmed. If this was not you, change your password now and contact admin@somahub.top.</p>");
+                    }
+                    $success = 'We sent a confirmation link to ' . htmlspecialchars($newEmail) . '. Your login email changes once you click it (valid for 1 hour).';
+                } catch (\Throwable $e) {
+                    app_log('request_email_change failed: ' . $e->getMessage());
+                    $error = 'Could not start the email change. Please try again later.';
                 }
-                $currentUser['name'] = $name;
-                $currentUser['phone'] = $phone;
-                $currentUser['email'] = $finalEmail;
-                $hasPlaceholderEmail = !filter_var($finalEmail, FILTER_VALIDATE_EMAIL);
-
-                if ($wasPlaceholder && !$hasPlaceholderEmail) {
-                    require_once __DIR__ . '/../includes/mailer.php';
-                    $welcomeBody = "
-                        <h2 style='color:#0F5257;margin-top:0;'>Welcome to Somahub, {$name}!</h2>
-                        <p>Your email is now saved and you're all set. You can use it to log in and reset your password going forward.</p>
-                    ";
-                    send_somahub_email($finalEmail, 'Welcome to Somahub', $welcomeBody);
-                }
-                $success = ($finalEmail !== $currentUser['email']) ? 'Profile updated — your login email is now ' . htmlspecialchars($finalEmail) . '.' : 'Profile updated.';
             }
         }
     } elseif ($action === 'change_password') {
@@ -190,18 +207,31 @@ $pendingRemoval = $pendingRemoval->fetch();
       <input type="text" name="name" value="<?= htmlspecialchars($currentUser['name']) ?>" required>
       <label>Phone</label>
       <input type="text" name="phone" value="<?= htmlspecialchars($currentUser['phone'] ?? '') ?>" placeholder="07XXXXXXXX">
-      <?php if ($hasPlaceholderEmail): ?>
-        <label>Email <span style="color:#8C3B2E;font-weight:400;">— add yours to finish setup</span></label>
-        <input type="email" name="email" value="" placeholder="you@example.com">
-        <p style="font-size:0.78rem;color:#8C6D1F;margin-top:-10px;margin-bottom:14px;">You're currently logging in with your phone number. Add your email to finish setting up your account.</p>
-      <?php else: ?>
-        <label>Email</label>
-        <input type="email" value="<?= htmlspecialchars($currentUser['email']) ?>" disabled style="background:#f4f4f4;color:#888;">
-        <p style="font-size:0.78rem;color:#888;margin-top:-10px;margin-bottom:14px;">Email is your login and can't be changed here — contact Somahub if you need it updated.</p>
-      <?php endif; ?>
+      <?php $curJob = (string)($currentUser['job_title'] ?? ''); $roleList = get_signup_roles(); $jobIsListed = in_array($curJob, $roleList, true); ?>
+      <label>Your role at the school</label>
+      <select name="job_title" id="jobSel" onchange="document.getElementById('jobOther').style.display=this.value==='Other'?'block':'none'" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:14px;">
+        <option value="">Select your role</option>
+        <?php foreach ($roleList as $r): ?><option value="<?= htmlspecialchars($r) ?>" <?= ($jobIsListed ? $curJob === $r : ($curJob !== '' && $r === 'Other')) ? 'selected' : '' ?>><?= htmlspecialchars($r) ?></option><?php endforeach; ?>
+      </select>
+      <input type="text" name="job_other" id="jobOther" value="<?= $jobIsListed ? '' : htmlspecialchars($curJob) ?>" placeholder="Your job title" style="display:<?= ($curJob !== '' && !$jobIsListed) ? 'block' : 'none' ?>;width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:14px;">
       <label>Profile Picture</label>
       <input type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp">
       <button type="submit" class="btn">Save Profile</button>
+    </form>
+  </div>
+
+  <div class="box">
+    <h3 style="margin-bottom:6px;">Login email</h3>
+    <p style="font-size:0.85rem;color:#666;margin-bottom:14px;">Current: <strong><?= $hasPlaceholderEmail ? 'none yet (you log in with your phone number)' : htmlspecialchars($currentUser['email']) ?></strong>. To change it we email a confirmation link to the new address, and tell your old address.</p>
+    <form method="POST">
+      <input type="hidden" name="action" value="request_email_change">
+      <label>New email</label>
+      <input type="email" name="new_email" required placeholder="you@example.com">
+      <?php if (empty($currentUser['password_is_temp'])): ?>
+        <label>Your password (to confirm it is you)</label>
+        <input type="password" name="email_password" required autocomplete="current-password">
+      <?php endif; ?>
+      <button type="submit" class="btn"><?= $hasPlaceholderEmail ? 'Add email' : 'Send confirmation link' ?></button>
     </form>
   </div>
 

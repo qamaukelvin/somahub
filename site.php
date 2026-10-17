@@ -83,9 +83,20 @@ if (!$sitePubliclyVisible && !$isOwnerPreview) {
 // Owner/admin can still see an offline site. Say so loudly, otherwise it looks
 // "live on my laptop but locked on my phone" (the public only sees the lock page).
 $ownerSeesOfflineSite = (!$sitePubliclyVisible && $isOwnerPreview);
+
+// Performance: every image except the first (the hero) loads lazily, so a
+// gallery or staff page with many photos doesn't download them all up front.
+ob_start(function ($html) {
+    $n = 0;
+    return preg_replace_callback('/<img\b[^>]*>/i', function ($m) use (&$n) {
+        $tag = $m[0];
+        if (stripos($tag, 'loading=') !== false || stripos($tag, 'data-eager') !== false) return $tag;
+        if ($n++ === 0) return str_replace('<img', '<img decoding="async"', $tag); // first image: eager
+        return str_replace('<img', '<img loading="lazy" decoding="async"', $tag);
+    }, $html);
+});
 $appearance = resolve_school_appearance($db, $school);
 $theme = $appearance['theme'];
-$theme_custom_css = $appearance['custom_css'];
 
 $sectionsStmt = $db->prepare("
     SELECT ss.*, st.key_name, st.label, st.is_premium
@@ -322,8 +333,6 @@ foreach ($sections as $s) {
 
   .hero-mosaic.two-photos .m-main{grid-row:1/2;}
 
-  /* Theme-specific signature styling, injected per school's theme */
-  <?= $theme_custom_css ?? '' ?>
   <?= get_hero_variant_override_css() ?>
 
   /* STAFF */

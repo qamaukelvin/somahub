@@ -106,9 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !consent_given()) {
 </style>
 </head>
 <body>
-<header class="school-header">
-  <a href="site.php?school=<?= urlencode($school['slug']) ?>" class="school-brand"><?= htmlspecialchars($school['name']) ?></a>
-</header>
+<?php $portalActive = 'enroll'; include __DIR__ . '/_school_portal_nav.php'; ?>
 <div class="card">
   <?php if ($success): ?>
     <div class="success">

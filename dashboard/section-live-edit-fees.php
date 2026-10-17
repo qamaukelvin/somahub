@@ -94,7 +94,6 @@ $extraCss = <<<CSS
   .i-note .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:16px;}
   .fe-err{color:#B3261E;font-size:.78rem;margin-top:6px;min-height:1em;}
 CSS;
-$extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="en">

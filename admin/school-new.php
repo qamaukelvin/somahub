@@ -7,7 +7,6 @@ require_platform_admin();
 $db = get_db();
 
 require_once __DIR__ . '/../includes/appearance.php';
-$templates = get_active_templates($db);
 $palettes = get_active_palettes($db);
 $defaultSectionKeys = ['hero','about','academics','admissions','gallery','contact']; // sensible starter set
 
@@ -15,7 +14,6 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name']);
     $slug = strtolower(preg_replace('/[^a-z0-9]/', '', strtolower($_POST['slug'])));
-    $templateId = (int)$_POST['template_id'];
     $colorMode = ($_POST['color_mode'] ?? 'preset') === 'custom' ? 'custom' : 'preset';
     $paletteId = $colorMode === 'preset' ? (int)$_POST['palette_id'] : null;
     $primaryOverride = $colorMode === 'custom' ? (trim($_POST['primary_override'] ?? '') ?: null) : null;
@@ -41,10 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // 1. Create the school (starts on free plan + promo window, per the free-first-term strategy)
                 $promoEnds = date('Y-m-d', strtotime('+1 term', strtotime('+4 months')));
                 $insertSchool = $db->prepare("
-                    INSERT INTO schools (name, slug, template_id, palette_id, color_mode, primary_override, secondary_override, accent_override, bg_override, plan, promo_ends_at, status, phone, email)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'promo_paid', ?, 'trial', ?, ?)
+                    INSERT INTO schools (name, slug, palette_id, color_mode, primary_override, secondary_override, accent_override, bg_override, plan, promo_ends_at, status, phone, email)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'promo_paid', ?, 'trial', ?, ?)
                 ");
-                $insertSchool->execute([$name, $slug, $templateId, $paletteId, $colorMode, $primaryOverride, $secondaryOverride, $accentOverride, $bgOverride, $promoEnds, $ownerPhone, $ownerEmail]);
+                $insertSchool->execute([$name, $slug, $paletteId, $colorMode, $primaryOverride, $secondaryOverride, $accentOverride, $bgOverride, $promoEnds, $ownerPhone, $ownerEmail]);
                 $schoolId = $db->lastInsertId();
 
                 // 2. Create the owner login
@@ -147,9 +145,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <label>Subdomain (lowercase, no spaces)</label>
     <input type="text" name="slug" required placeholder="e.g. kinangoppride">
     <p style="font-size:0.78rem;color:#888;margin-top:-10px;margin-bottom:16px;">Will be: [subdomain].somahub.top</p>
-
-    <label>Template</label>
-    <?php $selectedTemplateId = $templates[0]['id'] ?? 0; include __DIR__ . '/_template_picker.php'; ?>
 
     <label>Colors</label>
     <?php

@@ -14,7 +14,6 @@ if (!$lead) { die('Lead not found.'); }
 
 require_once __DIR__ . '/../includes/appearance.php';
 require_once __DIR__ . '/../includes/blog.php';
-$templates = get_active_templates($db);
 $palettes = get_active_palettes($db);
 $contentPresets = get_school_content_presets();
 $created = null;
@@ -22,7 +21,6 @@ $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create_school') {
     $schoolName = trim($_POST['school_name'] ?: $lead['school_name']);
-    $templateId = (int)$_POST['template_id'];
     $colorMode = ($_POST['color_mode'] ?? 'preset') === 'custom' ? 'custom' : 'preset';
     $paletteId = $colorMode === 'preset' ? (int)$_POST['palette_id'] : null;
     $primaryOverride = $colorMode === 'custom' ? (trim($_POST['primary_override'] ?? '') ?: null) : null;
@@ -53,10 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
     $db->beginTransaction();
     try {
         $insertSchool = $db->prepare("
-            INSERT INTO schools (name, slug, template_id, palette_id, color_mode, primary_override, secondary_override, accent_override, bg_override, plan, status, verification_status, county, phone, email, activate_trial_on_login)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?, 1)
+            INSERT INTO schools (name, slug, palette_id, color_mode, primary_override, secondary_override, accent_override, bg_override, plan, status, verification_status, county, phone, email, activate_trial_on_login)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?, 1)
         ");
-        $insertSchool->execute([$schoolName, $slug, $templateId, $paletteId, $colorMode, $primaryOverride, $secondaryOverride, $accentOverride, $bgOverride, $lead['county'], $lead['phone'], $realEmail ?: null]);
+        $insertSchool->execute([$schoolName, $slug, $paletteId, $colorMode, $primaryOverride, $secondaryOverride, $accentOverride, $bgOverride, $lead['county'], $lead['phone'], $realEmail ?: null]);
         $schoolId = $db->lastInsertId();
 
         $insertUser = $db->prepare("
@@ -197,9 +195,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
 
         <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">School Name</label>
         <input type="text" name="school_name" value="<?= htmlspecialchars($lead['school_name']) ?>" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:4px;margin-bottom:16px;" required>
-
-        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Template</label>
-        <?php $selectedTemplateId = $templates[0]['id'] ?? 0; include __DIR__ . '/_template_picker.php'; ?>
 
         <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Colors</label>
         <?php

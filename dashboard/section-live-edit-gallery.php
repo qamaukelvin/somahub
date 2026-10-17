@@ -107,7 +107,6 @@ $extraCss = <<<CSS
   .g-tabs-preview span{border:1.5px solid rgba(0,0,0,.15);background:#fff;padding:7px 16px;border-radius:20px;font-size:.82rem;font-weight:600;}
   .g-tabs-preview span:first-child{background:var(--primary);color:#fff;border-color:var(--primary);}
 CSS;
-$extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="en">

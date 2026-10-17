@@ -76,7 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $safeName = 'sec_' . $section['id'] . '_' . $field . '_' . time() . '.' . $ext;
             $destDir = __DIR__ . '/../uploads/schools/' . $user['school_id'] . '/';
             if (!is_dir($destDir)) mkdir($destDir, 0755, true);
-            move_uploaded_file($tmpPath, $destDir . $safeName);
+            require_once __DIR__ . '/../includes/image-upload.php';
+            $safeName = store_optimized_image($tmpPath, $destDir, $safeName, $mime);
 
             // Relative path (no leading slash) so this resolves correctly regardless of
             // what subfolder the app is deployed in — see the earlier absolute-path bug.

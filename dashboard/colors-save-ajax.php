@@ -1,6 +1,6 @@
 <?php
 // Saves the school's site-wide colours (a preset palette, or custom colours)
-// from the "Colours" control in any live editor. Mirrors design-save.php's
+// from the "Colours" control in any live editor. Replaces the old design-save.php:
 // rules but never touches the template and answers with JSON.
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/appearance.php';

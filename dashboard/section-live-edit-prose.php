@@ -93,7 +93,6 @@ $extraCss = <<<CSS
   .i-note{font-size:.8rem;color:#6b6b60;margin:0 0 14px;display:flex;gap:6px;align-items:center;}
   .i-note .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:16px;}
 CSS;
-$extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 $hint = '';
 if (in_array($variant, ['key_dates', 'grade_levels'], true)) $hint = 'Write each line as "Label: detail" (for example "Term 1 opens: 6 January"). Your live site shows the label in bold.';
 elseif ($variant === 'steps') $hint = 'Each line is one step in the process.';

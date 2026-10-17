@@ -2,9 +2,6 @@
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/settings.php';
 $db = get_db();
-require_once __DIR__ . '/includes/appearance.php';
-$templates = get_active_templates($db);
-$palettes = get_active_palettes($db);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -12,7 +9,7 @@ $palettes = get_active_palettes($db);
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pricing - Somahub</title>
 <link rel="canonical" href="https://somahub.top/pricing.php">
-<meta name="description" content="Simple, transparent pricing for Somahub. Free websites for schools, a 60-day full-access trial, plus clear pricing for domains, templates, and content writing.">
+<meta name="description" content="Simple, transparent pricing for Somahub. Free websites for schools, a 60-day full-access trial, plus clear pricing for domains and content writing.">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -74,15 +71,6 @@ $palettes = get_active_palettes($db);
   .build-card p{font-size:0.86rem;color:var(--muted);}
 
   /* THEME GALLERY */
-  .theme-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px;}
-  .theme-card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
-  .theme-preview{height:110px;position:relative;}
-  .theme-preview .tp-bar{height:22px;display:flex;align-items:center;padding:0 10px;gap:5px;}
-  .theme-preview .tp-dot{width:8px;height:8px;border-radius:50%;}
-  .theme-preview .tp-body{padding:12px;}
-  .theme-preview .tp-line{height:8px;border-radius:3px;margin-bottom:7px;}
-  .theme-card-meta{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;}
-  .theme-card-name{font-size:0.88rem;font-weight:700;}
   .premium-tag{display:inline-block;background:#F2A65A;color:#0A3A3E;font-size:0.66rem;font-weight:800;padding:2px 8px;border-radius:10px;}
 
   .note-box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 24px;font-size:0.87rem;color:var(--muted);margin-top:20px;}
@@ -124,7 +112,6 @@ $palettes = get_active_palettes($db);
       <div class="plan-desc">Everything unlocked, free, so you can see the real value before deciding.</div>
       <ul>
         <li><span class="check">＋</span> Everything in Free</li>
-        <li><span class="check">＋</span> Every premium template</li>
         <li><span class="check">＋</span> Online enrollment applications</li>
         <li><span class="check">＋</span> Full report: results, attendance, position, trends & fees</li>
       </ul>
@@ -136,54 +123,10 @@ $palettes = get_active_palettes($db);
       <div class="plan-desc">About KSh 750 a term. Everything the Trial unlocks, permanently.</div>
       <ul>
         <li><span class="check">＋</span> Everything in Free</li>
-        <li><span class="check">＋</span> Every premium template</li>
         <li><span class="check">＋</span> Online enrollment applications</li>
         <li><span class="check">＋</span> Full report: results, attendance, position, trends & fees</li>
       </ul>
       <a href="get-started.php" class="plan-cta">Get Started</a>
-    </div>
-  </div>
-</section>
-
-<section style="background:#fff;">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>See our templates</h2>
-      <p>Every school picks a template at signup - change it anytime from your dashboard. Premium templates are included with the Premium plan and the 60-Day Trial. Any color palette below can be paired with any template, on any plan.</p>
-    </div>
-    <div class="theme-gallery">
-      <?php foreach ($templates as $t): $isPremium = !empty($t['is_premium']); ?>
-        <div class="theme-card">
-          <div class="theme-card-meta">
-            <span class="theme-card-name"><?= htmlspecialchars($t['name']) ?></span>
-            <?php if ($isPremium): ?><span class="premium-tag">Premium</span><?php endif; ?>
-          </div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-
-    <div class="section-head" style="margin-top:40px;">
-      <h2>Color palettes</h2>
-      <p>Free to choose and change anytime - no plan or premium restriction on color.</p>
-    </div>
-    <div class="theme-gallery">
-      <?php foreach ($palettes as $p): $vars = json_decode($p['css_variables_json'], true); ?>
-        <div class="theme-card">
-          <div class="theme-preview" style="background:<?= htmlspecialchars($vars['bg'] ?? '#f4f4f4') ?>;">
-            <div class="tp-bar" style="background:<?= htmlspecialchars($vars['primary'] ?? '#333') ?>;">
-              <span class="tp-dot" style="background:<?= htmlspecialchars($vars['accent'] ?? '#fff') ?>;"></span>
-            </div>
-            <div class="tp-body">
-              <div class="tp-line" style="width:75%;background:<?= htmlspecialchars($vars['primary'] ?? '#333') ?>;opacity:0.85;"></div>
-              <div class="tp-line" style="width:95%;background:<?= htmlspecialchars($vars['accent'] ?? '#333') ?>;opacity:0.5;"></div>
-              <div class="tp-line" style="width:55%;background:<?= htmlspecialchars($vars['accent'] ?? '#333') ?>;opacity:0.5;"></div>
-            </div>
-          </div>
-          <div class="theme-card-meta">
-            <span class="theme-card-name"><?= htmlspecialchars($p['name']) ?></span>
-          </div>
-        </div>
-      <?php endforeach; ?>
     </div>
   </div>
 </section>
@@ -225,20 +168,20 @@ $palettes = get_active_palettes($db);
   <div class="wrap">
     <div class="section-head">
       <h2>Fully custom design</h2>
-      <p>Most schools are happy with a theme plus the add-ons above. If you want something genuinely bespoke beyond our templates, here's what that costs.</p>
+      <p>Most schools are happy with the standard site plus the add-ons above. If you want something genuinely bespoke, here's what that costs.</p>
     </div>
     <div class="build-grid">
       <div class="build-card">
         <div class="build-name">Standard Build</div>
         <div class="build-price">Free</div>
         <span class="build-time">2–3 days</span>
-        <p>Uses our existing templates and color palettes. You provide your content and photos, we set it up and you review it before it goes live.</p>
+        <p>Uses our standard sections and layouts. You provide your content and photos, we set it up and you review it before it goes live.</p>
       </div>
       <div class="build-card featured">
         <div class="build-name">Fully Custom Design</div>
         <div class="build-price">From KSh 10,000</div>
         <span class="build-time">2–3 weeks</span>
-        <p>A genuinely bespoke layout and sections beyond our standard templates, matched to your school's real branding. Final price depends on scope - we'll quote after understanding what you need.</p>
+        <p>A genuinely bespoke layout and sections beyond our standard sections, matched to your school's real branding. Final price depends on scope - we'll quote after understanding what you need.</p>
       </div>
     </div>
   </div>

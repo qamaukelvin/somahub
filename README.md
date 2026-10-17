@@ -70,6 +70,8 @@ top bar. Section content lives in `site_sections.content_json`; `site.php` rende
 `includes/section_variants.php` is the registry of layouts and text-colour roles.
 
 ## Dashboard navigation and notifications
+`_school_portal_nav.php` is the navbar for school pages outside the main site (results check, enrollment
+form, report card); `_public_nav.php` is Somahub's own public navbar (now with Blog).
 `dashboard/_nav.php` is the school navbar (Material Symbols icons, active-page highlight, dropdowns,
 mobile drawer). Live editors have a **Menu** dropdown in their top bar for jumping around the
 dashboard. Dashboard-wide nudges (verify, add email, set password) go through
@@ -80,6 +82,22 @@ of reappearing on every page load.
 `site.php` shows the public a "temporarily unavailable" page once an unverified school is past its
 7 days. Logged-in owners and platform admins still see the real site, with a red banner saying it is
 offline to the public, so a locked phone and a live laptop usually means the laptop is logged in.
+
+## Performance and media
+Uploads go through `includes/image-upload.php`: resized to 1600px max and saved as WebP (JPEG
+fallback). `site.php` lazy-loads every image after the first. Admin > "Optimise images" shrinks
+photos uploaded before this existed. Keep an eye on: very large galleries (consider paging), and
+adding responsive `srcset` thumbnails if sites still feel slow on weak connections.
+
+## Appearance
+Schools choose a colour palette (or custom colours) and a font pair; layouts come from per-section
+variants. The old templates framework (`templates`/`themes` tables, template pickers) is removed;
+`sql/remove_templates_framework.sql` drops the leftovers once the new code is live.
+
+## Account changes
+Login email changes need the password and a confirmation link sent to the NEW address (the old
+address is also notified): `dashboard/account.php` + `dashboard/confirm-email-change.php`, table in
+`sql/email_change_requests.sql`. Role (job title) can be edited on the account page.
 
 ## Consent
 `includes/consent.php` provides one checkbox (Terms + Privacy) used on every form that collects

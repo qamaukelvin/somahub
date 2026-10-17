@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../includes/image-upload.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/audit.php';
 $user = require_school_login();
@@ -72,7 +73,9 @@ foreach ($schema as $field => $fieldType) {
         $safeName = 'sec_' . $section['id'] . '_' . $field . '_' . time() . '.' . $ext;
         $destDir = __DIR__ . '/../uploads/schools/' . $user['school_id'] . '/';
         if (!is_dir($destDir)) mkdir($destDir, 0755, true);
-        move_uploaded_file($tmpPath, $destDir . $safeName);
+        $safeName = store_optimized_image($tmpPath, $destDir, $safeName, $mime);
+        $fileSize = @filesize($destDir . $safeName) ?: $fileSize;
+        $mime = (substr($safeName, -5) === '.webp') ? 'image/webp' : ((substr($safeName, -4) === '.jpg') ? 'image/jpeg' : $mime);
 
         $relPath = 'uploads/schools/' . $user['school_id'] . '/' . $safeName;
         $newContent[$field] = $relPath;
@@ -126,7 +129,8 @@ if (!empty($_FILES['bulk_photos']['tmp_name']) && is_array($_FILES['bulk_photos'
             $safeName = 'sec_' . $section['id'] . '_' . $existenceField . '_' . $targetSlot . '_' . time() . '_' . $f . '.' . $ext;
             $destDir = __DIR__ . '/../uploads/schools/' . $user['school_id'] . '/';
             if (!is_dir($destDir)) mkdir($destDir, 0755, true);
-            move_uploaded_file($tmpPath, $destDir . $safeName);
+            $safeName = store_optimized_image($tmpPath, $destDir, $safeName, $imageInfo['mime']);
+            $fileSize = @filesize($destDir . $safeName) ?: $fileSize;
 
             $relPath = 'uploads/schools/' . $user['school_id'] . '/' . $safeName;
             $newContent["{$existenceField}_{$targetSlot}"] = $relPath;

@@ -127,7 +127,6 @@ $extraCss = <<<CSS
   .i-note{font-size:.8rem;color:#6b6b60;margin:0 0 14px;display:flex;gap:6px;align-items:center;}
   .i-note .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:16px;}
 CSS;
-$extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 function cb_head(array $c): string {
     return '<h2 data-field="headline"' . live_color_attr($c, 'headline') . ' contenteditable="true" data-placeholder="A short, strong call to action">' . esc($c['headline'] ?? '') . '</h2>'
          . '<p data-field="subtext"' . live_color_attr($c, 'subtext') . ' contenteditable="true" data-placeholder="Add a supporting line (optional)">' . esc($c['subtext'] ?? '') . '</p>';

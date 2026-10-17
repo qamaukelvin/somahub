@@ -134,7 +134,6 @@ $extraCss = <<<CSS
   .s-note{font-size:.8rem;color:#6b6b60;margin:0 0 14px;display:flex;gap:6px;align-items:center;}
   .s-note .material-symbols-outlined{font-family:'Material Symbols Outlined';font-size:16px;}
 CSS;
-$extraCss .= "\n" . ($appearance['custom_css'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -166,12 +166,8 @@ $extraCss = <<<CSS
   .hero-bgfixed-variant.hero-size-half, .hero-bgfixed-variant.hero-size-full{align-items:flex-end;}
 CSS;
 
-// The school's template can restyle the hero (e.g. photos as a full-bleed
-// background with an overlay). The live site injects that CSS, so the
-// editor must too or the two never match.
-$themeCss = $appearance['custom_css'] ?? '';
-$themePhotoBg = false; // variant layout wins over template hero layout (see get_hero_variant_override_css)
-$unusedThemeProbe = (bool)preg_match('/\.hero-(?:mosaic|photo)[^{}]*\{[^}]*position\s*:\s*absolute/i', $themeCss);
+$themeCss = '';
+$themePhotoBg = false;
 $extraCss .= "\n" . $themeCss . <<<CSS2
 
   .hero::before{pointer-events:none;}
