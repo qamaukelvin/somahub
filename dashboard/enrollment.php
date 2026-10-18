@@ -8,10 +8,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['app_id'], $_POST['sta
     $stmt->execute([$_POST['status'], (int)$_POST['app_id'], $user['school_id']]);
 }
 
+require_once __DIR__ . '/../includes/paginate.php';
+
+// CSV export of every application (for Excel / printing)
+if (($_GET['export'] ?? '') === 'csv') {
+    $all = $db->prepare("SELECT * FROM enrollment_applications WHERE school_id = ? ORDER BY submitted_at DESC");
+    $all->execute([$user['school_id']]);
+    while (ob_get_level()) ob_end_clean();
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="enrollment-applications-' . date('Y-m-d') . '.csv"');
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF");
+    fputcsv($out, ['Submitted', 'Child', 'Date of birth', 'Grade', 'Previous school', 'Parent', 'Phone', 'Email', 'Status']);
+    foreach ($all as $a) {
+        fputcsv($out, [$a['submitted_at'], $a['child_name'], $a['date_of_birth'], $a['grade_applying_for'], $a['previous_school'], $a['parent_name'], $a['parent_phone'], $a['parent_email'], $a['status'] ?? '']);
+    }
+    exit;
+}
+
+[$page, $perPage, $offset] = page_info(25);
+$totalApps = $db->prepare("SELECT COUNT(*) FROM enrollment_applications WHERE school_id = ?");
+$totalApps->execute([$user['school_id']]);
+$totalApps = (int)$totalApps->fetchColumn();
+
 $apps = $db->prepare("
     SELECT * FROM enrollment_applications
     WHERE school_id = ?
     ORDER BY submitted_at DESC
+    LIMIT $perPage OFFSET $offset
 ");
 $apps->execute([$user['school_id']]);
 $apps = $apps->fetchAll();
@@ -57,6 +81,8 @@ $apps = $apps->fetchAll();
     <tr><td colspan="6" style="text-align:center;color:#888;">No applications yet.</td></tr>
     <?php endif; ?>
   </table>
+  <?= pager_html($totalApps, $perPage, $page) ?>
+  <?php if ($totalApps): ?><p style="text-align:center;"><a href="?export=csv" style="color:#0F5257;font-weight:700;">&darr; Download all as CSV</a></p><?php endif; ?>
 </main>
 </body>
 </html>

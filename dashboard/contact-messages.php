@@ -8,7 +8,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['msg_id'])) {
     $stmt->execute([(int)$_POST['msg_id'], $user['school_id']]);
 }
 
-$messages = $db->prepare("SELECT * FROM school_contact_messages WHERE school_id = ? ORDER BY submitted_at DESC");
+require_once __DIR__ . '/../includes/paginate.php';
+[$page, $perPage, $offset] = page_info(30);
+$totalMsgs = $db->prepare("SELECT COUNT(*) FROM school_contact_messages WHERE school_id = ?");
+$totalMsgs->execute([$user['school_id']]);
+$totalMsgs = (int)$totalMsgs->fetchColumn();
+$messages = $db->prepare("SELECT * FROM school_contact_messages WHERE school_id = ? ORDER BY submitted_at DESC LIMIT $perPage OFFSET $offset");
 $messages->execute([$user['school_id']]);
 $messages = $messages->fetchAll();
 ?>
@@ -51,6 +56,7 @@ $messages = $messages->fetchAll();
       <?php endif; ?>
     </div>
   <?php endforeach; ?>
+  <?= pager_html($totalMsgs, $perPage, $page) ?>
 </main>
 </body>
 </html>

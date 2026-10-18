@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/mailer.php';
 $db = get_db();
+require_once __DIR__ . '/../includes/ratelimit.php';
+if ($_SERVER['REQUEST_METHOD']==='POST') rate_limit_or_die('forgot:'.client_ip(), 5, 3600);
 
 $message = '';
 

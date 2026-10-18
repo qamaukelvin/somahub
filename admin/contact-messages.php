@@ -8,7 +8,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message_id'], $_POST[
        ->execute([$_POST['status'], (int)$_POST['message_id']]);
 }
 
-$messages = $db->query("SELECT * FROM contact_messages ORDER BY submitted_at DESC")->fetchAll();
+require_once __DIR__ . '/../includes/paginate.php';
+[$page, $perPage, $offset] = page_info(30);
+$totalMsgs = (int)$db->query("SELECT COUNT(*) FROM contact_messages")->fetchColumn();
+$messages = $db->query("SELECT * FROM contact_messages ORDER BY submitted_at DESC LIMIT $perPage OFFSET $offset")->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -45,6 +48,7 @@ $messages = $db->query("SELECT * FROM contact_messages ORDER BY submitted_at DES
       </td>
     </tr>
     <?php endforeach; ?>
+    <?= pager_html($totalMsgs, $perPage, $page) ?>
   </table>
 </main>
 </body>

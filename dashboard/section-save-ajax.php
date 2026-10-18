@@ -70,7 +70,7 @@ foreach ($schema as $field => $fieldType) {
         }
 
         $ext = $allowedMimes[$mime];
-        $safeName = 'sec_' . $section['id'] . '_' . $field . '_' . time() . '.' . $ext;
+        $safeName = 'sec_' . $section['id'] . '_' . $field . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
         $destDir = __DIR__ . '/../uploads/schools/' . $user['school_id'] . '/';
         if (!is_dir($destDir)) mkdir($destDir, 0755, true);
         $safeName = store_optimized_image($tmpPath, $destDir, $safeName, $mime);
@@ -126,7 +126,7 @@ if (!empty($_FILES['bulk_photos']['tmp_name']) && is_array($_FILES['bulk_photos'
 
             $ext = $allowedMimes[$imageInfo['mime']];
             $targetSlot = $emptySlots[$slotIndex];
-            $safeName = 'sec_' . $section['id'] . '_' . $existenceField . '_' . $targetSlot . '_' . time() . '_' . $f . '.' . $ext;
+            $safeName = 'sec_' . $section['id'] . '_' . $existenceField . '_' . $targetSlot . '_' . bin2hex(random_bytes(6)) . '_' . $f . '.' . $ext;
             $destDir = __DIR__ . '/../uploads/schools/' . $user['school_id'] . '/';
             if (!is_dir($destDir)) mkdir($destDir, 0755, true);
             $safeName = store_optimized_image($tmpPath, $destDir, $safeName, $imageInfo['mime']);

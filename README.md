@@ -89,6 +89,17 @@ fallback). `site.php` lazy-loads every image after the first. Admin > "Optimise 
 photos uploaded before this existed. Keep an eye on: very large galleries (consider paging), and
 adding responsive `srcset` thumbnails if sites still feel slow on weak connections.
 
+## Demo school and "Try the editor"
+`admin/demo-school.php` creates demo.somahub.top. On that school only, `site.php` includes
+`_demo_editor.php`: a browser-only sandbox (edit text, swap photos, colours, fonts, hide sections,
+Review changes). It never sends anything to the server, so visitors cannot affect each other or the
+real demo. The homepage embeds it (`?embed=1`) in the "Try it yourself" section.
+
+## Forms
+Enrollment and results lookup are inline on the school's own site (one layout each). Inline results
+load via `results-check.php?fragment=1`. The standalone pages remain only as POST handlers and
+fallbacks; `includes/school-slug.php` lets them work from the school's subdomain.
+
 ## Appearance
 Schools choose a colour palette (or custom colours) and a font pair; layouts come from per-section
 variants. The old templates framework (`templates`/`themes` tables, template pickers) is removed;
@@ -123,3 +134,11 @@ or date of birth together, so no one can browse by guessing sequential numbers.
 - Results lookup always requires two factors together (admission_no + name/DOB), never one alone.
 - Passwords are hashed with `password_hash()` / verified with `password_verify()`, never stored plain.
 - `config/` and `includes/` are blocked from direct browser access via `.htaccess`.
+
+
+## Security (hardening batch)
+- **CSRF:** `includes/csrf.php` verifies a per-session token on every POST for pages that load `includes/auth.php`, and injects it into forms and fetch/XHR automatically. No per-form code is needed.
+- **Rate limiting:** `includes/ratelimit.php` (table `rate_limits`, auto-created, fails open). Login: 8 failures per email / 25 per IP per 15 min. Signup, forgot/reset password, contact, reviews, enrollment, results and subdomain checks are limited too.
+- **Sessions:** ID and CSRF token regenerate on every login.
+- **Private files:** ID documents, signed agreements, results and attendance CSVs are stored in `storage/private/` (denied to the web) and streamed by `admin/private-file.php` / `dashboard/private-file.php` after a permission check. Run `admin/migrate-private-files.php` once to move existing files.
+- **Web root:** `uploads/.htaccess` blocks script execution; `config/`, `includes/`, `sql/`, `vendor/`, `storage/` deny direct access; root `.htaccess` blocks `.sql`, `.md`, `.ini`, `.log`. The old top-level `.sql` files now live in `sql/_legacy_root/`.

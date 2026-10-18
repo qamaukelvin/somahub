@@ -1,0 +1,7 @@
+# ── Images — serve images only, block PHP execution ──────────────────────────
+Options -Indexes
+<FilesMatch "\.php$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+ErrorDocument 403 /index.php

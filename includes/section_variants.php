@@ -160,19 +160,30 @@ function get_section_variant_registry(): array {
             'bulk_photo_upload' => true,
         ],
         'faq' => [
-            // No 'options' here - FAQ doesn't get a Design/layout picker,
-            // just the same repeatable add/remove editing UX as the others.
-            // _section_row.php's Design-button check looks for 'options'
-            // specifically, so this correctly gets no Design button.
+            'photo_fields' => [],
+            'default' => 'accordion',
+            'has_size' => false,
+            'options' => [
+                'accordion' => ['label' => 'Accordion (tap to expand)', 'icon' => 'expand_circle_down', 'photos_needed' => 0],
+                'cards' => ['label' => 'Cards (all open)', 'icon' => 'view_agenda', 'photos_needed' => 0],
+                'two_column' => ['label' => 'Two columns', 'icon' => 'view_column', 'photos_needed' => 0],
+                'numbered' => ['label' => 'Numbered list', 'icon' => 'format_list_numbered', 'photos_needed' => 0],
+            ],
             'repeatable' => true,
             'item_label' => 'Question',
             'max_items' => 10,
             'item_fields' => ['question', 'answer'],
         ],
         'blog' => [
-            // Minimal step for now - numbered post teasers, same pattern as
-            // FAQ. Not the real per-school blog subsystem (own archive
-            // page, real post management) - that's deliberately deferred.
+            // Numbered post teasers - not a full per-school blog subsystem.
+            'photo_fields' => [],
+            'default' => 'list',
+            'has_size' => false,
+            'options' => [
+                'list' => ['label' => 'Single column list', 'icon' => 'view_agenda', 'photos_needed' => 0],
+                'cards' => ['label' => 'Card grid', 'icon' => 'grid_view', 'photos_needed' => 0],
+                'featured' => ['label' => 'Featured first post', 'icon' => 'newsmode', 'photos_needed' => 0],
+            ],
             'repeatable' => true,
             'item_label' => 'Post',
             'max_items' => 10,
@@ -314,41 +325,25 @@ function get_section_variant_registry(): array {
             ],
         ],
         'enrollment_form' => [
-            'default' => 'simple',
+            'default' => 'inline_form',
             'has_size' => false,
-            'photo_fields' => ['photo'],
+            'photo_fields' => [],
             'options' => [
-                'simple' => ['label' => 'Simple callout', 'icon' => 'campaign', 'photos_needed' => 0],
                 'inline_form' => ['label' => 'Inline embedded form', 'icon' => 'assignment', 'photos_needed' => 0],
-                'steps_preview' => ['label' => '"How it works" steps', 'icon' => 'timeline', 'photos_needed' => 0],
-                'photo_callout' => ['label' => 'Photo + callout', 'icon' => 'view_agenda', 'photos_needed' => 1],
-                'deadline_banner' => ['label' => 'Deadline / urgency banner', 'icon' => 'event', 'photos_needed' => 0],
             ],
             'field_groups' => [
-                'simple' => ['intro_text'],
                 'inline_form' => ['intro_text'],
-                'steps_preview' => ['intro_text', 'list_items'],
-                'photo_callout' => ['intro_text', 'photo'],
-                'deadline_banner' => ['intro_text', 'deadline_text'],
             ],
         ],
         'results_lookup' => [
-            'default' => 'simple',
+            'default' => 'inline_form',
             'has_size' => false,
-            'photo_fields' => ['photo'],
+            'photo_fields' => [],
             'options' => [
-                'simple' => ['label' => 'Simple callout (both buttons)', 'icon' => 'campaign', 'photos_needed' => 0],
                 'inline_form' => ['label' => 'Inline lookup form', 'icon' => 'search', 'photos_needed' => 0],
-                'photo_callout' => ['label' => 'Photo + callout', 'icon' => 'view_agenda', 'photos_needed' => 1],
-                'steps_preview' => ['label' => '"How to check" steps', 'icon' => 'timeline', 'photos_needed' => 0],
-                'single_button' => ['label' => 'Single focused button', 'icon' => 'touch_app', 'photos_needed' => 0],
             ],
             'field_groups' => [
-                'simple' => ['intro_text'],
                 'inline_form' => ['intro_text'],
-                'photo_callout' => ['intro_text', 'photo'],
-                'steps_preview' => ['intro_text', 'list_items'],
-                'single_button' => ['intro_text'],
             ],
         ],
     ];

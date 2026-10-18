@@ -27,7 +27,7 @@ function get_starter_layout(): array {
         ['gallery', 'grid', 1],
         ['staff', 'carousel', 1],
         ['testimonials', 'rating', 1],
-        ['faq', 'default', 1],
+        ['faq', 'accordion', 1],
         ['fees', 'by_grade', 0],
         ['results_lookup', 'inline_form', 1],
         ['contact', 'side_by_side', 1],

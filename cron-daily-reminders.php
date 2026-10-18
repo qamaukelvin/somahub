@@ -91,7 +91,13 @@ function get_school_owner_email(PDO $db, int $schoolId): ?string {
     return $email ?: null;
 }
 
+function bell(PDO $db, int $schoolId, string $type, string $title, string $msg, string $link): void {
+    try { require_once __DIR__ . '/includes/notifications.php'; create_notification($db, $schoolId, $type, $title, $msg, $link); }
+    catch (\Throwable $e) { error_log('cron bell failed: ' . $e->getMessage()); }
+}
+
 function send_plan_reminder(PDO $db, array $school, int $daysLeft, string $column): void {
+    bell($db, (int)$school['id'], 'trial_ending', "Trial ends in {$daysLeft} day" . ($daysLeft == 1 ? '' : 's'), 'Upgrade to keep enrollment, results and fees running.', 'checkout.php');
     $email = get_school_owner_email($db, $school['id']);
     if ($email) {
         $body = "
@@ -105,6 +111,7 @@ function send_plan_reminder(PDO $db, array $school, int $daysLeft, string $colum
 }
 
 function send_plan_expired_notice(PDO $db, array $school): void {
+    bell($db, (int)$school['id'], 'trial_ended', 'Your trial has ended', 'Premium features are paused. Upgrade to restore them.', 'checkout.php');
     $email = get_school_owner_email($db, $school['id']);
     if ($email) {
         $body = "
@@ -118,6 +125,7 @@ function send_plan_expired_notice(PDO $db, array $school): void {
 }
 
 function send_verification_reminder(PDO $db, array $school, int $daysLeft, string $column): void {
+    bell($db, (int)$school['id'], 'verify_reminder', "Verify within {$daysLeft} day" . ($daysLeft == 1 ? '' : 's'), 'Your website goes offline to the public unless verification is completed.', 'verify.php');
     $email = get_school_owner_email($db, $school['id']);
     if ($email) {
         $body = "

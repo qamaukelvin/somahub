@@ -16,8 +16,8 @@ $__links = [['Home', $__home, 'home', '']];
 foreach ([['about','About','info'],['academics','Academics','menu_book'],['admissions','Admissions','school'],['gallery','Gallery','photo_library'],['staff','Staff','groups'],['fees','Fees','payments']] as $x) {
     if (isset($__keys[$x[0]])) $__links[] = [$x[1], $__home . '#' . $x[0], $x[2], ''];
 }
-if (isset($__keys['enrollment_form'])) $__links[] = ['Apply', 'https://' . $school['slug'] . '.somahub.top/enrollment-apply.php?school=' . urlencode($school['slug']), 'edit_note', 'enroll'];
-if (isset($__keys['results_lookup'])) $__links[] = ['Results', 'https://' . $school['slug'] . '.somahub.top/results-check.php?school=' . urlencode($school['slug']), 'grading', 'results'];
+if (isset($__keys['enrollment_form'])) $__links[] = ['Apply', $__home . '#enrollment_form', 'edit_note', 'enroll'];
+if (isset($__keys['results_lookup'])) $__links[] = ['Results', $__home . '#results_lookup', 'grading', 'results'];
 if (isset($__keys['blog'])) $__links[] = ['Blog', $__home . '#blog', 'article', ''];
 if (isset($__keys['contact'])) $__links[] = ['Contact', $__home . '#contact', 'mail', ''];
 ?>

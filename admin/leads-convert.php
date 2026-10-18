@@ -65,13 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
         $userId = $db->lastInsertId();
 
         $presetContent = $contentPresets[$presetKey]['content'] ?? [];
-        $defaultSectionKeys = ['hero','about','academics','admissions','faq','gallery','contact'];
+        require_once __DIR__ . '/../includes/school-provision.php';
+        $hasVariantCol = db_has_column($db, 'site_sections', 'layout_variant');
         $typeStmt = $db->prepare("SELECT id, schema_json FROM section_types WHERE key_name = ?");
-        $insertSection = $db->prepare("
-            INSERT INTO site_sections (school_id, section_type_id, position, is_visible, content_json)
-            VALUES (?, ?, ?, 1, ?)
-        ");
-        foreach ($defaultSectionKeys as $idx => $key) {
+        $insertSection = $db->prepare($hasVariantCol
+            ? "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, layout_variant, content_json) VALUES (?, ?, ?, ?, ?, ?)"
+            : "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, content_json) VALUES (?, ?, ?, ?, ?)");
+        foreach (get_starter_layout() as $idx => [$key, $variant, $visible]) {
             $typeStmt->execute([$key]);
             $type = $typeStmt->fetch();
             if ($type) {
@@ -99,7 +99,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
                     }
                 }
 
-                $insertSection->execute([$schoolId, $type['id'], $idx, json_encode($content)]);
+                $hasVariantCol
+                    ? $insertSection->execute([$schoolId, $type['id'], $idx, $visible, $variant, json_encode($content)])
+                    : $insertSection->execute([$schoolId, $type['id'], $idx, $visible, json_encode($content)]);
             }
         }
 

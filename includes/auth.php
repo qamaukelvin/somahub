@@ -18,21 +18,42 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/ratelimit.php';
+require_once __DIR__ . '/csrf.php';
+
 function current_user() {
     return $_SESSION['user'] ?? null;
 }
 
 function login($email, $password) {
     $db = get_db();
+    $GLOBALS['login_throttled'] = false;
+    $ipKey = 'login_ip:' . client_ip();
+    $emKey = 'login_em:' . strtolower(trim((string)$email));
+
+    // Brute-force guard: 8 failures per email / 25 per IP per 15 minutes.
+    if (!rate_limit($ipKey, 25, 900, false) || !rate_limit($emKey, 8, 900, false)) {
+        $GLOBALS['login_throttled'] = true;
+        return false;
+    }
+
     $stmt = $db->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password_hash'])) {
+        rate_limit_reset($emKey);
         establish_session($db, $user);
         return true;
     }
+    rate_limit($ipKey, 25, 900);
+    rate_limit($emKey, 8, 900);
     return false;
+}
+
+/** True when the last login() call was refused for too many attempts. */
+function login_was_throttled(): bool {
+    return !empty($GLOBALS['login_throttled']);
 }
 
 /**
@@ -42,6 +63,9 @@ function login($email, $password) {
  */
 function establish_session(PDO $db, array $user): void {
     unset($user['password_hash']); // never keep the hash in session
+    // New session ID + new CSRF token on every login (prevents session fixation).
+    if (session_status() === PHP_SESSION_ACTIVE) { session_regenerate_id(true); }
+    unset($_SESSION['_csrf']);
     $_SESSION['user'] = $user;
 
     $db->prepare("UPDATE users SET last_login_at = NOW() WHERE id = ?")

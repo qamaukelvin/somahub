@@ -65,18 +65,18 @@ function render_live_edit_color_tools(int $sectionId, array $theme): void {
   }
   function placePencil(el){
     // Sit at the end of the actual text, not the (often much wider) box.
-    var box = el.getBoundingClientRect(), top = box.top, right = box.right;
+    var box = el.getBoundingClientRect(), top = box.top, left = box.left;
     try {
       var rg = document.createRange(); rg.selectNodeContents(el);
       var rects = Array.prototype.filter.call(rg.getClientRects(), function(q){ return q.width > 0; });
       if (rects.length) {
         top = Math.min.apply(null, rects.map(function(q){ return q.top; }));
-        right = Math.max.apply(null, rects.map(function(q){ return q.right; }));
-      } else { right = box.left + 80; }
+        left = Math.min.apply(null, rects.map(function(q){ return q.left; }));
+      }
     } catch(e){}
-    right = Math.min(right, box.right);
+    // Top-LEFT of the text: the remove (x) button lives top-right, so they never overlap.
     pencil.style.top = (window.scrollY + top - 16) + 'px';
-    pencil.style.left = (window.scrollX + right - 14) + 'px';
+    pencil.style.left = (window.scrollX + Math.max(4, left - 6)) + 'px';
     var dot = document.getElementById('cpDot'); if (dot) dot.style.background = getComputedStyle(el).color;
     pencil.classList.add('show');
   }

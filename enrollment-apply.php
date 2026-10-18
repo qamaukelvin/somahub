@@ -4,9 +4,12 @@ require_once __DIR__ . '/includes/mailer.php';
 require_once __DIR__ . '/includes/plan.php';
 require_once __DIR__ . '/includes/appearance.php';
 require_once __DIR__ . '/includes/consent.php';
+require_once __DIR__ . '/includes/school-slug.php';
 $db = get_db();
+require_once __DIR__ . '/includes/ratelimit.php';
+if ($_SERVER['REQUEST_METHOD']==='POST') rate_limit_or_die('enroll:'.client_ip(), 10, 3600);
 
-$slug = $_GET['school'] ?? '';
+$slug = request_school_slug();
 $schoolStmt = $db->prepare("SELECT * FROM schools WHERE slug = ?");
 $schoolStmt->execute([$slug]);
 $school = $schoolStmt->fetch();
@@ -44,6 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !consent_given()) {
         trim($_POST['parent_phone']),
         trim($_POST['parent_email'] ?? ''),
     ]);
+
+    // In-dashboard bell notification (one unread per type; message names the latest applicant)
+    try {
+        require_once __DIR__ . '/includes/notifications.php';
+        create_notification($db, (int)$school['id'], 'new_enrollment', 'New enrollment application',
+            trim($_POST['child_name']) . ' applied for ' . trim($_POST['grade_applying_for']) . '. Review it in Enrollment.', 'enrollment.php');
+    } catch (\Throwable $e) { error_log('enrollment notify failed: ' . $e->getMessage()); }
 
     // Notify the school directly so they don't need to log in just to know a new application arrived
     if (!empty($school['email'])) {

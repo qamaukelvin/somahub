@@ -41,6 +41,9 @@ $pending = $db->query("
         <div>
           <strong><?= htmlspecialchars($s['name']) ?></strong> — <?= htmlspecialchars($s['slug']) ?>.somahub.top<br>
           <small style="color:#888;"><?= htmlspecialchars($s['owner_name'] ?? '—') ?> · <?= htmlspecialchars($s['owner_email'] ?? '—') ?></small>
+          <?php if (!empty($s['head_teacher_name']) || !empty($s['head_teacher_phone'])): ?>
+            <br><small style="color:#0F5257;">Head teacher: <?= htmlspecialchars($s['head_teacher_name'] ?? '—') ?> · <?= htmlspecialchars($s['head_teacher_phone'] ?? '—') ?></small>
+          <?php endif; ?>
         </div>
         <div class="v-actions">
           <a href="school-edit.php?id=<?= $s['id'] ?>">Review & Decide</a>
@@ -49,14 +52,14 @@ $pending = $db->query("
       <div class="v-docs">
         Agreement:
         <?php if (!empty($s['signed_agreement_path'])): ?>
-          <span class="present">✓ Uploaded</span> — <a href="../<?= htmlspecialchars($s['signed_agreement_path']) ?>" target="_blank">View</a>
+          <span class="present">✓ Uploaded</span> — <a href="private-file.php?f=<?= rawurlencode(ltrim($s['signed_agreement_path'],'/')) ?>" target="_blank">View</a>
         <?php else: ?>
           <span class="missing">Not yet uploaded</span>
         <?php endif; ?>
         &nbsp;·&nbsp;
         ID:
         <?php if (!empty($s['id_document_path'])): ?>
-          <span class="present">✓ Uploaded</span> (<?= htmlspecialchars($s['id_number'] ?? '') ?>) — <a href="../<?= htmlspecialchars($s['id_document_path']) ?>" target="_blank">View</a>
+          <span class="present">✓ Uploaded</span> (<?= htmlspecialchars($s['id_number'] ?? '') ?>) — <a href="private-file.php?f=<?= rawurlencode(ltrim($s['id_document_path'],'/')) ?>" target="_blank">View</a>
         <?php else: ?>
           <span class="missing">Not yet uploaded</span>
         <?php endif; ?>

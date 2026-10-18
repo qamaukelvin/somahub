@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/plan.php';
 $db = get_db();
 
 $query = trim($_GET['q'] ?? '');
@@ -10,10 +11,10 @@ if ($query !== '') {
     // number regardless of whether a school has added a "Results Lookup"
     // section to their public site, so search shouldn't require that either.
     $stmt = $db->prepare("
-        SELECT name, slug, county
-        FROM schools
-        WHERE status IN ('active','trial') AND name LIKE ?
-        ORDER BY name ASC
+        SELECT s.*, EXISTS(SELECT 1 FROM site_sections ss JOIN section_types st ON st.id = ss.section_type_id WHERE ss.school_id = s.id AND ss.is_visible = 1 AND st.key_name = 'results_lookup') AS has_inline
+        FROM schools s
+        WHERE s.status IN ('active','trial') AND s.slug <> 'demo' AND s.name LIKE ?
+        ORDER BY s.name ASC
         LIMIT 10
     ");
     $stmt->execute(['%' . $query . '%']);
@@ -72,7 +73,8 @@ if ($query !== '') {
             <div class="name"><?= htmlspecialchars($m['name']) ?></div>
             <?php if ($m['county']): ?><div class="county"><?= htmlspecialchars($m['county']) ?> County</div><?php endif; ?>
           </div>
-          <a href="https://<?= urlencode($m['slug']) ?>.somahub.top/results-check.php">Check Results</a>
+          <?php $rUrl = 'https://' . urlencode($m['slug']) . '.somahub.top/' . ((!empty($m['has_inline']) && !is_premium_locked($m)) ? '#results_lookup' : 'results-check.php?school=' . urlencode($m['slug'])); ?>
+          <a href="<?= $rUrl ?>">Check Results</a>
         </div>
       <?php endforeach; ?>
     <?php endif; ?>

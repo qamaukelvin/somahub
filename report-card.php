@@ -3,9 +3,12 @@ require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/plan.php';
 require_once __DIR__ . '/includes/appearance.php';
 require_once __DIR__ . '/includes/consent.php';
+require_once __DIR__ . '/includes/school-slug.php';
 $db = get_db();
+require_once __DIR__ . '/includes/ratelimit.php';
+if ($_SERVER['REQUEST_METHOD']==='POST') rate_limit_or_die('report:'.client_ip(), 40, 600);
 
-$slug = $_GET['school'] ?? '';
+$slug = request_school_slug();
 if (!$slug) { header('Location: results-portal.php'); exit; }
 
 $schoolStmt = $db->prepare("SELECT * FROM schools WHERE slug = ?");

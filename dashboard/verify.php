@@ -36,11 +36,12 @@ function validate_and_store_file($fileKey, $schoolId, $prefix, &$error) {
         return null;
     }
 
-    $destDir = __DIR__ . '/../uploads/schools/' . $schoolId . '/';
-    if (!is_dir($destDir)) mkdir($destDir, 0755, true);
-    $safeName = $prefix . '_' . time() . '.' . $ext;
+    // Private storage (not web-accessible); viewed only via private-file.php
+    require_once __DIR__ . '/../includes/private-storage.php';
+    $destDir = private_dir('schools/' . (int)$schoolId);
+    $safeName = private_random_name($prefix, $ext);
     move_uploaded_file($tmpPath, $destDir . $safeName);
-    return 'uploads/schools/' . $schoolId . '/' . $safeName;
+    return PRIVATE_BASE . 'schools/' . (int)$schoolId . '/' . $safeName;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -103,6 +104,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <main class="wrap">
   <h1>School Verification</h1>
+  <?php if (!empty($school['head_teacher_name']) || !empty($school['head_teacher_phone'])): ?>
+    <p style="background:#F4F1E6;padding:10px 14px;border-radius:8px;font-size:.9rem;margin:10px 0;">
+      We may call your head teacher, <strong><?= htmlspecialchars($school['head_teacher_name'] ?? '') ?></strong>
+      <?php if (!empty($school['head_teacher_phone'])): ?>(<?= htmlspecialchars($school['head_teacher_phone']) ?>)<?php endif; ?>,
+      to confirm you are authorised to manage this site. Please let them know.
+    </p>
+  <?php endif; ?>
   <?php if (($school['verification_status'] ?? '') !== 'verified'):
     $daysLeft = days_until_verification_deadline($school) ?? 0;
   ?>
@@ -140,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </p>
     <?php if (!empty($school['signed_agreement_path'])): ?>
       <div class="current-doc">
-        Current document: <a href="../<?= htmlspecialchars($school['signed_agreement_path']) ?>" target="_blank">View uploaded file</a>
+        Current document: <a href="private-file.php?f=<?= rawurlencode(ltrim($school['signed_agreement_path'],'/')) ?>" target="_blank">View uploaded file</a>
       </div>
     <?php endif; ?>
     <form method="POST" enctype="multipart/form-data">
@@ -155,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if (!empty($currentUser['id_document_path'])): ?>
       <div class="current-doc">
         ID on file: <?= htmlspecialchars($currentUser['id_number'] ?? '') ?> —
-        <a href="../<?= htmlspecialchars($currentUser['id_document_path']) ?>" target="_blank">View uploaded ID</a>
+        <a href="private-file.php?f=<?= rawurlencode(ltrim($currentUser['id_document_path'],'/')) ?>" target="_blank">View uploaded ID</a>
         <?php if ($currentUser['id_verified_at']): ?><br><span style="color:#1B4D3E;">✓ Verified</span><?php endif; ?>
       </div>
     <?php endif; ?>

@@ -316,6 +316,43 @@ function render_live_edit_script(int $sectionId, string $currentVariant, string 
     if (!panel.classList.contains('open')) return;
     if (!e.target.closest('.font-picker')) panel.classList.remove('open');
   });
+
+  // Move up / down arrows on repeatable items (staff, testimonials, FAQ, blog).
+  // Piggybacks on each item's red remove button to find the item and its slot number.
+  (function(){
+    var removes = document.querySelectorAll('.it-remove, .staff-remove, .tm-remove');
+    if (removes.length < 2) return;
+    var st = document.createElement('style');
+    st.textContent = '.it-move{position:absolute;top:-8px;left:-8px;z-index:6;display:flex;flex-direction:column;gap:2px;opacity:0;transition:opacity .15s;}'
+      + '.it-move button{width:22px;height:20px;border-radius:6px;border:2px solid #fff;background:#1C1C16;color:#fff;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;font:700 11px Arial;line-height:1;}'
+      + '.it-move button:disabled{opacity:.3;cursor:default;}'
+      + '.it-move-host:hover > .it-move{opacity:1;}';
+    document.head.appendChild(st);
+    var list = Array.prototype.slice.call(removes);
+    list.forEach(function(btn, idx){
+      var item = btn.parentElement; if (!item) return;
+      var f = item.querySelector('[data-field]'); if (!f) return;
+      var m = /_(\d+)$/.exec(f.getAttribute('data-field') || ''); if (!m) return;
+      var slot = m[1];
+      item.classList.add('it-move-host');
+      var box = document.createElement('div'); box.className = 'it-move';
+      function mk(label, title, dir, disabled){
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.title = title; b.disabled = disabled;
+        b.addEventListener('click', function(e){
+          e.preventDefault(); e.stopPropagation();
+          var fd = new FormData(); fd.append('section_id', sectionId); fd.append('slot', slot); fd.append('dir', dir);
+          fetch('section-item-move-ajax.php', { method:'POST', body:fd, credentials:'same-origin' })
+            .then(function(r){ return r.json(); })
+            .then(function(d){ if (d.ok) { sessionStorage.setItem('somahubLiveEditNotice', 'Order updated'); window.location.reload(); } else showSaved(false, d.error || 'Could not move'); })
+            .catch(function(){ showSaved(false); });
+        });
+        return b;
+      }
+      box.appendChild(mk('\u25B2', 'Move up', 'up', idx === 0));
+      box.appendChild(mk('\u25BC', 'Move down', 'down', idx === list.length - 1));
+      item.appendChild(box);
+    });
+  })();
 })();
 </script>
 <?php }

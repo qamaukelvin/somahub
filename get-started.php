@@ -7,6 +7,7 @@ require_once __DIR__ . '/includes/mailer.php';
 require_once __DIR__ . '/includes/app_log.php';
 require_once __DIR__ . '/includes/school-provision.php';
 require_once __DIR__ . '/includes/consent.php';
+require_once __DIR__ . '/includes/ratelimit.php';
 $contentPresets = get_school_content_presets();
 $sf = [];
 
@@ -25,9 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: ' . ($user['school_id'] ? 'dashboard/index.php' : 'dashboard/school-setup.php'));
             exit;
         }
-        $error = 'Incorrect email or password.';
+        $error = login_was_throttled() ? 'Too many attempts. Please wait 15 minutes and try again, or reset your password.' : 'Incorrect email or password.';
 
     } else {
+        rate_limit_or_die('signup:' . client_ip(), 6, 3600, 'Too many signups from this connection. Please try again in an hour.');
         $name = trim($_POST['name'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $phone = trim($_POST['phone'] ?? '');

@@ -3,6 +3,8 @@ require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/reviews.php';
 require_once __DIR__ . '/includes/consent.php';
 $db = get_db();
+require_once __DIR__ . '/includes/ratelimit.php';
+if ($_SERVER['REQUEST_METHOD']==='POST') rate_limit_or_die('review:'.client_ip(), 5, 3600);
 
 $error = '';
 $redirectBack = $_POST['redirect_to'] ?? '/';

@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/config/db.php';
 $db = get_db();
+require_once __DIR__ . '/includes/ratelimit.php';
+rate_limit_or_die('subcheck:'.client_ip(), 120, 300);
 header('Content-Type: application/json');
 
 $slug = strtolower(preg_replace('/[^a-z0-9]/', '', $_GET['slug'] ?? ''));

@@ -2,7 +2,7 @@
 // Live, in-place editor for Blog - same pattern as Staff/Testimonials: each
 // entry is edited where it sits, a dashed blank card adds the next one (max
 // 10), a red x on hover removes one. An entry shows on the live site once it
-// has a title. This section has a single layout, so there's no layout picker.
+// has a title. Layout is chosen with the variant switcher.
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/section_variants.php';
 require_once __DIR__ . '/../includes/appearance.php';
@@ -12,6 +12,7 @@ require_once __DIR__ . '/_live_edit_color.php';
 $user = require_school_login();
 $db = get_db();
 
+$config = get_section_variant_registry()['blog'];
 $id = (int)($_GET['id'] ?? 0);
 $stmt = $db->prepare("
     SELECT ss.*, st.label, st.key_name, st.schema_json
@@ -37,6 +38,8 @@ foreach ($fontPairs as $pairKey => $pair) {
     if (($theme['font_display'] ?? '') === $pair['display'] && ($theme['font_body'] ?? '') === $pair['body']) { $currentFontPair = $pairKey; break; }
 }
 
+$variant = $section['layout_variant'] ?? 'list';
+if (!isset($config['options'][$variant])) $variant = 'list';
 $content = json_decode($section['content_json'], true) ?: [];
 $MAX = 10;
 $FIELDS = ['title', 'body', 'photo'];
@@ -58,7 +61,10 @@ function rm_btn(int $i): string {
 
 $extraCss = <<<CSS
   section#blog{background:var(--bg);padding:60px 0;min-height:70vh;}
-  .blog-list{max-width:760px;}
+  .blog-list{max-width:760px;margin:0 auto;}
+  .blog-list.v-cards,.blog-list.v-featured{max-width:1100px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:22px;}
+  .blog-list.v-cards .blog-item,.blog-list.v-featured .blog-item{margin:0;background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  .blog-list.v-featured .blog-item:first-child{grid-column:1/-1;}
   .blog-item{margin-bottom:36px;padding:14px;}
   .blog-photo{border-radius:8px;overflow:hidden;margin-bottom:14px;aspect-ratio:16/9;width:100%;background:#e9e5d6;}
   .blog-photo img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -86,6 +92,7 @@ CSS;
 <body>
 
 <?php render_live_edit_topbar($section, $fontPairs, $currentFontPair); ?>
+<?php render_variant_switcher($config, $variant, 0); ?>
 
 <div class="save-toast" id="saveToast"><span class="material-symbols-outlined">check_circle</span><span id="saveToastMsg">Saved</span></div>
 
@@ -94,7 +101,7 @@ CSS;
     <div class="section-head"><h2<?= live_color_attr($content, 'title') ?>><?= esc($section['label']) ?></h2></div>
     <?php if ($named === 0): ?><p class="i-note"><span class="material-symbols-outlined">info</span>With no posts yet, this section stays hidden on your live site.</p><?php endif; ?>
     <p class="i-note"><span class="material-symbols-outlined">image</span>A photo is optional - posts without one just show the title and text.</p>
-    <div class="blog-list">
+    <div class="blog-list v-<?= esc($variant) ?>">
       <?php foreach (array_merge($items, $blank ? [-$blank] : []) as $k): $isNew = $k < 0; $i = abs($k);
           $src = !empty($content["photo_$i"]) ? img($content["photo_$i"]) : ''; ?>
         <div class="blog-item it-item<?= $isNew ? ' is-new' : '' ?>">
@@ -109,7 +116,7 @@ CSS;
   </div>
 </section>
 
-<?php render_live_edit_script((int)$section['id'], ''); ?>
+<?php render_live_edit_script((int)$section['id'], $variant); ?>
 <?php render_live_edit_color_tools((int)$section['id'], $theme); ?>
 <script>
 (function(){

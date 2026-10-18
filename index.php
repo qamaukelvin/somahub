@@ -70,20 +70,6 @@ $platformAvgRating = get_average_rating($platformReviews);
   a{color:inherit;text-decoration:none;}
   .wrap{max-width:1120px;margin:0 auto;padding:0 24px;}
 
-  header{position:sticky;top:0;z-index:1000;background:rgba(247,242,231,0.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);}
-  .navbar{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;max-width:1120px;margin:0 auto;width:100%;box-sizing:border-box;}
-  .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.2rem;flex-shrink:0;}
-  .brand .dot{width:10px;height:10px;background:var(--amber);border-radius:50%;}
-  nav ul{list-style:none;display:flex;gap:28px;margin:0;padding:0;align-items:center;}
-  nav a{font-size:0.9rem;font-weight:600;}
-  nav a:hover{color:var(--teal);}
-  .navcta{background:var(--teal);color:var(--sand)!important;padding:10px 20px;border-radius:24px;font-size:0.85rem;font-weight:700;}
-  .menu-toggle{display:none;background:none;border:none;font-size:1.4rem;line-height:1;padding:4px 6px;cursor:pointer;color:var(--teal-deep);flex-shrink:0;}
-  @media(max-width:820px){
-    nav ul{display:none;}
-    .menu-toggle{display:block;}
-    nav ul.open{display:flex;flex-direction:column;position:absolute;top:60px;left:0;right:0;background:var(--sand);padding:20px 24px;border-bottom:1px solid var(--line);gap:16px;align-items:flex-start;z-index:2000;}
-  }
 
   /* HERO */
   .hero{padding:80px 24px 50px;}
@@ -125,6 +111,8 @@ $platformAvgRating = get_average_rating($platformReviews);
   .mock-card .sw{display:flex;gap:6px;} .mock-card .sw i{width:22px;height:22px;border-radius:50%;box-shadow:0 0 0 2px #fff,0 0 0 3px var(--line);}
   .mock-card p{display:flex;align-items:center;gap:6px;padding:4px 0;color:var(--muted);} .mock-card p .material-symbols-outlined{font-size:16px;color:var(--teal);}
   .material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:400;font-style:normal;line-height:1;display:inline-block;}
+  .try-frame{max-width:980px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px rgba(10,58,62,.14);overflow:hidden;}
+  .try-frame iframe{display:block;width:100%;height:620px;border:0;background:#fff;} @media(max-width:700px){.try-frame iframe{height:520px;}}
   section{padding:70px 24px;}
   .section-head{margin-bottom:44px;max-width:60ch;}
   .section-head.center{margin-left:auto;margin-right:auto;text-align:center;}
@@ -194,25 +182,7 @@ $platformAvgRating = get_average_rating($platformReviews);
 </head>
 <body>
 
-<header>
-  <div class="navbar">
-    <div class="brand"><span class="dot"></span> somahub</div>
-    <nav><ul id="navlinks">
-      <li><a href="#how">How it works</a></li>
-      <li><a href="#features">What is included</a></li>
-      <li><a href="#plans">Plans</a></li>
-      <li><a href="pricing.php">Full Pricing</a></li>
-      <li><a href="docs.php">Guide</a></li>
-      <li><a href="#portfolio">Schools</a></li>
-      <li><a href="#reviews">Reviews</a></li>
-      <li><a href="blog/">Blog</a></li>
-      <li><a href="results-portal.php">Check Results</a></li>
-      <li><a href="dashboard/login.php">School Login</a></li>
-      <li><a href="get-started.php" class="navcta">Get Started</a></li>
-    </ul></nav>
-    <button class="menu-toggle" id="indexMenuToggle" aria-label="Menu" aria-expanded="false">☰</button>
-  </div>
-</header>
+<?php $navRoot = '.'; include __DIR__ . '/_public_nav.php'; ?>
 
 <section class="hero">
   <div class="hero-inner">
@@ -221,10 +191,28 @@ $platformAvgRating = get_average_rating($platformReviews);
     <p>Sign up, answer a few questions, and your site is live in minutes. We set up the pages and host them. You edit text, photos and colours right on the page.</p>
     <div class="hero-ctas">
       <a href="get-started.php" class="btn-primary">Create my school site</a>
-      <a href="https://demo.somahub.top/" target="_blank" rel="noopener" class="btn-ghost">See a live demo school</a>
+      <a href="#try" class="btn-ghost">Try the editor</a>
     </div>
     <p style="margin-top:14px;font-size:.84rem;color:var(--muted);">60 days of everything free, no card needed. Already have a site? <a href="dashboard/login.php" style="color:var(--teal);font-weight:700;text-decoration:underline;">Log in</a></p>
 
+  </div>
+</section>
+
+<?php $demoExists = (bool)$db->query("SELECT 1 FROM schools WHERE slug = 'demo' AND status IN ('active','trial') LIMIT 1")->fetchColumn(); ?>
+<section id="try" style="padding-top:20px;">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="kicker">Try it yourself</span>
+      <h2>Edit a real school site, right here</h2>
+      <p style="margin-top:10px;font-size:0.95rem;color:var(--muted);">Click any text to change it, tap a photo to swap it, try colours and fonts, then press <strong>Review changes</strong>. Your edits stay on your screen only and vanish when you refresh, so you can't break anything and nobody else sees them.</p>
+    </div>
+<?php if ($demoExists): ?>
+    <div class="try-frame">
+      <div class="mock-bar"><i></i><i></i><i></i><span>demo.somahub.top</span></div>
+      <iframe src="https://demo.somahub.top/?embed=1" title="Live demo school site you can edit" loading="lazy"></iframe>
+    </div>
+    <p style="text-align:center;margin-top:14px;font-size:.88rem;"><a href="https://demo.somahub.top/?try=1" target="_blank" rel="noopener" style="color:var(--teal);font-weight:700;">Open it full screen</a> for the best experience on a phone.</p>
+<?php else: ?>
     <div class="mock" aria-hidden="true">
       <div class="mock-bar"><i></i><i></i><i></i><span>mwangaza.somahub.top</span></div>
       <div class="mock-body">
@@ -243,6 +231,7 @@ $platformAvgRating = get_average_rating($platformReviews);
         </div>
       </div>
     </div>
+<?php endif; ?>
   </div>
 </section>
 
@@ -491,37 +480,6 @@ if (portfolioSearch) {
     });
 }
 
-(function() {
-  var toggleBtn = document.getElementById('indexMenuToggle');
-  var menu = document.getElementById('navlinks');
-  if (!toggleBtn || !menu) return;
-
-  function closeMenu() {
-    menu.classList.remove('open');
-    toggleBtn.textContent = '☰';
-    toggleBtn.setAttribute('aria-expanded', 'false');
-  }
-  function openMenu() {
-    menu.classList.add('open');
-    toggleBtn.textContent = '✕';
-    toggleBtn.setAttribute('aria-expanded', 'true');
-  }
-
-  toggleBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    menu.classList.contains('open') ? closeMenu() : openMenu();
-  });
-
-  document.addEventListener('click', function(e) {
-    if (menu.classList.contains('open') && !menu.contains(e.target) && !toggleBtn.contains(e.target)) {
-      closeMenu();
-    }
-  });
-
-  menu.querySelectorAll('a').forEach(function(link) {
-    link.addEventListener('click', closeMenu);
-  });
-})();
 </script>
 
 <?php include __DIR__ . '/_loader.php'; ?>

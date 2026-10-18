@@ -2,7 +2,8 @@
 // Live, in-place editor for FAQ - same pattern as Staff/Testimonials: each
 // entry is edited where it sits, a dashed blank card adds the next one (max
 // 10), a red x on hover removes one. An entry shows on the live site once it
-// has a question. This section has a single layout, so there's no layout picker.
+// has a question. Layout (accordion default, cards, two columns, numbered) is
+// picked with the variant switcher.
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/section_variants.php';
 require_once __DIR__ . '/../includes/appearance.php';
@@ -12,6 +13,7 @@ require_once __DIR__ . '/_live_edit_color.php';
 $user = require_school_login();
 $db = get_db();
 
+$config = get_section_variant_registry()['faq'];
 $id = (int)($_GET['id'] ?? 0);
 $stmt = $db->prepare("
     SELECT ss.*, st.label, st.key_name, st.schema_json
@@ -37,6 +39,8 @@ foreach ($fontPairs as $pairKey => $pair) {
     if (($theme['font_display'] ?? '') === $pair['display'] && ($theme['font_body'] ?? '') === $pair['body']) { $currentFontPair = $pairKey; break; }
 }
 
+$variant = $section['layout_variant'] ?? 'accordion';
+if (!isset($config['options'][$variant])) $variant = 'accordion';
 $content = json_decode($section['content_json'], true) ?: [];
 $MAX = 10;
 $FIELDS = ['question', 'answer'];
@@ -61,7 +65,12 @@ $extraCss = <<<CSS
   .faq-item{background:#fff;border-radius:10px;padding:20px 22px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
   .faq-item .q{font-weight:700;font-size:.98rem;margin-bottom:6px;color:var(--primary);}
   .faq-item .a{font-size:.9rem;color:#5a5a52;}
-  .faq-wrap{max-width:820px;}
+  .faq-wrap{max-width:820px;margin:0 auto;}
+  .faq-wrap.v-two_column{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;max-width:1000px;} .faq-wrap.v-two_column .faq-item{margin:0;} @media(max-width:720px){.faq-wrap.v-two_column{grid-template-columns:1fr;}}
+  .faq-wrap.v-numbered{counter-reset:faqn;} .faq-wrap.v-numbered .faq-item{padding-left:70px;counter-increment:faqn;}
+  .faq-wrap.v-numbered .faq-item::before{content:counter(faqn);position:absolute;left:20px;top:18px;width:34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.95rem;}
+  .faq-wrap.v-accordion .faq-item:not(.is-new) .q{padding-right:26px;position:relative;}
+  .faq-wrap.v-accordion .faq-item:not(.is-new) .q::after{content:'';position:absolute;right:4px;top:6px;width:9px;height:9px;border-right:2.5px solid var(--primary);border-bottom:2.5px solid var(--primary);transform:rotate(45deg);pointer-events:none;}
   .it-item{position:relative;}
   .it-item.is-new{opacity:.7;border:2px dashed rgba(0,0,0,.25);background:rgba(255,255,255,.4);border-radius:10px;}
   .it-item.is-new:hover{opacity:1;border-color:var(--primary);}
@@ -83,6 +92,7 @@ CSS;
 <body>
 
 <?php render_live_edit_topbar($section, $fontPairs, $currentFontPair); ?>
+<?php render_variant_switcher($config, $variant, 0); ?>
 
 <div class="save-toast" id="saveToast"><span class="material-symbols-outlined">check_circle</span><span id="saveToastMsg">Saved</span></div>
 
@@ -90,7 +100,8 @@ CSS;
   <div class="wrap">
     <div class="section-head"><h2<?= live_color_attr($content, 'title') ?>><?= esc($section['label']) ?></h2></div>
     <?php if ($named === 0): ?><p class="i-note"><span class="material-symbols-outlined">info</span>With no questions yet, this section stays hidden on your live site.</p><?php endif; ?>
-    <div class="faq-wrap">
+    <?php if ($variant === 'accordion'): ?><p class="i-note"><span class="material-symbols-outlined">expand_circle_down</span>Visitors tap a question to open its answer. You see them all open here so you can edit.</p><?php endif; ?>
+    <div class="faq-wrap v-<?= esc($variant) ?>">
       <?php foreach (array_merge($items, $blank ? [-$blank] : []) as $k): $isNew = $k < 0; $i = abs($k); ?>
         <div class="faq-item it-item<?= $isNew ? ' is-new' : '' ?>">
           <?php if (!$isNew) echo rm_btn($i); ?>
@@ -103,7 +114,7 @@ CSS;
   </div>
 </section>
 
-<?php render_live_edit_script((int)$section['id'], ''); ?>
+<?php render_live_edit_script((int)$section['id'], $variant); ?>
 <?php render_live_edit_color_tools((int)$section['id'], $theme); ?>
 <script>
 (function(){

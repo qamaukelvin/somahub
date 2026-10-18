@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 $db = get_db();
+require_once __DIR__ . '/../includes/ratelimit.php';
+if ($_SERVER['REQUEST_METHOD']==='POST') rate_limit_or_die('reset:'.client_ip(), 15, 900);
 
 $error = '';
 $success = false;

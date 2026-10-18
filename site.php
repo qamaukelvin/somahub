@@ -95,6 +95,7 @@ ob_start(function ($html) {
         return str_replace('<img', '<img loading="lazy" decoding="async"', $tag);
     }, $html);
 });
+$demoEmbed = ($school['slug'] === 'demo' && isset($_GET['embed']));
 $appearance = resolve_school_appearance($db, $school);
 $theme = $appearance['theme'];
 
@@ -212,6 +213,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
 ?>
 <title><?= esc($seoTitle) ?></title>
 <meta name="description" content="<?= esc($seoDesc) ?>">
+<?php if ($demoEmbed || isset($_GET['try'])): ?><meta name="robots" content="noindex"><?php endif; ?>
 <script type="application/ld+json"><?= json_encode(array_filter([
     '@context' => 'https://schema.org', '@type' => 'School',
     'name' => $school['name'], 'url' => 'https://' . $school['slug'] . '.somahub.top/',
@@ -456,6 +458,18 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
 
   /* FAQ */
   .faq-item{background:#fff;border-radius:10px;padding:20px 22px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+  .faq-acc{max-width:820px;margin:0 auto;}
+  .faq-acc details.faq-item{padding:0;overflow:hidden;}
+  .faq-acc details.faq-item summary.q{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 22px;margin:0;}
+  .faq-acc details.faq-item summary.q::-webkit-details-marker{display:none;}
+  .faq-acc details.faq-item summary.q::after{content:'';flex:0 0 10px;width:10px;height:10px;border-right:2.5px solid var(--primary);border-bottom:2.5px solid var(--primary);transform:rotate(45deg) translate(-2px,-2px);transition:transform .2s;}
+  .faq-acc details[open].faq-item summary.q::after{transform:rotate(-135deg) translate(-2px,-2px);}
+  .faq-acc details.faq-item .a{padding:0 22px 20px;margin:0;}
+  .faq-acc details[open].faq-item{box-shadow:0 4px 14px rgba(0,0,0,.08);}
+  .faq-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;max-width:1000px;margin:0 auto;} .faq-2col .faq-item{margin:0;} @media(max-width:720px){.faq-2col{grid-template-columns:1fr;}}
+  .faq-num{max-width:820px;margin:0 auto;counter-reset:faqn;} .faq-num .faq-item{position:relative;padding-left:70px;counter-increment:faqn;}
+  .faq-num .faq-item::before{content:counter(faqn);position:absolute;left:20px;top:18px;width:34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.95rem;}
+  .faq-cards{max-width:820px;margin:0 auto;}
   .faq-item .q{font-weight:700;font-size:0.98rem;margin-bottom:6px;color:var(--primary);}
   .faq-item .a{font-size:0.9rem;color:#5a5a52;}
 
@@ -644,6 +658,12 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
 
   /* BLOG */
   .blog-item{margin-bottom:36px;}
+  .blog-list.blog-cards,.blog-list.blog-featured{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:22px;}
+  .blog-list.blog-cards .blog-item,.blog-list.blog-featured .blog-item{margin:0;background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  .blog-list.blog-featured .blog-item:first-child{grid-column:1/-1;display:grid;grid-template-columns:1.1fr 1fr;gap:22px;align-items:center;padding:20px;}
+  .blog-list.blog-featured .blog-item:first-child img{margin:0;}
+  .blog-list.blog-featured .blog-item:first-child h3{font-size:1.5rem;}
+  @media(max-width:720px){.blog-list.blog-featured .blog-item:first-child{grid-template-columns:1fr;}}
   .blog-item img{border-radius:8px;margin-bottom:14px;width:100%;aspect-ratio:16/9;object-fit:cover;}
   .blog-item h3{font-size:1.15rem;margin-bottom:8px;color:var(--primary);}
 
@@ -978,7 +998,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
     if (in_array($admissionsVariant, ['steps', 'checklist', 'key_dates'], true) && empty($admListItems)) $admissionsVariant = 'text_cta';
     if ($admissionsVariant === 'faq_style' && empty($admFaqPairs)) $admissionsVariant = 'text_cta';
     if ($admissionsVariant === 'text_photo' && empty($c['photo'])) $admissionsVariant = 'text_cta';
-    $applyBtn = '<a href="enrollment-apply.php?school=' . urlencode($school['slug']) . '" class="btn-primary" style="margin-top:20px;display:inline-block;">Apply for Admission</a>';
+    $applyBtn = '<a href="' . (in_array('enrollment_form', $availableSectionKeys, true) ? '#enrollment_form' : 'enrollment-apply.php?school=' . urlencode($school['slug'])) . '" class="btn-primary" style="margin-top:20px;display:inline-block;">Apply for Admission</a>';
 ?>
   <section id="admissions">
     <div class="wrap">
@@ -1301,6 +1321,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
   </section>
 
 <?php elseif ($key === 'blog'):
+    $blogVariant = $s['layout_variant'] ?? 'list';
     $blogPosts = [];
     for ($i = 1; $i <= 10; $i++) {
         if (empty($c["title_$i"])) continue;
@@ -1311,7 +1332,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
   <section id="blog">
     <div class="wrap">
       <div class="section-head"><h2><?= esc($s['label']) ?></h2></div>
-      <div class="blog-list">
+      <div class="blog-list<?= $blogVariant === 'cards' ? ' blog-cards' : ($blogVariant === 'featured' ? ' blog-featured' : '') ?>">
         <?php foreach ($blogPosts as $post): ?>
           <div class="blog-item">
             <?php if (!empty($post['photo'])): ?><img src="<?= img($post['photo']) ?>" alt=""><?php endif; ?>
@@ -1395,7 +1416,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
   </section>
 
 <?php elseif ($key === 'results_lookup'):
-    $resultsVariant = $s['layout_variant'] ?? 'simple';
+    $resultsVariant = 'inline_form'; // all forms are inline
     $resultsSteps = array_values(array_filter(array_map('trim', explode("\n", $c['list_items'] ?? ''))));
     if ($resultsVariant === 'steps_preview' && empty($resultsSteps)) $resultsVariant = 'simple';
     if ($resultsVariant === 'photo_callout' && empty($c['photo'])) $resultsVariant = 'simple';
@@ -1412,12 +1433,28 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
           <?php if (!empty($c['intro_text'])): ?><p style="margin-bottom:18px;color:#5a5a52;"><?= esc($c['intro_text']) ?></p><?php else: ?><p style="margin-bottom:18px;color:#5a5a52;"><?= esc($introDefault) ?></p><?php endif; ?>
           <!-- Submits to results-check.php's own handler rather than
                duplicating the lookup logic here. -->
-          <form method="POST" action="<?= esc($checkUrl) ?>" class="enroll-form-fields">
+          <form method="POST" action="<?= esc($checkUrl) ?>" class="enroll-form-fields" id="resultsInlineForm">
             <div class="ef ef-2"><label>Admission Number</label> <input type="text" name="admission_no" required></div>
             <div class="ef ef-4"><label>Student's Full Name or Date of Birth (YYYY-MM-DD)</label> <input type="text" name="second_factor" required></div>
             <?= consent_checkbox($school['name']) ?>
             <button type="submit" class="btn-primary">Check Results</button>
           </form>
+          <div id="resultsInlineOut" aria-live="polite" style="margin-top:20px;"></div>
+          <script>
+          (function(){
+            var f = document.getElementById('resultsInlineForm'), out = document.getElementById('resultsInlineOut');
+            if (!f || !window.fetch) return;
+            f.addEventListener('submit', function(e){
+              e.preventDefault();
+              var btn = f.querySelector('button[type=submit]'); btn.disabled = true; out.innerHTML = '<p style="color:#777;">Checking...</p>';
+              fetch(f.action + '&fragment=1', {method:'POST', body:new FormData(f), credentials:'same-origin'})
+                .then(function(r){ return r.text(); })
+                .then(function(h){ out.innerHTML = h; out.scrollIntoView({behavior:'smooth', block:'nearest'}); })
+                .catch(function(){ out.innerHTML = '<p style="color:#8C3B2E;">Could not check right now. Please try again.</p>'; })
+                .then(function(){ btn.disabled = false; });
+            });
+          })();
+          </script>
         </div>
 
       <?php elseif ($resultsVariant === 'photo_callout'): ?>
@@ -1455,7 +1492,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
   </section>
 
 <?php elseif ($key === 'enrollment_form'):
-    $enrollVariant = $s['layout_variant'] ?? 'simple';
+    $enrollVariant = 'inline_form'; // all forms are inline
     $enrollSteps = array_values(array_filter(array_map('trim', explode("\n", $c['list_items'] ?? ''))));
     if ($enrollVariant === 'steps_preview' && empty($enrollSteps)) $enrollVariant = 'simple';
     if ($enrollVariant === 'photo_callout' && empty($c['photo'])) $enrollVariant = 'simple';
@@ -1827,6 +1864,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
   </section>
 
 <?php elseif ($key === 'faq'):
+    $faqVariant = $s['layout_variant'] ?? 'accordion';
     $faqItems = [];
     for ($i = 1; $i <= 10; $i++) {
         if (empty($c["question_$i"])) continue;
@@ -1837,14 +1875,25 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
   <section id="faq">
     <div class="wrap">
       <div class="section-head"><h2><?= esc($s['label']) ?></h2></div>
-      <div>
-        <?php foreach ($faqItems as $item): ?>
-          <div class="faq-item">
-            <div class="q"><?= esc($item['question']) ?></div>
-            <div class="a"><?= esc($item['answer']) ?></div>
-          </div>
-        <?php endforeach; ?>
-      </div>
+      <?php if ($faqVariant === 'cards' || $faqVariant === 'two_column' || $faqVariant === 'numbered'): ?>
+        <div class="<?= $faqVariant === 'two_column' ? 'faq-2col' : ($faqVariant === 'numbered' ? 'faq-num' : 'faq-cards') ?>">
+          <?php foreach ($faqItems as $item): ?>
+            <div class="faq-item">
+              <div class="q"><?= esc($item['question']) ?></div>
+              <div class="a"><?= nl2br(esc($item['answer'])) ?></div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php else: /* accordion (default) */ ?>
+        <div class="faq-acc">
+          <?php foreach ($faqItems as $n => $item): ?>
+            <details class="faq-item"<?= $n === 0 ? ' open' : '' ?>>
+              <summary class="q"><?= esc($item['question']) ?></summary>
+              <div class="a"><?= nl2br(esc($item['answer'])) ?></div>
+            </details>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
     </div>
   </section>
 
@@ -2031,10 +2080,13 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
 </footer>
 
 <?php
-$SOMAHUB_CHAT_CONTEXT = 'school';
-$SOMAHUB_CHAT_SCHOOL_NAME = $school['name'];
-$SOMAHUB_CHAT_SCHOOL_SLUG = $school['slug'];
-include __DIR__ . '/_chat_widget.php';
+if ($school['slug'] === 'demo') include __DIR__ . '/_demo_editor.php';
+if (!$demoEmbed) {
+    $SOMAHUB_CHAT_CONTEXT = 'school';
+    $SOMAHUB_CHAT_SCHOOL_NAME = $school['name'];
+    $SOMAHUB_CHAT_SCHOOL_SLUG = $school['slug'];
+    include __DIR__ . '/_chat_widget.php';
+}
 ?>
 </body>
 </html>

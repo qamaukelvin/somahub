@@ -3,9 +3,12 @@ require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/plan.php';
 require_once __DIR__ . '/includes/appearance.php';
 require_once __DIR__ . '/includes/consent.php';
+require_once __DIR__ . '/includes/school-slug.php';
 $db = get_db();
+require_once __DIR__ . '/includes/ratelimit.php';
+if ($_SERVER['REQUEST_METHOD']==='POST') rate_limit_or_die('results:'.client_ip(), 40, 600);
 
-$slug = $_GET['school'] ?? '';
+$slug = request_school_slug();
 
 if (!$slug) {
     header('Location: results-portal.php');
@@ -59,6 +62,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $results;
         }
     }
+}
+
+// Inline results on the school's own site: return just the result cards (or the error).
+if (isset($_GET['fragment']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: text/html; charset=utf-8');
+    if ($error) {
+        echo '<div style="background:#FBE8E4;color:#8C3B2E;padding:12px 16px;border-radius:8px;font-size:.9rem;">' . htmlspecialchars($error) . '</div>';
+    } elseif ($result) {
+        foreach ($result as $r) {
+            $scores = json_decode($r['scores_json'], true) ?: [];
+            echo '<div style="background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:12px;padding:18px 20px;margin-bottom:14px;text-align:left;">';
+            echo '<h3 style="margin:0 0 2px;">' . htmlspecialchars($r['student_name']) . '</h3>';
+            echo '<p style="margin:0 0 10px;color:#666;font-size:.85rem;">' . htmlspecialchars($r['term_label']) . ' &middot; Grade ' . htmlspecialchars($r['grade']) . '</p>';
+            echo '<table style="width:100%;border-collapse:collapse;font-size:.92rem;">';
+            foreach ($scores as $subject => $score) echo '<tr><td style="padding:6px 0;border-bottom:1px solid #eee;">' . htmlspecialchars($subject) . '</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;">' . htmlspecialchars($score) . '</td></tr>';
+            if ($r['total']) echo '<tr><td style="padding:6px 0;"><strong>Total</strong></td><td style="text-align:right;"><strong>' . htmlspecialchars($r['total']) . '</strong></td></tr>';
+            if ($r['position_in_class']) echo '<tr><td style="padding:6px 0;">Position in class</td><td style="text-align:right;">' . htmlspecialchars($r['position_in_class']) . '</td></tr>';
+            echo '</table></div>';
+        }
+    }
+    exit;
 }
 ?>
 <!DOCTYPE html>

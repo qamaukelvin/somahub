@@ -3,6 +3,8 @@ require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/settings.php';
 require_once __DIR__ . '/includes/mailer.php';
 $db = get_db();
+require_once __DIR__ . '/includes/ratelimit.php';
+if ($_SERVER['REQUEST_METHOD']==='POST') rate_limit_or_die('contact:'.client_ip(), 5, 3600);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: index.php');

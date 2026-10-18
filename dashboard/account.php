@@ -35,7 +35,7 @@ function store_avatar($fileKey, $userId, &$error) {
 
     $destDir = __DIR__ . '/../uploads/avatars/';
     if (!is_dir($destDir)) mkdir($destDir, 0755, true);
-    $safeName = 'user_' . $userId . '_' . time() . '.' . $ext;
+    $safeName = 'user_' . $userId . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
     move_uploaded_file($tmpPath, $destDir . $safeName);
     return 'uploads/avatars/' . $safeName;
 }

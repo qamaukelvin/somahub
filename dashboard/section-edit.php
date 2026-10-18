@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $ext = $allowedMimes[$mime]; // use the extension matching the REAL file type, ignore the uploaded filename's extension
-            $safeName = 'sec_' . $section['id'] . '_' . $field . '_' . time() . '.' . $ext;
+            $safeName = 'sec_' . $section['id'] . '_' . $field . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
             $destDir = __DIR__ . '/../uploads/schools/' . $user['school_id'] . '/';
             if (!is_dir($destDir)) mkdir($destDir, 0755, true);
             require_once __DIR__ . '/../includes/image-upload.php';

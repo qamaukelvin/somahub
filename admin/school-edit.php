@@ -101,6 +101,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$id]);
         $school = $stmt->fetch();
 
+        if (in_array($newStatus, ['verified', 'rejected'], true)) {
+            try {
+                require_once __DIR__ . '/../includes/notifications.php';
+                create_notification($db, (int)$id, 'verification_result',
+                    $newStatus === 'verified' ? 'You are verified ✓' : 'Verification needs attention',
+                    $newStatus === 'verified' ? 'Your school now shows the Verified badge.' : ($notes ?: 'Please review the feedback and resubmit your documents.'),
+                    'verify.php');
+            } catch (\Throwable $e) { error_log('verification notify failed: ' . $e->getMessage()); }
+        }
+
         // Notify the school of the outcome — this is the kind of update they shouldn't have to discover by checking their dashboard
         if (!empty($school['email']) && in_array($newStatus, ['verified', 'rejected'])) {
             if ($newStatus === 'verified') {
@@ -404,9 +414,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       Current status: <strong><?= $statusLabels[$currentStatus] ?></strong>
     </p>
 
+    <?php if (!empty($school['head_teacher_name']) || !empty($school['head_teacher_phone'])): ?>
+      <p style="margin-bottom:14px;background:#F4F1E6;padding:10px 12px;border-radius:8px;font-size:.9rem;">
+        <strong>Head teacher contact (given at signup):</strong><br>
+        <?= htmlspecialchars($school['head_teacher_name'] ?? '—') ?> ·
+        <?php if (!empty($school['head_teacher_phone'])): ?><a href="tel:<?= htmlspecialchars($school['head_teacher_phone']) ?>"><?= htmlspecialchars($school['head_teacher_phone']) ?></a><?php else: ?>no phone<?php endif; ?>
+        <br><small style="color:#6E6A5C;">Call to confirm the owner is authorised to run this site.</small>
+      </p>
+    <?php endif; ?>
     <?php if (!empty($school['signed_agreement_path'])): ?>
       <p style="margin-bottom:14px;">
-        <a href="../<?= htmlspecialchars($school['signed_agreement_path']) ?>" target="_blank" class="btn" style="display:inline-block;">View Uploaded Document</a>
+        <a href="private-file.php?f=<?= rawurlencode(ltrim($school['signed_agreement_path'],'/')) ?>" target="_blank" class="btn" style="display:inline-block;">View Uploaded Document</a>
       </p>
     <?php else: ?>
       <p style="color:#888;margin-bottom:14px;">No document uploaded yet by this school.</p>
@@ -418,7 +436,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($owner && !empty($owner['id_document_path'])): ?>
       <p style="margin-bottom:10px;">
         ID Number: <strong><?= htmlspecialchars($owner['id_number'] ?? 'Not provided') ?></strong><br>
-        <a href="../<?= htmlspecialchars($owner['id_document_path']) ?>" target="_blank">View ID Document</a><br>
+        <a href="private-file.php?f=<?= rawurlencode(ltrim($owner['id_document_path'],'/')) ?>" target="_blank">View ID Document</a><br>
         <?php if ($owner['id_verified_at']): ?>
           <span style="color:#1B4D3E;">✓ Verified on <?= date('d M Y', strtotime($owner['id_verified_at'])) ?></span>
         <?php else: ?>

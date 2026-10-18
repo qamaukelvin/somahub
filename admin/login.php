@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     } else {
         logout();
-        $error = 'Incorrect email or password.';
+        $error = login_was_throttled() ? 'Too many attempts. Please wait 15 minutes and try again, or reset your password.' : 'Incorrect email or password.';
     }
 }
 ?>

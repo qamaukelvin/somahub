@@ -1,0 +1,5 @@
+# ── Tools — no direct access (delete files after use) ────────────────────────
+Options -Indexes
+Order Allow,Deny
+Deny from all
+ErrorDocument 403 /index.php

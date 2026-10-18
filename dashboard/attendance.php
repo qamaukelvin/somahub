@@ -24,11 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_FILES['attendance_file']['
     } elseif (strtolower(pathinfo($origName, PATHINFO_EXTENSION)) !== 'csv') {
         $error = 'Please upload a .csv file. Export your Excel sheet as CSV first (File > Save As > CSV).';
     } else {
-        $storeDir = __DIR__ . '/../uploads/attendance/' . $user['school_id'] . '/';
-        if (!is_dir($storeDir)) mkdir($storeDir, 0755, true);
-        $storedName = 'attendance_' . time() . '.csv';
+        require_once __DIR__ . '/../includes/private-storage.php';
+        $storeDir = private_dir('attendance/' . (int)$user['school_id']);
+        $storedName = private_random_name('attendance', 'csv');
         move_uploaded_file($tmpPath, $storeDir . $storedName);
-        $storedPath = '/uploads/attendance/' . $user['school_id'] . '/' . $storedName;
+        $storedPath = PRIVATE_BASE . 'attendance/' . (int)$user['school_id'] . '/' . $storedName;
 
         $uploadStmt = $db->prepare("
             INSERT INTO attendance_uploads (school_id, uploaded_by_user_id, term_label, original_filename, stored_path, status)

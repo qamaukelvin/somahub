@@ -1,0 +1,5 @@
+# ── Logs — no direct access ──────────────────────────────────────────────────
+Options -Indexes
+Order Allow,Deny
+Deny from all
+ErrorDocument 403 /index.php

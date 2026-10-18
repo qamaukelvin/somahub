@@ -1,0 +1,17 @@
+# ── Admin panel ──────────────────────────────────────────────────────────────
+
+# Disable directory listing
+Options -Indexes
+
+# Redirect directory listing attempts to login page
+DirectoryIndex login.php
+
+# Block direct access to internal include files
+<FilesMatch "^(config|functions|helper|auth)\.php$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# Redirect 403 errors to login page
+ErrorDocument 403 /admin/login.php
+ErrorDocument 404 /admin/login.php

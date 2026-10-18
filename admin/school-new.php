@@ -8,7 +8,6 @@ $db = get_db();
 
 require_once __DIR__ . '/../includes/appearance.php';
 $palettes = get_active_palettes($db);
-$defaultSectionKeys = ['hero','about','academics','admissions','gallery','contact']; // sensible starter set
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -57,17 +56,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // 3. Seed default sections
                 $typeStmt = $db->prepare("SELECT id, schema_json FROM section_types WHERE key_name = ?");
-                $insertSection = $db->prepare("
-                    INSERT INTO site_sections (school_id, section_type_id, position, is_visible, content_json)
-                    VALUES (?, ?, ?, 1, ?)
-                ");
-                foreach ($defaultSectionKeys as $i => $key) {
+                require_once __DIR__ . '/../includes/school-provision.php';
+                $hasVariantCol = db_has_column($db, 'site_sections', 'layout_variant');
+                $insertSection = $db->prepare($hasVariantCol
+                    ? "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, layout_variant, content_json) VALUES (?, ?, ?, ?, ?, ?)"
+                    : "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, content_json) VALUES (?, ?, ?, ?, ?)");
+                // Same starter layout as self-signup, so every school begins identically
+                foreach (get_starter_layout() as $i => [$key, $variant, $visible]) {
                     $typeStmt->execute([$key]);
                     $type = $typeStmt->fetch();
                     if ($type) {
                         $schema = json_decode($type['schema_json'], true);
                         $emptyContent = array_fill_keys(array_keys($schema), '');
-                        $insertSection->execute([$schoolId, $type['id'], $i, json_encode($emptyContent)]);
+                        $hasVariantCol
+                            ? $insertSection->execute([$schoolId, $type['id'], $i, $visible, $variant, json_encode($emptyContent)])
+                            : $insertSection->execute([$schoolId, $type['id'], $i, $visible, json_encode($emptyContent)]);
                     }
                 }
 

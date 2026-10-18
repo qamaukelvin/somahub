@@ -25,11 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_FILES['results_file']['tmp
         $error = 'Please upload a .csv file. Export your Excel sheet as CSV first (File > Save As > CSV).';
     } else {
         // Store the raw file for audit
-        $storeDir = __DIR__ . '/../uploads/results/' . $user['school_id'] . '/';
-        if (!is_dir($storeDir)) mkdir($storeDir, 0755, true);
-        $storedName = 'results_' . time() . '.csv';
+        require_once __DIR__ . '/../includes/private-storage.php';
+        $storeDir = private_dir('results/' . (int)$user['school_id']);
+        $storedName = private_random_name('results', 'csv');
         move_uploaded_file($tmpPath, $storeDir . $storedName);
-        $storedPath = '/uploads/results/' . $user['school_id'] . '/' . $storedName;
+        $storedPath = PRIVATE_BASE . 'results/' . (int)$user['school_id'] . '/' . $storedName;
 
         $uploadStmt = $db->prepare("
             INSERT INTO result_uploads (school_id, uploaded_by_user_id, term_label, original_filename, stored_path, status)

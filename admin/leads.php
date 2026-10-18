@@ -34,7 +34,11 @@ if ($filter !== 'all') {
 }
 $sql .= " ORDER BY l.submitted_at DESC";
 
+require_once __DIR__ . '/../includes/paginate.php';
 $leads = $db->query($sql)->fetchAll();
+[$page, $perPage, $offset] = page_info(40);
+$totalLeads = count($leads);
+$leads = array_slice($leads, $offset, $perPage);
 
 $counts = $db->query("
     SELECT
@@ -137,6 +141,7 @@ $tabs = [
     <tr><td colspan="7" style="text-align:center;color:#888;">No leads in this view.</td></tr>
     <?php endif; ?>
   </table>
+<?= pager_html($totalLeads, $perPage, $page) ?>
 </main>
 </body>
 </html>
