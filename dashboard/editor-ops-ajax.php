@@ -24,7 +24,7 @@ if ($action === 'undo' || $action === 'redo') {
 }
 
 $labels = ['move' => 'Moved a section', 'duplicate' => 'Duplicated a section', 'remove' => 'Removed a section',
-           'toggle' => 'Showed or hid a section', 'variant' => 'Changed layout', 'add' => 'Added a section'];
+           'toggle' => 'Showed or hid a section', 'variant' => 'Changed layout', 'add' => 'Added a section', 'reorder' => 'Reordered sections'];
 if (!isset($labels[$action])) out(['ok' => false, 'error' => 'Unknown action.']);
 history_track_request($db, $sid, $labels[$action]);
 
@@ -36,6 +36,15 @@ function ordered_ids(PDO $db, int $sid): array {
 function save_order(PDO $db, array $ids): void {
     $u = $db->prepare("UPDATE site_sections SET position = ? WHERE id = ?");
     foreach (array_values($ids) as $pos => $i) $u->execute([$pos, $i]);
+}
+
+if ($action === 'reorder') {
+    $given = array_values(array_unique(array_map('intval', json_decode($_POST['ids'] ?? '[]', true) ?: [])));
+    $have = ordered_ids($db, $sid);
+    $given = array_values(array_intersect($given, $have));           // only this school's sections
+    $rest = array_values(array_diff($have, $given));                  // anything not mentioned keeps its place at the end
+    save_order($db, array_merge($given, $rest));
+    out(['ok' => true]);
 }
 
 if ($action === 'add') {
@@ -57,7 +66,19 @@ if ($action === 'add') {
         $db->prepare("INSERT INTO site_sections (school_id, section_type_id, position, is_visible, content_json) VALUES (?,?,?,1,?)")
            ->execute([$sid, $typeId, $pos, json_encode($content)]);
     }
-    out(['ok' => true, 'new_id' => (int)$db->lastInsertId(), 'key' => $type['key_name']]);
+    $newId = (int)$db->lastInsertId();
+    // Optional position: after_id = a section id, or 'first' for the very top. Default is the bottom.
+    $after = $_POST['after_id'] ?? '';
+    if ($after !== '') {
+        $ids = array_values(array_filter(ordered_ids($db, $sid), fn($x) => $x !== $newId));
+        $at = $after === 'first' ? 0 : (array_search((int)$after, $ids, true));
+        if ($at !== false) {
+            if ($after !== 'first') $at++;
+            array_splice($ids, $at, 0, [$newId]);
+            save_order($db, $ids);
+        }
+    }
+    out(['ok' => true, 'new_id' => $newId, 'key' => $type['key_name']]);
 }
 
 $q = $db->prepare("SELECT ss.*, st.key_name FROM site_sections ss JOIN section_types st ON st.id = ss.section_type_id WHERE ss.id = ? AND ss.school_id = ?");

@@ -81,6 +81,14 @@ $__hist = history_status($db, (int)$school['id']);
   #seModal h3{margin:0 0 6px;} #seModal p{margin:0 0 14px;color:#666;font-size:.88rem;} #seModal .acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
   #seModal .acts button{border-radius:999px;padding:10px 18px;font:800 .84rem Arial,sans-serif;cursor:pointer;border:2px solid #0F5257;background:#fff;color:#0F5257;} #seModal .acts .go{background:#0F5257;color:#fff;} #seModal .acts .bad{background:#B3261E;border-color:#B3261E;color:#fff;}
   #seModal .list button{display:flex;width:100%;gap:10px;align-items:center;background:none;border:1px solid #E2DCC6;border-radius:10px;padding:11px 12px;margin-bottom:6px;font:700 .86rem Arial,sans-serif;cursor:pointer;text-align:left;} #seModal .list button:hover{border-color:#0F5257;background:#F4F1E6;}
+  .se-grip{cursor:grab;} .se-grip:active{cursor:grabbing;}
+  .se-gap{position:relative;height:14px;z-index:55;transition:height .12s;} .se-gap::before{content:'';position:absolute;left:0;right:0;top:50%;height:0;border-top:3px dashed transparent;}
+  .se-gap .se-gapbtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#0F5257;color:#fff;border:2px solid #fff;border-radius:999px;padding:4px 12px;font:700 .72rem Arial,sans-serif;cursor:pointer;display:none;gap:5px;align-items:center;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.3);}
+  .se-gap:hover .se-gapbtn{display:inline-flex;} .se-gap:hover::before{border-top-color:rgba(15,82,87,.5);}
+  body.se-dragging .se-gap{height:54px;background:rgba(242,166,90,.12);} body.se-dragging .se-gap::before{border-top-color:rgba(15,82,87,.35);}
+  body.se-dragging .se-gap .se-gapbtn{display:none;} body.se-dragging .se-gap.over{background:rgba(15,82,87,.2);} body.se-dragging .se-gap.over::before{border-top-color:#0F5257;}
+  body.se-dragging .se-gap::after{content:'Drop here';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:700 .72rem Arial,sans-serif;color:#0F5257;opacity:.75;}
+  section.se-dragsrc,.se-placeholder.se-dragsrc{opacity:.35;} #seModal.se-away{opacity:0;pointer-events:none;}
   @media(max-width:640px){#seBar .lbl{display:none;} .se-btn .lbl{display:none;} .se-btn{padding:7px 9px;}}
 </style>
 <div id="seToast"></div>
@@ -163,20 +171,33 @@ $__hist = history_status($db, (int)$school['id']);
     flush().then(function(){ return post('/dashboard/colors-save-ajax.php', fd); }).then(function(d){ d.ok ? reload() : toast(d.error || 'Could not save colours', true); }); };
   var fs = $('seFontSel'); FONTS.forEach(function(f){ var o = document.createElement('option'); o.value = f.k; o.textContent = f.l; fs.appendChild(o); });
   fs.onchange = function(){ var fd = new FormData(); fd.append('font_pair', fs.value); flush().then(function(){ return post('/dashboard/font-save-ajax.php', fd); }).then(function(d){ d.ok ? reload() : toast('Could not save font', true); }); };
-  $('seAdd').onclick = function(){
+  var addAfter = '';   // '' = bottom, 'first' = top, or a section id
+  function startAdd(after){
+    addAfter = after;
     var h = '<div class="list">' + TYPES.map(function(t){ return '<button type="button" data-t="' + t.id + '">' + esc(t.l) + (t.p ? ' <small style="color:#8a5a00">paid plan</small>' : '') + '</button>'; }).join('') + '</div>';
-    modal('Add a section', 'It is added at the bottom. Move it wherever you like.', [{t:'Cancel'}], h);
-    $('seMB').querySelectorAll('button').forEach(function(b){ b.onclick = function(){ $('seModal').classList.remove('open'); flush().then(function(){ return ops('add', {section_type_id: b.dataset.t}); }).then(function(d){
+    modal('Add a section', addAfter === '' ? 'Click one to add it at the bottom, or drag it to the exact spot on your page.' : 'It will be added right where you clicked.', [{t:'Cancel'}], h);
+    $('seMB').querySelectorAll('button').forEach(function(b){
+      b.draggable = true;
+      b.addEventListener('dragstart', function(e){ e.dataTransfer.setData('text/plain', 'new:' + b.dataset.t); e.dataTransfer.effectAllowed = 'copy'; body.classList.add('se-dragging'); setTimeout(function(){ $('seModal').classList.add('se-away'); }, 0); });
+      b.addEventListener('dragend', endDrag);
+      b.onclick = function(){ $('seModal').classList.remove('open'); addType(b.dataset.t, addAfter); };
+    });
+  }
+  function addType(typeId, after){
+    var extra = {section_type_id: typeId}; if (after !== '') extra.after_id = after;
+    flush().then(function(){ return ops('add', extra); }).then(function(d){
       if (!d.ok) return toast(d.error || 'Could not add', true);
       var sec = DATA.filter(function(x){ return x.key === d.key; })[0];
-      var file = sec ? sec.editFile : 'section-edit.php';
-      location.href = '/dashboard/' + file + '?id=' + d.new_id;
-    }); }; });
-  };
+      location.href = '/dashboard/' + (sec ? sec.editFile : 'section-edit.php') + '?id=' + d.new_id;
+    });
+  }
+  $('seAdd').onclick = function(){ startAdd(''); };
 
   // ---------- per-section chrome ----------
   function menuBtn(label, icon, fn, cls){ var b = document.createElement('button'); b.type = 'button'; if (cls) b.className = cls; b.innerHTML = '<span class="se-i">' + icon + '</span>' + esc(label); b.onclick = function(e){ e.stopPropagation(); closePops(); fn(); }; return b; }
   function doOp(action, sec, extra){ var p = {section_id: sec.id}; for (var k in (extra||{})) p[k] = extra[k]; return flush().then(function(){ return ops(action, p); }).then(function(d){ if (d.ok) reload(); else toast(d.error || 'Could not do that', true); }); }
+  var dragSrc = null;
+  function endDrag(){ body.classList.remove('se-dragging'); $('seModal').classList.remove('se-away'); document.querySelectorAll('.se-dragsrc').forEach(function(x){ x.classList.remove('se-dragsrc'); }); document.querySelectorAll('.se-gap.over').forEach(function(x){ x.classList.remove('over'); }); dragSrc = null; }
   function tools(sec, host){
     var wrap = document.createElement('div'); wrap.className = 'se-tools';
     var l = document.createElement('div'); l.className = 'l';
@@ -187,6 +208,10 @@ $__hist = history_status($db, (int)$school['id']);
       lb.onclick = function(e){ e.stopPropagation(); var was = lp.classList.contains('open'); closePops(); if (!was) lp.classList.add('open'); };
       l.appendChild(lb); l.appendChild(lp);
     }
+    var grip = document.createElement('button'); grip.type = 'button'; grip.className = 'se-btn round se-grip'; grip.title = 'Drag to move this section'; grip.draggable = true;
+    grip.innerHTML = '<span class="se-i">drag_indicator</span>'; l.appendChild(grip);
+    grip.addEventListener('dragstart', function(e){ e.dataTransfer.setData('text/plain', 'sec:' + sec.id); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setDragImage(grip, 18, 18); } catch(x){} dragSrc = host; host.classList.add('se-dragsrc'); body.classList.add('se-dragging'); closePops(); });
+    grip.addEventListener('dragend', endDrag);
     var r = document.createElement('div'); r.className = 'r';
     var rb = document.createElement('button'); rb.type = 'button'; rb.className = 'se-btn round'; rb.title = 'Section options'; rb.innerHTML = '<span class="se-i">more_vert</span>';
     var rp = document.createElement('div'); rp.className = 'se-pop';
@@ -258,6 +283,43 @@ $__hist = history_status($db, (int)$school['id']);
       tools(sec, ph);
     }
   });
+
+  // ---------- gaps between sections: "+ add here" and drop targets ----------
+  var units = [];
+  document.querySelectorAll('.se-marker').forEach(function(m){
+    var sec = byId[parseInt(m.dataset.sid, 10)]; if (!sec) return;
+    var el = targetFor(m) || m.nextElementSibling; if (el && el.classList && el.classList.contains('se-placeholder') === false && el.tagName !== 'SECTION') el = null;
+    units.push({sec: sec, el: el});
+  });
+  // placeholders were inserted right after their markers, so recompute their element
+  document.querySelectorAll('.se-marker').forEach(function(m, i){ var n = m.nextElementSibling; if (n && n.classList.contains('se-placeholder') && units[i]) units[i].el = n; });
+  function makeGap(afterId){
+    var g = document.createElement('div'); g.className = 'se-gap'; g.dataset.after = afterId;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'se-gapbtn'; b.innerHTML = '<span class="se-i" style="font-size:15px">add</span>Add section here';
+    b.onclick = function(e){ e.stopPropagation(); startAdd(afterId); }; g.appendChild(b);
+    g.addEventListener('dragover', function(e){ e.preventDefault(); e.dataTransfer.dropEffect = dragSrc ? 'move' : 'copy'; g.classList.add('over'); });
+    g.addEventListener('dragleave', function(){ g.classList.remove('over'); });
+    g.addEventListener('drop', function(e){
+      e.preventDefault(); g.classList.remove('over');
+      var t = e.dataTransfer.getData('text/plain') || '';
+      endDrag();
+      if (t.indexOf('new:') === 0) { $('seModal').classList.remove('open'); addType(t.slice(4), afterId); return; }
+      if (t.indexOf('sec:') === 0) {
+        var id = parseInt(t.slice(4), 10);
+        var order = units.map(function(u){ return u.sec.id; }).filter(function(x){ return x !== id; });
+        var at = afterId === 'first' ? 0 : order.indexOf(parseInt(afterId, 10)) + 1;
+        order.splice(at, 0, id);
+        flush().then(function(){ return ops('reorder', {ids: JSON.stringify(order)}); }).then(function(d){ d.ok ? reload() : toast(d.error || 'Could not move', true); });
+      }
+    });
+    return g;
+  }
+  if (units.length) {
+    var firstEl = units[0].el; if (firstEl) firstEl.parentNode.insertBefore(makeGap('first'), firstEl);
+    units.forEach(function(u){ if (u.el) u.el.parentNode.insertBefore(makeGap(String(u.sec.id)), u.el.nextSibling); });
+  }
+  // scroll while dragging near the top or bottom edge, so long pages are easy to rearrange
+  document.addEventListener('dragover', function(e){ if (!body.classList.contains('se-dragging')) return; if (e.clientY < 90) window.scrollBy(0, -22); else if (e.clientY > window.innerHeight - 90) window.scrollBy(0, 22); });
 
   // images: click to replace
   var imgTarget = null;
