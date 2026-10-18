@@ -128,7 +128,10 @@ foreach ($availableTypes as $t) {
 <main class="wrap">
   <div class="page-head">
     <h1>Edit Your Website</h1>
-    <button type="button" class="add-section-btn" onclick="openAddSection()"><span class="material-symbols-outlined">add</span>Add section</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a class="add-section-btn" style="text-decoration:none;background:#F2A65A;color:#0A3A3E;" href="https://<?= htmlspecialchars($school['slug']) ?>.somahub.top/?edit=1"><span class="material-symbols-outlined">edit_square</span>Edit on your site</a>
+      <button type="button" class="add-section-btn" onclick="openAddSection()"><span class="material-symbols-outlined">add</span>Add section</button>
+    </div>
   </div>
   <p class="sub">Drag <span class="drag-handle" style="display:inline;padding:0;">☰</span> to reorder. On desktop, click Edit. On mobile, tap ✎ to edit inline. The palette icon opens layout options for sections that support them.</p>
 

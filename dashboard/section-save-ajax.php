@@ -8,6 +8,8 @@ $db = get_db();
 header('Content-Type: application/json');
 
 $id = (int)($_POST['section_id'] ?? 0);
+require_once __DIR__ . '/../includes/edit-history.php';
+history_track_request($db, (int)$user['school_id'], empty($_FILES) ? 'Edited text' : 'Changed a photo', empty($_FILES) ? 'sec:' . $id : null);
 
 $stmt = $db->prepare("
     SELECT ss.*, st.key_name, st.schema_json

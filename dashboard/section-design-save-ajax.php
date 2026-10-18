@@ -4,6 +4,8 @@ require_once __DIR__ . '/../includes/app_log.php';
 require_once __DIR__ . '/../includes/section_variants.php';
 $user = require_school_login();
 $db = get_db();
+require_once __DIR__ . '/../includes/edit-history.php';
+history_track_request($db, (int)$user['school_id'], 'Changed layout');
 
 header('Content-Type: application/json');
 

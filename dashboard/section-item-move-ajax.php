@@ -6,6 +6,8 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/section_variants.php';
 $user = require_school_login();
 $db = get_db();
+require_once __DIR__ . '/../includes/edit-history.php';
+history_track_request($db, (int)$user['school_id'], 'Reordered items');
 
 $id = (int)($_POST['section_id'] ?? 0);
 $slot = (int)($_POST['slot'] ?? 0);

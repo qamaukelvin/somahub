@@ -6,6 +6,8 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/appearance.php';
 $user = require_school_login();
 $db = get_db();
+require_once __DIR__ . '/../includes/edit-history.php';
+history_track_request($db, (int)$user['school_id'], 'Changed colours', 'colors');
 header('Content-Type: application/json');
 
 $mode = ($_POST['color_mode'] ?? 'preset') === 'custom' ? 'custom' : 'preset';

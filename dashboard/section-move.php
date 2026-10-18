@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../includes/auth.php';
 $user = require_school_login();
 $db = get_db();
+require_once __DIR__ . '/../includes/edit-history.php';
+history_track_request($db, (int)$user['school_id'], 'Moved a section');
 
 $id = (int)($_POST['id'] ?? 0);
 $direction = $_POST['direction'] ?? '';

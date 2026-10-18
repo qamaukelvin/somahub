@@ -142,3 +142,10 @@ or date of birth together, so no one can browse by guessing sequential numbers.
 - **Sessions:** ID and CSRF token regenerate on every login.
 - **Private files:** ID documents, signed agreements, results and attendance CSVs are stored in `storage/private/` (denied to the web) and streamed by `admin/private-file.php` / `dashboard/private-file.php` after a permission check. Run `admin/migrate-private-files.php` once to move existing files.
 - **Web root:** `uploads/.htaccess` blocks script execution; `config/`, `includes/`, `sql/`, `vendor/`, `storage/` deny direct access; root `.htaccess` blocks `.sql`, `.md`, `.ini`, `.log`. The old top-level `.sql` files now live in `sql/_legacy_root/`.
+
+## On-page site editor (phase 1)
+- Open `https://<slug>.somahub.top/?edit=1` while signed in as the school owner/editor (button "Edit on your site" on the Sections page). Admins can use it while impersonating that school. Never indexed, never visible to the public.
+- `_site_editor.php` is loaded by `site.php` in edit mode only. It matches each stored text field to the element on the real page showing it (by text), makes it editable, and saves through `dashboard/section-save-ajax.php`. Fields that are empty or not displayed verbatim cannot be edited in place; the section menu's "Edit all details" opens the classic per-section editor for those.
+- Section toolbar: top-left **Layout** (from `includes/section_variants.php`), top-right **⋮** (move, duplicate, hide/show, edit all details, remove). Bottom bar: undo/redo, colours, fonts, add section, done.
+- Structural actions live in `dashboard/editor-ops-ajax.php`.
+- **Undo/redo:** `includes/edit-history.php` snapshots all sections plus colour/font settings after each change (tables `edit_history`, `edit_history_ptr`, auto-created, last 40 steps, same-field typing within 15s is one step). Editing endpoints opt in with one `history_track_request()` line.

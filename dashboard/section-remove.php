@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../includes/auth.php';
 $user = require_school_login();
 $db = get_db();
+require_once __DIR__ . '/../includes/edit-history.php';
+history_track_request($db, (int)$user['school_id'], 'Removed a section');
 
 $input = json_decode(file_get_contents('php://input'), true);
 $id = (int)($input['id'] ?? 0);

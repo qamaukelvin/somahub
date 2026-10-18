@@ -36,6 +36,15 @@ $isOwnerPreview = $viewer && (
     (in_array($viewer['role'] ?? '', ['school_owner', 'school_editor'], true) && $viewer['school_id'] == $school['id'])
 );
 
+// On-page editor: ?edit=1, only for this school's own owner/editor (or an admin
+// who is impersonating this exact school). Never for the public.
+$editMode = false;
+if (isset($_GET['edit']) && $viewer) {
+    $editMode = (in_array($viewer['role'] ?? '', ['school_owner', 'school_editor'], true) && (int)$viewer['school_id'] === (int)$school['id'])
+        || (($viewer['role'] ?? '') === 'platform_admin' && (int)($_SESSION['impersonating_school_id'] ?? 0) === (int)$school['id']);
+}
+if ($editMode) { header('Cache-Control: no-store'); }
+
 $isVerified = ($school['verification_status'] ?? '') === 'verified';
 
 // Grace period counts from first login, not account creation.
@@ -103,10 +112,10 @@ $sectionsStmt = $db->prepare("
     SELECT ss.*, st.key_name, st.label, st.is_premium
     FROM site_sections ss
     JOIN section_types st ON st.id = ss.section_type_id
-    WHERE ss.school_id = ? AND ss.is_visible = 1
+    WHERE ss.school_id = ? AND (ss.is_visible = 1 OR ?)
     ORDER BY ss.position ASC
 ");
-$sectionsStmt->execute([$school['id']]);
+$sectionsStmt->execute([$school['id'], $editMode ? 1 : 0]);
 $sections = $sectionsStmt->fetchAll();
 
 // Payment lapsed: quietly drop premium sections, no public "overdue" notice.
@@ -213,7 +222,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
 ?>
 <title><?= esc($seoTitle) ?></title>
 <meta name="description" content="<?= esc($seoDesc) ?>">
-<?php if ($demoEmbed || isset($_GET['try'])): ?><meta name="robots" content="noindex"><?php endif; ?>
+<?php if ($demoEmbed || isset($_GET['try']) || $editMode): ?><meta name="robots" content="noindex"><?php endif; ?>
 <script type="application/ld+json"><?= json_encode(array_filter([
     '@context' => 'https://schema.org', '@type' => 'School',
     'name' => $school['name'], 'url' => 'https://' . $school['slug'] . '.somahub.top/',
@@ -755,6 +764,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
     $c = json_decode($s['content_json'], true) ?: [];
     $key = $s['key_name'];
 ?>
+<?php if ($editMode): ?><i class="se-marker" data-sid="<?= (int)$s['id'] ?>" hidden></i><?php endif; ?>
 <?php if ($__tc = get_section_text_color_css($key, $c)): ?><style><?= $__tc ?></style><?php endif; ?>
 
 <?php if ($key === 'hero'):
@@ -2080,8 +2090,12 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
 </footer>
 
 <?php
-if ($school['slug'] === 'demo') include __DIR__ . '/_demo_editor.php';
-if (!$demoEmbed) {
+if ($editMode) {
+    include __DIR__ . '/_site_editor.php';
+} elseif ($school['slug'] === 'demo') {
+    include __DIR__ . '/_demo_editor.php';
+}
+if (!$demoEmbed && !$editMode) {
     $SOMAHUB_CHAT_CONTEXT = 'school';
     $SOMAHUB_CHAT_SCHOOL_NAME = $school['name'];
     $SOMAHUB_CHAT_SCHOOL_SLUG = $school['slug'];

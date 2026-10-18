@@ -5,6 +5,8 @@
 require_once __DIR__ . '/../includes/auth.php';
 $user = require_school_login();
 $db = get_db();
+require_once __DIR__ . '/../includes/edit-history.php';
+history_track_request($db, (int)$user['school_id'], 'Added a person');
 header('Content-Type: application/json');
 
 $id = (int)($_POST['section_id'] ?? 0);
