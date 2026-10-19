@@ -140,6 +140,7 @@ $ctaDestinations = [
 ];
 $availableSectionKeys = array_column($sections, 'key_name');
 $availableCtaKeys = array_filter(array_keys($ctaDestinations), fn($k) => in_array($ctaDestinations[$k]['key'], $availableSectionKeys, true));
+if ($editMode) $availableCtaKeys = array_keys($ctaDestinations); // the editor always shows the buttons, with a warning when a target is not live
 // Sensible default when a school hasn't explicitly picked one: Enroll if
 // they have it (and it's not locked out), otherwise Contact, since that's
 // always free and always available.
@@ -818,7 +819,8 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
         }
     }
     ob_start(); $ctaIdx = -1;
-    foreach ($heroCtaButtons as $key => $dest): $ctaIdx = ($ctaIdx ?? -1) + 1; ?><a class="hero-cta<?= $ctaIdx > 0 ? ' secondary' : '' ?>" href="#<?= esc($dest['key']) ?>"><?= esc($dest['label']) ?></a><?php endforeach;
+    foreach ($heroCtaButtons as $key => $dest): $ctaIdx = ($ctaIdx ?? -1) + 1; ?><a class="hero-cta<?= $ctaIdx > 0 ? ' secondary' : '' ?>" href="#<?= esc($dest['key']) ?>"<?= $editMode ? ' data-se-cta="cta_' . ($ctaIdx + 1) . '" data-se-cur="' . esc($key) . '"' : '' ?>><?= esc($dest['label']) ?></a><?php endforeach;
+    if ($editMode && $showCta && count($heroCtaButtons) < 2) echo '<a class="hero-cta secondary" href="#" data-se-cta="cta_2" data-se-cur="">+ Add second button</a>';
     $heroCtaHtml = ob_get_clean();
 ?>
 
@@ -1737,6 +1739,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
             'author' => $c["author_$i"] ?? '',
             'photo' => $c["photo_$i"] ?? '',
             'rating' => ($ratingRaw >= 1 && $ratingRaw <= 5) ? $ratingRaw : 0,
+            'i' => $i,
         ];
     }
     if (empty($quotes)) continue; // nothing entered yet - skip rather than show an empty section
@@ -1796,7 +1799,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
         <div class="testimonial-grid" id="testimonialsContainer">
           <?php foreach ($quotes as $q): ?>
             <div class="testimonial-card">
-              <?php if ($q['rating']): ?><div class="stars"><?= str_repeat('★', $q['rating']) . str_repeat('☆', 5 - $q['rating']) ?></div><?php endif; ?>
+              <?php if ($q['rating'] || $editMode): ?><div class="stars"<?= $editMode ? ' data-se-stars="' . (int)$q['i'] . '" data-rating="' . (int)$q['rating'] . '" title="Click a star to set the rating"' : '' ?>><?= str_repeat('★', $q['rating']) . str_repeat('☆', 5 - $q['rating']) ?></div><?php endif; ?>
               <div class="quote">"<?= esc($q['quote']) ?>"</div>
               <div class="author"><?= esc($q['author']) ?></div>
             </div>
@@ -2058,8 +2061,12 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
     foreach (['cta_destination_1' => $c['button_text'] ?? 'Learn More', 'cta_destination_2' => $c['button_text_2'] ?? ''] as $field => $label) {
         $choice = $c[$field] ?? '';
         if ($choice && isset($ctaDestinations[$choice]) && in_array($choice, $availableCtaKeys, true)) {
-            $bannerButtons[] = ['label' => $label ?: $ctaDestinations[$choice]['label'], 'href' => '#' . $ctaDestinations[$choice]['key']];
+            $bannerButtons[] = ['label' => $label ?: $ctaDestinations[$choice]['label'], 'href' => '#' . $ctaDestinations[$choice]['key'], 'f' => $field, 'cur' => $choice];
         }
+    }
+    if ($editMode && count($bannerButtons) < 2) {
+        $__nextSlot = empty($bannerButtons) ? 'cta_destination_1' : (($bannerButtons[0]['f'] ?? '') === 'cta_destination_1' ? 'cta_destination_2' : 'cta_destination_1');
+        $bannerButtons[] = ['label' => '+ Add button', 'href' => '#', 'f' => $__nextSlot, 'cur' => ''];
     }
     if (empty($bannerButtons) && !empty($c['button_text']) && !empty($c['button_link'])) {
         $bannerButtons[] = ['label' => $c['button_text'], 'href' => $c['button_link']];
@@ -2074,7 +2081,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
           <div class="cta-banner-content">
             <h2><?= esc($c['headline'] ?? '') ?></h2>
             <?php if (!empty($c['subtext'])): ?><p><?= esc($c['subtext']) ?></p><?php endif; ?>
-            <?php foreach ($bannerButtons as $btn): ?><a href="<?= esc($btn['href']) ?>" class="btn-primary"><?= esc($btn['label']) ?></a><?php endforeach; ?>
+            <?php foreach ($bannerButtons as $btn): ?><a href="<?= esc($btn['href']) ?>" class="btn-primary"<?= $editMode && !empty($btn['f']) ? ' data-se-cta="' . esc($btn['f']) . '" data-se-cur="' . esc($btn['cur'] ?? '') . '"' : '' ?>><?= esc($btn['label']) ?></a><?php endforeach; ?>
           </div>
         </div>
 
@@ -2084,7 +2091,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
             <h2><?= esc($c['headline'] ?? '') ?></h2>
             <?php if (!empty($c['subtext'])): ?><p><?= esc($c['subtext']) ?></p><?php endif; ?>
           </div>
-          <?php foreach ($bannerButtons as $btn): ?><a href="<?= esc($btn['href']) ?>" class="btn-primary"><?= esc($btn['label']) ?></a><?php endforeach; ?>
+          <?php foreach ($bannerButtons as $btn): ?><a href="<?= esc($btn['href']) ?>" class="btn-primary"<?= $editMode && !empty($btn['f']) ? ' data-se-cta="' . esc($btn['f']) . '" data-se-cur="' . esc($btn['cur'] ?? '') . '"' : '' ?>><?= esc($btn['label']) ?></a><?php endforeach; ?>
         </div>
 
       <?php elseif ($ctaBannerVariant === 'two_button'): ?>
@@ -2092,7 +2099,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
           <h2><?= esc($c['headline'] ?? '') ?></h2>
           <?php if (!empty($c['subtext'])): ?><p><?= esc($c['subtext']) ?></p><?php endif; ?>
           <div class="hero-cta-row" style="justify-content:center;">
-            <?php foreach ($bannerButtons as $btn): ?><a href="<?= esc($btn['href']) ?>" class="hero-cta"><?= esc($btn['label']) ?></a><?php endforeach; ?>
+            <?php foreach ($bannerButtons as $btn): ?><a href="<?= esc($btn['href']) ?>" class="hero-cta"<?= $editMode && !empty($btn['f']) ? ' data-se-cta="' . esc($btn['f']) . '" data-se-cur="' . esc($btn['cur'] ?? '') . '"' : '' ?>><?= esc($btn['label']) ?></a><?php endforeach; ?>
           </div>
         </div>
 
@@ -2100,7 +2107,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
         <div class="cta-banner">
           <h2><?= esc($c['headline'] ?? '') ?></h2>
           <?php if (!empty($c['subtext'])): ?><p><?= esc($c['subtext']) ?></p><?php endif; ?>
-          <?php foreach ($bannerButtons as $btn): ?><a href="<?= esc($btn['href']) ?>" class="btn-primary"><?= esc($btn['label']) ?></a><?php endforeach; ?>
+          <?php foreach ($bannerButtons as $btn): ?><a href="<?= esc($btn['href']) ?>" class="btn-primary"<?= $editMode && !empty($btn['f']) ? ' data-se-cta="' . esc($btn['f']) . '" data-se-cur="' . esc($btn['cur'] ?? '') . '"' : '' ?>><?= esc($btn['label']) ?></a><?php endforeach; ?>
         </div>
       <?php endif; ?>
 

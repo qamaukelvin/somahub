@@ -61,11 +61,17 @@ foreach ($sections as $s) {
     $needNow = (int)(($cfg['options'][$curVariant]['photos_needed'] ?? 0));
     $missing = $needNow > $have ? array_slice($emptyFields, 0, $needNow - $have) : [];
     $__data[] = [
-        'id' => (int)$s['id'], 'key' => $key, 'label' => $s['label'], 'photos' => count($photoFields) > 1 ? array_map(fn($pf) => [$pf, (string)($content[$pf] ?? '')], $photoFields) : [], 'visible' => (int)$s['is_visible'], 'locked' => !empty($s['__locked']),
+        'id' => (int)$s['id'], 'key' => $key, 'label' => $s['label'], 'hasSize' => !empty($cfg['has_size']), 'size' => $s['layout_size'] ?? 'auto', 'photos' => count($photoFields) > 1 ? array_map(fn($pf) => [$pf, (string)($content[$pf] ?? '')], $photoFields) : [], 'visible' => (int)$s['is_visible'], 'locked' => !empty($s['__locked']),
         'variant' => $curVariant, 'options' => $opts, 'item' => $item, 'fill' => $fill, 'missing' => $missing, 'needLabel' => $cfg['options'][$curVariant]['label'] ?? '',
         'text' => $text, 'imgs' => $imgs, 'editFile' => $__editorFiles[$key] ?? 'section-edit.php',
     ];
 }
+$__ctaOpts = ['contact' => 'Contact Us', 'enroll' => 'Request Admission', 'results' => 'Check Results', 'fees' => 'School Fees'];
+$__ctaSec = ['contact' => ['contact', 'Contact'], 'enroll' => ['enrollment_form', 'Enrollment Form'], 'results' => ['results_lookup', 'Results Lookup'], 'fees' => ['fees', 'Fees']];
+$__lockedPlan = is_premium_locked($school); $__live = [];
+foreach ($sections as $__x) { $__live[$__x['key_name']] = ($__live[$__x['key_name']] ?? false) || ((int)$__x['is_visible'] === 1 && !($__lockedPlan && (int)$__x['is_premium'] === 1)); }
+$__ctaUnmet = [];
+foreach ($__ctaSec as $k => [$sk, $nm]) { if (empty($__live[$sk])) $__ctaUnmet[$k] = "The $nm section isn't visible on your site, so this button won't show to visitors until you add or show it."; }
 $__types = [];
 foreach ($__schemas as $t) $__types[] = ['id' => (int)$t['id'], 'l' => $t['label'], 'k' => $t['key_name'], 'p' => (int)$t['is_premium']];
 $__pal = [];
@@ -140,17 +146,28 @@ try {
   .se-photoslot.circle{width:100%;max-width:190px;aspect-ratio:1;min-height:0;border-radius:50%;margin:0 auto 12px;} .se-photoslot.rect{aspect-ratio:4/3;min-height:0;}
   .se-avatarslot{outline:2px dashed #0F5257;outline-offset:-2px;cursor:pointer;position:relative;} .se-avatarslot:hover{background:#cfe3df !important;}
   .se-avatarslot .se-cam{position:absolute;right:6%;bottom:6%;width:34px;height:34px;border-radius:50%;background:#0F5257;color:#fff;border:2px solid #fff;display:flex;align-items:center;justify-content:center;} .se-avatarslot .se-cam .se-i{font-size:18px;}
-  #seGrid{position:fixed;z-index:99970;display:none;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px;box-sizing:border-box;background:rgba(15,25,25,.72);border-radius:8px;align-content:center;}
-  #seGrid.show{display:grid;} #seGrid .t{position:relative;aspect-ratio:4/3;border-radius:10px;background:#222 center/cover no-repeat;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;gap:6px;padding:8px;box-sizing:border-box;}
-  #seGrid .t.empty{background:rgba(255,255,255,.12);border:2px dashed #fff;align-items:center;flex-direction:column;color:#fff;font:800 .8rem Arial,sans-serif;cursor:pointer;} #seGrid .t.empty small{font-weight:500;opacity:.8;}
-  #seGrid .t button{background:#1C1C16;color:#fff;border:2px solid #fff;border-radius:999px;padding:5px 10px;font:700 .72rem Arial,sans-serif;cursor:pointer;display:inline-flex;gap:4px;align-items:center;} #seGrid .t button:hover{background:#0F5257;} #seGrid .t button.del:hover{background:#B3261E;} #seGrid .se-i{font-size:15px;}
+  #seGrid{position:fixed;z-index:99970;display:none;flex-direction:column;padding:14px;box-sizing:border-box;background:#20201a;border-radius:8px;}
+  #seGrid.show{display:flex;} #seGrid .tb{display:flex;gap:8px;} #seGrid .mini{border:1.5px solid rgba(255,255,255,.5);background:rgba(255,255,255,.08);color:#fff;border-radius:6px;padding:6px 11px;font:600 .74rem Arial,sans-serif;cursor:pointer;} #seGrid .mini:hover{background:rgba(255,255,255,.2);} #seGrid .mini.danger{border-color:rgba(244,160,160,.6);color:#F4A0A0;}
+  #seGrid .items{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-auto-rows:minmax(0,1fr);gap:10px;margin-top:12px;}
+  #seGrid .slot{position:relative;border-radius:6px;overflow:hidden;background:#444 center/cover no-repeat;min-height:0;} #seGrid .slot.full,#seGrid .add.full{grid-column:1/-1;}
+  #seGrid .cv{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;background:rgba(0,0,0,.35);cursor:pointer;transition:opacity .15s;} #seGrid .slot:hover .cv{opacity:1;} #seGrid .cv .pill{padding:5px 8px;font-size:.68rem;}
+  #seGrid .slot .x{width:22px;height:22px;top:4px;right:4px;opacity:0;} #seGrid .slot:hover .x{opacity:1;} #seGrid .slot .x .se-i{font-size:13px;}
+  #seGrid .add{border:1.5px dashed rgba(255,255,255,.4);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;color:#D8D4C4;min-height:0;} #seGrid .add:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.7);}
   .se-photoslot{display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;width:100%;min-height:120px;margin:0 0 10px;box-sizing:border-box;border:2px dashed #0F5257;border-radius:12px;background:rgba(244,241,230,.9);color:#0F5257;font:800 .8rem Arial,sans-serif;cursor:pointer;}
   .se-photoslot:hover{background:#E6F0EE;} .se-photoslot small{font-weight:500;color:#5a5a52;}
-  #seImgBar{position:fixed;z-index:99980;display:none;gap:6px;} #seImgBar.show{display:flex;}
-  #seImgBar button{background:#1C1C16;color:#fff;border:2px solid #fff;border-radius:999px;padding:6px 12px;font:700 .74rem Arial,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 8px rgba(0,0,0,.4);} #seImgBar button:hover{background:#0F5257;} #seImgBar button.del:hover{background:#B3261E;} #seImgBar .se-i{font-size:16px;}
   .se-phbtn{position:absolute;transform:translate(-50%,-50%);z-index:6;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;padding:0;}
   .se-phbtn .ic{font-size:46px;color:#9a968a;} .se-phbtn .pill{background:#5a1a1a;background:var(--primary,#0F5257);color:#fff;border-radius:8px;padding:11px 20px;font:800 .88rem Arial,sans-serif;white-space:nowrap;}
   [data-se-ph]{cursor:pointer;}
+  #seImgOv{position:fixed;z-index:99980;display:none;background:rgba(0,0,0,.35);align-items:center;justify-content:center;} #seImgOv.show{display:flex;}
+  #seImgOv .pill,#seGrid .pill{background:#fff;color:#1C1C16;border:none;border-radius:6px;padding:8px 14px;font:700 .78rem Arial,sans-serif;display:inline-flex;align-items:center;gap:6px;cursor:pointer;} #seImgOv .pill .se-i,#seGrid .pill .se-i{font-size:16px;}
+  #seImgOv .x,#seGrid .x{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(20,20,16,.7);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;} #seImgOv .x:hover,#seGrid .x:hover{background:#B3382C;} #seImgOv .x .se-i,#seGrid .x .se-i{font-size:16px;}
+  #seImgOv.corner{background:none;pointer-events:none;align-items:flex-start;justify-content:flex-end;} #seImgOv.corner .pill{pointer-events:auto;margin:64px 58px 0 0;box-shadow:0 2px 8px rgba(0,0,0,.35);} #seImgOv.corner .x{pointer-events:auto;top:64px;right:16px;}
+  #seCta{position:fixed;z-index:99985;display:none;background:#fff;color:#1C1C16;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.3);padding:6px;min-width:230px;font-family:Arial,sans-serif;} #seCta.show{display:block;}
+  #seCta h5{margin:6px 10px 6px;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#777;} #seCta button{display:flex;width:100%;align-items:center;gap:8px;background:none;border:none;border-radius:8px;padding:9px 10px;font:600 .84rem Arial,sans-serif;cursor:pointer;text-align:left;} #seCta button:hover{background:#F0F6F4;} #seCta button.on{color:#0F5257;font-weight:800;} #seCta button.rm{color:#B3261E;} #seCta .se-i{font-size:18px;color:#0F5257;} #seCta .warn{margin-left:auto;color:#d98a00;} #seCta .rm .se-i{color:#B3261E;}
+  .se-ctawarn{margin-top:10px;background:rgba(255,255,255,.92);color:#5a3b00;border-radius:8px;padding:7px 11px;font:600 .76rem Arial,sans-serif;max-width:46ch;} .se-ctawarn b{color:#8a5a00;}
+  .se-size{display:flex;gap:6px;flex-wrap:wrap;padding:2px 10px 8px;} .se-size button{width:auto !important;border:1.5px solid #ccc !important;border-radius:16px !important;padding:5px 11px !important;font-size:.74rem !important;} .se-size button.on{background:#0F5257 !important;color:#fff !important;border-color:#0F5257 !important;}
+  [data-se-stars] button{background:none;border:none;padding:0 1px;font:inherit;font-size:1.15rem;color:var(--accent,#F2A65A);cursor:pointer;line-height:1;} [data-se-stars] button:hover{transform:scale(1.2);}
+  .se-listx{display:inline-block;margin-left:8px;border:none;background:none;color:#b33;cursor:pointer;font-size:1.05rem;line-height:1;vertical-align:middle;} .se-listadd{border:1.5px dashed #999;background:none;border-radius:6px;padding:8px 14px;font:600 .8rem Arial,sans-serif;color:#555;cursor:pointer;margin-top:8px;}
   .se-grip{cursor:grab;} .se-grip:active{cursor:grabbing;}
   .se-gap{position:relative;height:30px;z-index:55;transition:height .12s;background:#f6f3ea;} .se-gap::before{content:'';position:absolute;left:0;right:0;top:50%;height:0;border-top:2px dashed rgba(15,82,87,.18);}
   .se-gap .se-gapbtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:24px;height:24px;padding:0;background:#fff;color:#0F5257;border:2px solid #0F5257;border-radius:50%;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.18);transition:transform .12s,background .12s;}
@@ -201,7 +218,7 @@ try {
 (function(){
   var DATA = <?= json_encode($__data, JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>, TYPES = <?= json_encode($__types, JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>,
       PAL = <?= json_encode($__pal, JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>, FONTS = <?= json_encode($__fonts, JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>,
-      CUR_PAL = <?= (int)($school['palette_id'] ?? 0) ?>, FEES = <?= json_encode($__fees, JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>;
+      CTA = <?= json_encode(['opts' => $__ctaOpts, 'unmet' => (object)$__ctaUnmet], JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>, CUR_PAL = <?= (int)($school['palette_id'] ?? 0) ?>, FEES = <?= json_encode($__fees, JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>;
   var OPS = '/dashboard/editor-ops-ajax.php', SAVE = '/dashboard/section-save-ajax.php';
   var body = document.body; body.classList.add('se-on');
   function $(id){ return document.getElementById(id); }
@@ -321,6 +338,17 @@ try {
       var lb = document.createElement('button'); lb.type = 'button'; lb.className = 'se-btn'; lb.innerHTML = '<span class="se-i" style="font-size:17px">dashboard_customize</span><span class="lbl">Layout</span>';
       var lp = document.createElement('div'); lp.className = 'se-pop';
       sec.options.forEach(function(o){ var b = menuBtn(o.l, o.i, function(){ if (o.k !== sec.variant) doOp('variant', sec, {variant:o.k}); }, o.k === sec.variant ? 'on' : ''); if (o.n > 0) { var nb = document.createElement('span'); nb.className = 'need'; nb.textContent = '+' + o.n + ' photo' + (o.n > 1 ? 's' : ''); b.appendChild(nb); } lp.appendChild(b); });
+      if (sec.hasSize) {
+        var hh = document.createElement('h5'); hh.textContent = 'Height'; lp.appendChild(hh);
+        var sz = document.createElement('div'); sz.className = 'se-size';
+        [['auto','Fits content'],['half','Half page'],['full','Full page']].forEach(function(o){
+          var b = document.createElement('button'); b.type = 'button'; b.textContent = o[1]; if (sec.size === o[0]) b.className = 'on';
+          b.onclick = function(e){ e.stopPropagation(); var fd = new FormData(); fd.append('section_id', sec.id); fd.append('layout_variant', sec.variant); fd.append('layout_size', o[0]);
+            flush().then(function(){ return post('/dashboard/section-design-save-ajax.php', fd); }).then(function(d){ if (d.ok) reload(); else toast((d.errors && Object.values(d.errors)[0]) || 'Could not change height', true); }); };
+          sz.appendChild(b);
+        });
+        lp.appendChild(sz);
+      }
       lb.onclick = function(e){ e.stopPropagation(); var was = lp.classList.contains('open'); closePops(); if (!was) lp.classList.add('open'); };
       l.appendChild(lb); l.appendChild(lp);
     }
@@ -361,12 +389,30 @@ try {
       var field = m[1], img = el.tagName === 'IMG'; el.setAttribute('data-se-ph', field); el.dataset.seSid = sec.id;
       var b = document.createElement('button'); b.type = 'button'; b.className = 'se-phbtn'; b.dataset.seSid = sec.id;
       b.innerHTML = '<span class="se-i ic">add_photo_alternate</span><span class="pill">Upload photo(s)</span>';
-      b.onclick = function(e){ e.preventDefault(); e.stopPropagation(); pickPhoto(sec.id, field); };
+      b.onclick = function(e){ e.preventDefault(); e.stopPropagation(); if (isMulti(sec)) bulkPick(sec); else pickPhoto(sec.id, field); };
       var host = img ? el.parentElement : el; if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
       host.appendChild(b);
       function place(){ if (img) { b.style.left = (el.offsetLeft + el.offsetWidth / 2) + 'px'; b.style.top = (el.offsetTop + el.offsetHeight / 2) + 'px'; } else { b.style.left = '50%'; b.style.top = '86px'; } }
       place(); window.addEventListener('load', place); window.addEventListener('resize', place); if (img) el.addEventListener('load', place);
     });
+  }
+  function bindList(sec, root){
+    if (!sec.text.some(function(p){ return p[0] === 'list_items'; })) return;
+    var items = root.querySelectorAll('.about-list li, .about-timeline-item'); if (!items.length) return;
+    var parent = items[0].parentElement;
+    function itemText(li){ var t = ''; li.childNodes.forEach(function(n){ if (!(n.classList && n.classList.contains('se-listx'))) t += n.textContent; }); return t.replace(/\s+/g, ' ').trim(); }
+    function save(){ var fd = new FormData(); fd.append('section_id', sec.id); fd.append('list_items', Array.prototype.map.call(parent.children, itemText).filter(Boolean).join('\n')); post(SAVE, fd).then(function(d){ toast(d.ok ? 'Saved' : 'Could not save', !d.ok); }); }
+    function wire(li){
+      li.contentEditable = 'plaintext-only'; if (li.contentEditable !== 'plaintext-only') li.contentEditable = 'true';
+      li.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); li.blur(); } });
+      li.addEventListener('blur', save);
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'se-listx'; x.contentEditable = 'false'; x.title = 'Remove'; x.innerHTML = '&times;';
+      x.onclick = function(e){ e.preventDefault(); e.stopPropagation(); li.remove(); save(); }; li.appendChild(x);
+    }
+    Array.prototype.forEach.call(items, wire);
+    var add = document.createElement('button'); add.type = 'button'; add.className = 'se-listadd'; add.textContent = '+ Add item';
+    add.onclick = function(e){ e.stopPropagation(); var last = parent.lastElementChild, li = last.cloneNode(false); li.className = last.className; parent.appendChild(li); wire(li); li.focus(); };
+    parent.parentElement.insertBefore(add, parent.nextSibling);
   }
   function bindText(sec, root){
     root.querySelectorAll('[data-countup-target]').forEach(function(el){ el.textContent = (el.getAttribute('data-countup-target') || '') + (el.getAttribute('data-countup-suffix') || ''); });
@@ -407,7 +453,7 @@ try {
     var el = targetFor(m);
     if (el) {
       if (!sec.visible) el.classList.add('se-hidden');
-      tools(sec, el); bindText(sec, el); bindPh(sec, el); el.querySelectorAll('details').forEach(function(d){ d.open = true; });
+      tools(sec, el); bindText(sec, el); bindPh(sec, el); bindList(sec, el); el.querySelectorAll('details').forEach(function(d){ d.open = true; });
     } else {
       var ph = document.createElement('div'); ph.className = 'se-placeholder';
       ph.innerHTML = '<span class="se-i">' + (sec.visible ? 'edit_note' : 'visibility_off') + '</span><span style="flex:1;padding-left:4px"><b>' + esc(sec.label) + '</b> &mdash; ' + (sec.visible ? 'nothing to show yet. Use the menu to fill it in.' : 'hidden from your site.') + '</span>';
@@ -578,54 +624,112 @@ try {
     });
   } catch(e){}
 
-  // photo controls: replace and remove appear over any photo you hover
-  var imgBar = document.createElement('div'); imgBar.id = 'seImgBar'; document.body.appendChild(imgBar);
+  // photo controls, as in the section editors: hover a photo for a dark cover with "Replace photo" and a round x to remove it
+  function removePhotos(sid, fields, msg){
+    var fd = new FormData(); fd.append('section_id', sid); fields.forEach(function(f){ fd.append('remove_' + f, '1'); });
+    toast('Removing...');
+    post(SAVE, fd).then(function(d){ if (d.ok) { toast(msg || 'Photo removed. Undo brings it back.'); setTimeout(reload, 700); } else toast('Could not remove the photo', true); }).catch(function(){ toast('Could not remove the photo', true); });
+  }
+  var ov = document.createElement('div'); ov.id = 'seImgOv'; document.body.appendChild(ov);
   var imgHideT = null, imgOver = null;
-  function imgBarBtn(icon, label, cls, fn){ var b = document.createElement('button'); b.type = 'button'; if (cls) b.className = cls; b.innerHTML = '<span class="se-i">' + icon + '</span>' + label; b.onclick = function(e){ e.preventDefault(); e.stopPropagation(); fn(); }; imgBar.appendChild(b); }
-  imgBarBtn('photo_camera', 'Replace', '', function(){ if (imgOver) pickPhoto(imgOver.dataset.seSid, imgOver.getAttribute('data-se-img')); });
-  imgBarBtn('delete', 'Remove', 'del', function(){
-    if (!imgOver) return; var fd = new FormData(); fd.append('section_id', imgOver.dataset.seSid); fd.append('remove_' + imgOver.getAttribute('data-se-img'), '1');
-    imgBar.classList.remove('show'); toast('Removing...');
-    post(SAVE, fd).then(function(d){ if (d.ok) { toast('Photo removed. Undo brings it back.'); setTimeout(reload, 700); } else toast('Could not remove the photo', true); }).catch(function(){ toast('Could not remove the photo', true); });
-  });
+  ov.innerHTML = '<button type="button" class="pill"><span class="se-i">photo_camera</span><span class="t">Replace photo</span></button><button type="button" class="x" title="Remove photo"><span class="se-i">close</span></button>';
+  ov.querySelector('.pill').onclick = function(e){ e.preventDefault(); e.stopPropagation(); if (imgOver) pickPhoto(imgOver.dataset.seSid, imgOver.getAttribute('data-se-img')); };
+  ov.querySelector('.x').onclick = function(e){ e.preventDefault(); e.stopPropagation(); if (!imgOver || !window.confirm('Remove this photo?')) return; ov.classList.remove('show'); removePhotos(imgOver.dataset.seSid, [imgOver.getAttribute('data-se-img')]); };
+  ov.addEventListener('mouseenter', function(){ clearTimeout(imgHideT); }); ov.addEventListener('mouseleave', function(){ hideImgBar(); });
+  function isMulti(sec){ return !!(sec && sec.photos && sec.photos.length > 1 && ((sec.key === 'hero' && ['split','split_cta','carousel'].indexOf(sec.variant) > -1) || (sec.key === 'about' && sec.variant === 'carousel_left'))); }
+  var bulkSec = null;
+  function bulkPick(sec){ bulkSec = sec; imgTarget = null; galTarget = null; var f = $('seFile'); f.multiple = true; f.click(); }
+
+  // several photos in one box (hero, rotating About): hover shows every photo in a grid, with Replace all / Remove all
   var grid = document.createElement('div'); grid.id = 'seGrid'; document.body.appendChild(grid);
   var gridT = null;
   function hideGrid(){ clearTimeout(gridT); gridT = setTimeout(function(){ grid.classList.remove('show'); }, 300); }
   grid.addEventListener('mouseenter', function(){ clearTimeout(gridT); }); grid.addEventListener('mouseleave', hideGrid);
   function showGrid(im){
-    var sec = byId[parseInt(im.dataset.seSid, 10)]; if (!sec || !sec.photos || sec.photos.length < 2 || !/carousel/.test(sec.variant)) return false;
-    clearTimeout(gridT); clearTimeout(imgHideT); imgBar.classList.remove('show');
+    var sec = byId[parseInt(im.dataset.seSid, 10)]; if (!isMulti(sec)) return false;
+    clearTimeout(gridT); clearTimeout(imgHideT); ov.classList.remove('show');
     var host = im.closest('section') || document.body, els = host.querySelectorAll('[data-se-img],[data-se-ph]'), box = im;
     while (box.parentElement && box.parentElement !== host && !Array.prototype.every.call(els, function(x){ return box.contains(x); })) box = box.parentElement;
     var r = box.getBoundingClientRect(); if (r.width < 200) r = im.getBoundingClientRect();
+    var filled = sec.photos.filter(function(p){ return p[1]; }), nextEmpty = sec.photos.filter(function(p){ return !p[1]; })[0];
     grid.innerHTML = '';
-    sec.photos.forEach(function(pr){
-      var t = document.createElement('div'), el = host.querySelector('[data-se-img="' + pr[0] + '"]');
-      if (pr[1] && el) {
-        var url = el.currentSrc || el.src || ((getComputedStyle(el).backgroundImage.match(/url\(["']?(.*?)["']?\)/) || [])[1]) || '';
-        t.className = 't'; if (url) t.style.backgroundImage = 'url("' + url + '")';
-        var rb = document.createElement('button'); rb.type = 'button'; rb.innerHTML = '<span class="se-i">photo_camera</span>Replace'; rb.onclick = function(e){ e.stopPropagation(); pickPhoto(sec.id, pr[0]); };
-        var db = document.createElement('button'); db.type = 'button'; db.className = 'del'; db.innerHTML = '<span class="se-i">delete</span>Remove';
-        db.onclick = function(e){ e.stopPropagation(); var fd = new FormData(); fd.append('section_id', sec.id); fd.append('remove_' + pr[0], '1'); grid.classList.remove('show'); toast('Removing...'); post(SAVE, fd).then(function(d){ if (d.ok) { toast('Photo removed. Undo brings it back.'); setTimeout(reload, 700); } else toast('Could not remove the photo', true); }); };
-        t.appendChild(rb); t.appendChild(db);
-      } else {
-        t.className = 't empty'; t.innerHTML = '<span class="se-i" style="font-size:26px">add_a_photo</span>Add photo<small>Click to upload</small>'; t.onclick = function(e){ e.stopPropagation(); pickPhoto(sec.id, pr[0]); };
-      }
-      grid.appendChild(t);
+    var tb = document.createElement('div'); tb.className = 'tb';
+    var ra = document.createElement('button'); ra.type = 'button'; ra.className = 'mini'; ra.textContent = 'Replace all'; ra.onclick = function(e){ e.stopPropagation(); grid.classList.remove('show'); bulkPick(sec); };
+    var rm = document.createElement('button'); rm.type = 'button'; rm.className = 'mini danger'; rm.textContent = 'Remove all'; rm.onclick = function(e){ e.stopPropagation(); if (!window.confirm('Remove all photos here?')) return; grid.classList.remove('show'); removePhotos(sec.id, sec.photos.map(function(p){ return p[0]; }), 'All photos removed. Undo brings them back.'); };
+    tb.appendChild(ra); tb.appendChild(rm); grid.appendChild(tb);
+    var items = document.createElement('div'); items.className = 'items'; grid.appendChild(items);
+    var cells = filled.length + (nextEmpty ? 1 : 0);
+    filled.forEach(function(pr, i){
+      var el = host.querySelector('[data-se-img="' + pr[0] + '"]'), url = '';
+      if (el) url = el.currentSrc || el.src || ((getComputedStyle(el).backgroundImage.match(/url\(["']?(.*?)["']?\)/) || [])[1]) || '';
+      var t = document.createElement('div'); t.className = 'slot' + (i === filled.length - 1 && !nextEmpty && cells % 2 === 1 ? ' full' : ''); if (url) t.style.backgroundImage = 'url("' + url + '")';
+      var cover = document.createElement('div'); cover.className = 'cv'; cover.onclick = function(e){ e.stopPropagation(); pickPhoto(sec.id, pr[0]); };
+      cover.innerHTML = '<span class="pill"><span class="se-i">photo_camera</span>Replace photo</span>';
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.title = 'Remove photo'; x.innerHTML = '<span class="se-i">close</span>';
+      x.onclick = function(e){ e.stopPropagation(); if (window.confirm('Remove this photo?')) { grid.classList.remove('show'); removePhotos(sec.id, [pr[0]]); } };
+      t.appendChild(cover); t.appendChild(x); items.appendChild(t);
     });
-    grid.style.left = r.left + 'px'; grid.style.top = Math.max(r.top, 0) + 'px'; grid.style.width = r.width + 'px'; grid.style.height = Math.min(r.height, window.innerHeight - Math.max(r.top, 0)) + 'px';
+    if (nextEmpty) {
+      var a = document.createElement('div'); a.className = 'add' + (cells % 2 === 1 ? ' full' : ''); a.innerHTML = '<span class="se-i" style="font-size:26px">add</span><span style="font-size:.72rem;font-weight:600">Add photo</span>';
+      a.onclick = function(e){ e.stopPropagation(); pickPhoto(sec.id, nextEmpty[0]); }; items.appendChild(a);
+    }
+    grid.style.left = Math.max(r.left, 0) + 'px'; grid.style.top = Math.max(r.top, 0) + 'px'; grid.style.width = Math.min(r.width, window.innerWidth) + 'px';
+    grid.style.height = Math.min(r.height, window.innerHeight - Math.max(r.top, 0)) + 'px';
     grid.classList.add('show'); return true;
   }
   function showImgBar(im){
     if (showGrid(im)) return;
     clearTimeout(imgHideT); imgOver = im; var r = im.getBoundingClientRect(); if (r.width < 60 || r.height < 50) return;
-    imgBar.classList.add('show');
-    var top = Math.min(r.bottom, window.innerHeight) - 46, left = Math.max(r.left, 0) + (Math.min(r.right, window.innerWidth) - Math.max(r.left, 0)) / 2 - imgBar.offsetWidth / 2;
-    imgBar.style.top = Math.max(top, r.top + 6) + 'px'; imgBar.style.left = Math.max(6, left) + 'px';
+    var corner = im.tagName === 'SECTION' || r.height > 480 || r.width > window.innerWidth * 0.9;
+    ov.classList.toggle('corner', corner);
+    ov.querySelector('.t').textContent = 'Replace photo';
+    var l = Math.max(r.left, 0), t = Math.max(r.top, 0), w = Math.min(r.right, window.innerWidth) - l, h = Math.min(r.bottom, window.innerHeight) - t;
+    ov.style.left = l + 'px'; ov.style.top = t + 'px'; ov.style.width = w + 'px'; ov.style.height = h + 'px'; ov.classList.add('show');
   }
-  function hideImgBar(){ clearTimeout(imgHideT); imgHideT = setTimeout(function(){ imgBar.classList.remove('show'); }, 350); }
-  document.addEventListener('mouseover', function(e){ var im = e.target.closest && e.target.closest('[data-se-img],[data-se-ph],.se-phbtn'); if (im && im.hasAttribute('data-se-ph') || im && im.classList.contains('se-phbtn')) { showGrid(im); } else if (im) showImgBar(im); else if (e.target.closest && (e.target.closest('#seImgBar') || e.target.closest('#seGrid'))) clearTimeout(imgHideT); else if (imgBar.classList.contains('show')) hideImgBar(); });
-  window.addEventListener('scroll', function(){ imgBar.classList.remove('show'); grid.classList.remove('show'); }, {passive:true});
+  function hideImgBar(){ clearTimeout(imgHideT); imgHideT = setTimeout(function(){ ov.classList.remove('show'); }, 250); }
+  document.addEventListener('mouseover', function(e){
+    var im = e.target.closest && e.target.closest('[data-se-img],[data-se-ph],.se-phbtn');
+    if (im && (im.hasAttribute('data-se-ph') || im.classList.contains('se-phbtn'))) { showGrid(im); }
+    else if (im) showImgBar(im);
+    else if (e.target.closest && (e.target.closest('#seImgOv') || e.target.closest('#seGrid'))) clearTimeout(imgHideT);
+    else if (ov.classList.contains('show')) hideImgBar();
+  });
+  window.addEventListener('scroll', function(){ ov.classList.remove('show'); grid.classList.remove('show'); }, {passive:true});
+
+  // button destinations (hero, banner): hover-free menu on click, same choices and warnings as the section editor
+  units.forEach(function(u){
+    if (!u.el) return; var seen = {};
+    u.el.querySelectorAll('[data-se-cta]').forEach(function(a){
+      a.dataset.seSid = u.sec.id; var cur = a.getAttribute('data-se-cur');
+      if (cur && CTA.unmet[cur] && !seen[cur]) {
+        seen[cur] = 1; var w = document.createElement('div'); w.className = 'se-ctawarn'; w.innerHTML = '<b>' + esc(CTA.opts[cur]) + ':</b> ' + esc(CTA.unmet[cur]);
+        var row = a.parentElement; row.parentElement.insertBefore(w, row.nextSibling);
+      }
+    });
+  });
+  var ctaPop = document.createElement('div'); ctaPop.id = 'seCta'; document.body.appendChild(ctaPop);
+  document.addEventListener('mousedown', function(e){ if (!e.target.closest('#seCta') && !e.target.closest('[data-se-cta]')) ctaPop.classList.remove('show'); });
+  function openCta(a){
+    var field = a.getAttribute('data-se-cta'), cur = a.getAttribute('data-se-cur') || '', sid = a.dataset.seSid, slot2 = /2$/.test(field);
+    function save(v){ var fd = new FormData(); fd.append('section_id', sid); fd.append(field, v); ctaPop.classList.remove('show'); flush().then(function(){ return post(SAVE, fd); }).then(function(d){ if (d.ok) reload(); else toast('Could not change the button', true); }); }
+    ctaPop.innerHTML = '<h5>Button ' + (slot2 ? 2 : 1) + ' goes to</h5>';
+    Object.keys(CTA.opts).forEach(function(k){
+      var b = document.createElement('button'); b.type = 'button'; if (cur === k) b.className = 'on'; if (CTA.unmet[k]) b.title = CTA.unmet[k];
+      b.innerHTML = '<span class="se-i">' + (cur === k ? 'check' : 'chevron_right') + '</span>' + esc(CTA.opts[k]) + (CTA.unmet[k] ? '<span class="se-i warn">warning</span>' : '');
+      b.onclick = function(e){ e.stopPropagation(); save(k); }; ctaPop.appendChild(b);
+    });
+    if (slot2 && cur) { var rm = document.createElement('button'); rm.type = 'button'; rm.className = 'rm'; rm.innerHTML = '<span class="se-i">close</span>Remove this button'; rm.onclick = function(e){ e.stopPropagation(); save(''); }; ctaPop.appendChild(rm); }
+    var r = a.getBoundingClientRect(); ctaPop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 250)) + 'px'; ctaPop.style.top = Math.min(r.bottom + 6, window.innerHeight - 260) + 'px'; ctaPop.classList.add('show');
+  }
+  // testimonial stars: click a star to set the rating, click the same one again to clear it
+  document.querySelectorAll('[data-se-stars]').forEach(function(box){
+    var u = units.filter(function(x){ return x.el && x.el.contains(box); })[0]; if (!u) return;
+    var i = box.getAttribute('data-se-stars'), r = parseInt(box.getAttribute('data-rating'), 10) || 0;
+    function draw(){ box.innerHTML = ''; for (var n = 1; n <= 5; n++) (function(n){ var b = document.createElement('button'); b.type = 'button'; b.textContent = n <= r ? '\u2605' : '\u2606';
+      b.onclick = function(e){ e.preventDefault(); e.stopPropagation(); r = (r === n) ? 0 : n; draw(); var fd = new FormData(); fd.append('section_id', u.sec.id); fd.append('rating_' + i, r ? String(r) : ''); post(SAVE, fd).then(function(d){ toast(d.ok ? 'Saved' : 'Could not save', !d.ok); }); };
+      box.appendChild(b); })(n); }
+    draw();
+  });
 
   // colour pencil: one site-wide control, told which section a text belongs to
   window.somahubColorSid = function(el){ var h = el.closest('[data-se-sid]'); return h ? h.dataset.seSid : 0; };
@@ -634,10 +738,12 @@ try {
 
   // images: click to replace
   var imgTarget = null;
-  function pickPhoto(sid, field){ imgTarget = {sid: sid, field: field}; galTarget = null; $('seFile').multiple = false; $('seFile').click(); }
+  function pickPhoto(sid, field){ imgTarget = {sid: sid, field: field}; galTarget = null; bulkSec = null; $('seFile').multiple = false; $('seFile').click(); }
   document.addEventListener('click', function(e){
+    var ca = e.target.closest('[data-se-cta]');
+    if (ca) { e.preventDefault(); e.stopPropagation(); openCta(ca); return; }
     var ph = e.target.closest('[data-se-ph]');
-    if (ph && !e.target.closest('.se-tools,#seBar,#seGrid')) { e.preventDefault(); e.stopPropagation(); pickPhoto(ph.dataset.seSid, ph.getAttribute('data-se-ph')); return; }
+    if (ph && !e.target.closest('.se-tools,#seBar,#seGrid')) { e.preventDefault(); e.stopPropagation(); var psec = byId[parseInt(ph.dataset.seSid, 10)]; if (isMulti(psec)) bulkPick(psec); else pickPhoto(ph.dataset.seSid, ph.getAttribute('data-se-ph')); return; }
     var im = e.target.closest('[data-se-img]');
     if (im && !e.target.closest('.se-tools,#seBar')) { e.preventDefault(); e.stopPropagation(); pickPhoto(im.dataset.seSid, im.getAttribute('data-se-img')); return; }
     // keep links and buttons inside sections from navigating away while editing
@@ -649,7 +755,13 @@ try {
     var multi = this.multiple; this.multiple = false;
     if (!files.length) return;
     var fd = new FormData();
-    if (multi && galTarget) {
+    if (multi && bulkSec) {
+      var fields = bulkSec.photos.map(function(p){ return p[0]; });
+      fd.append('section_id', bulkSec.id);
+      files.slice(0, fields.length).forEach(function(f, i){ fd.append(fields[i], f); });
+      if (files.length > fields.length) toast('Only ' + fields.length + ' fit. Uploading those.');
+      bulkSec = null;
+    } else if (multi && galTarget) {
       var it = galTarget.item, free = it.empty.slice(0, files.length);
       if (!free.length) { toast('This gallery is full.', true); return; }
       fd.append('section_id', galTarget.id);
