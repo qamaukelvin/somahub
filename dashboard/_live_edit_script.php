@@ -24,6 +24,7 @@ function render_live_edit_script(int $sectionId, string $currentVariant, string 
     toast.classList.toggle('err', !ok);
     toast.querySelector('.material-symbols-outlined').textContent = ok ? 'check_circle' : 'error';
     toast.classList.add('show');
+    try { if (window.parent !== window) window.parent.postMessage({seToast: {ok: !!ok, msg: toastMsg.textContent}}, location.origin); } catch (e) {}
     clearTimeout(showSaved._t);
     showSaved._t = setTimeout(function(){ toast.classList.remove('show'); }, 2600);
   }
@@ -313,7 +314,7 @@ function render_live_edit_script(int $sectionId, string $currentVariant, string 
   // Close the font picker panel when clicking outside it.
   document.addEventListener('click', function(e){
     var panel = document.getElementById('fontPickerPanel');
-    if (!panel.classList.contains('open')) return;
+    if (!panel || !panel.classList.contains('open')) return;
     if (!e.target.closest('.font-picker')) panel.classList.remove('open');
   });
 

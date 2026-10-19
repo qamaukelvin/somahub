@@ -30,6 +30,8 @@ if (!function_exists('nl2p_live')) {
  * baked in. Every variant that shows a single image uses this instead of a
  * bare <img>, so clicking the photo on the live canvas is how you change it.
  */
+function live_embed(): bool { return !empty($_GET['embed']); }
+
 function live_photo_block(string $field, string $src, string $wrapClass = 'about-photo'): void { ?>
   <div class="<?= esc($wrapClass) ?> live-photo-wrap<?= $src ? '' : ' empty' ?>" data-photo-field="<?= esc($field) ?>">
     <?php if ($src): ?><img src="<?= esc($src) ?>" alt=""><?php endif; ?>
@@ -258,6 +260,14 @@ function render_live_edit_head(array $theme, string $extraCss = ''): void { ?>
 
   <?= $extraCss ?>
 </style>
+<?php if (live_embed()): $__vh = max(300, (int)($_GET['vh'] ?? 700)); ?>
+<style>
+  /* Embedded in the on-site editor: no page chrome, transparent canvas, heights follow the visitor's window. */
+  html,body{background:transparent !important;margin:0;overflow:hidden;}
+  .live-editor-topbar,.variant-switcher,.size-switcher,.welcome-bar,.save-toast{display:none !important;}
+  .hero-size-full{min-height:<?= $__vh ?>px !important;} .hero-size-half{min-height:<?= intdiv($__vh, 2) ?>px !important;}
+</style>
+<?php endif; ?>
 <?php }
 
 /**
@@ -265,6 +275,7 @@ function render_live_edit_head(array $theme, string $extraCss = ''): void { ?>
  * on every live-edit page.
  */
 function render_live_edit_topbar(array $section, array $fontPairs, string $currentFontPair): void {
+    if (live_embed()) return;
     // Site-wide colours control. Reads the school the editor already loaded.
     $school = $GLOBALS['school'] ?? [];
     $palettes = [];
@@ -399,7 +410,7 @@ function render_live_edit_topbar(array $section, array $fontPairs, string $curre
  * computed (usually count_section_photos() against the registry's
  * photo_fields).
  */
-function render_variant_switcher(array $config, string $currentVariant, int $photoCount): void { ?>
+function render_variant_switcher(array $config, string $currentVariant, int $photoCount): void { if (live_embed()) return; ?>
 <div class="variant-switcher" id="variantSwitcher">
   <?php foreach ($config['options'] as $value => $opt):
       $short = max(0, $opt['photos_needed'] - $photoCount);
@@ -420,6 +431,7 @@ function render_variant_switcher(array $config, string $currentVariant, int $pho
  * entry has has_size.
  */
 function render_size_switcher(string $currentSize): void {
+    if (live_embed()) return;
     $sizeOptions = ['auto' => 'Fits content', 'half' => 'Half page', 'full' => 'Full page'];
     ?>
 <div class="size-switcher">

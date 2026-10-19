@@ -61,7 +61,7 @@ foreach ($sections as $s) {
     $needNow = (int)(($cfg['options'][$curVariant]['photos_needed'] ?? 0));
     $missing = $needNow > $have ? array_slice($emptyFields, 0, $needNow - $have) : [];
     $__data[] = [
-        'id' => (int)$s['id'], 'key' => $key, 'label' => $s['label'], 'hasSize' => !empty($cfg['has_size']), 'size' => $s['layout_size'] ?? 'auto', 'photos' => count($photoFields) > 1 ? array_map(fn($pf) => [$pf, (string)($content[$pf] ?? '')], $photoFields) : [], 'visible' => (int)$s['is_visible'], 'locked' => !empty($s['__locked']),
+        'id' => (int)$s['id'], 'key' => $key, 'label' => $s['label'], 'hasSize' => !empty($cfg['has_size']), 'size' => $s['layout_size'] ?? 'auto', 'photos' => count($photoFields) > 1 ? array_map(fn($pf) => [$pf, (string)($content[$pf] ?? '')], $photoFields) : [], 'framed' => isset($__editorFiles[$key]), 'visible' => (int)$s['is_visible'], 'locked' => !empty($s['__locked']),
         'variant' => $curVariant, 'options' => $opts, 'item' => $item, 'fill' => $fill, 'missing' => $missing, 'needLabel' => $cfg['options'][$curVariant]['label'] ?? '',
         'text' => $text, 'imgs' => $imgs, 'editFile' => $__editorFiles[$key] ?? 'section-edit.php',
     ];
@@ -501,7 +501,7 @@ try {
     var el = targetFor(m);
     if (el) {
       if (!sec.visible) el.classList.add('se-hidden');
-      tools(sec, el); bindText(sec, el); bindPh(sec, el); bindList(sec, el); bindFees(sec, el); el.querySelectorAll('details').forEach(function(d){ d.open = true; });
+      tools(sec, el); if (!sec.framed) { bindText(sec, el); bindPh(sec, el); bindList(sec, el); bindFees(sec, el); el.querySelectorAll('details').forEach(function(d){ d.open = true; }); }
     } else {
       var ph = document.createElement('div'); ph.className = 'se-placeholder';
       ph.innerHTML = '<span class="se-i">' + (sec.visible ? 'edit_note' : 'visibility_off') + '</span><span style="flex:1;padding-left:4px"><b>' + esc(sec.label) + '</b> &mdash; ' + (sec.visible ? 'nothing to show yet. Use the menu to fill it in.' : 'hidden from your site.') + '</span>';
@@ -614,6 +614,7 @@ try {
   function galleryPick(sec){ galTarget = sec; var f = $('seFile'); f.multiple = true; f.click(); }
 
   units.forEach(function(u){
+    if (u.sec.framed) return;
     if (!u.el || !u.sec.fill || !u.sec.fill.length || u.el.classList.contains('se-placeholder')) return;
     var head = u.el.querySelector('.section-head'), form = u.el.querySelector('.enroll-inline-form'), wrapEl = u.el.querySelector(':scope > .wrap') || u.el;
     u.sec.fill.slice(0, 5).forEach(function(pair){
@@ -626,6 +627,7 @@ try {
     });
   });
   units.forEach(function(u){
+    if (u.sec.framed) return;
     if (!u.el || !u.sec.item) return;
     if (u.el.classList.contains('se-placeholder')) { var ab = addButton(u.sec, 'inline'); if (ab) { ab.style.marginLeft = 'auto'; u.el.appendChild(ab); } return; }
     bindItems(u.sec, u.el);
@@ -651,7 +653,7 @@ try {
   // photo slots: shown wherever the chosen layout needs a photo that has not been added yet
   function slotLabel(f, i){ return i === 0 ? 'Photo' : 'Photo ' + (i + 1); }
   DATA.forEach(function(sec){
-    if (!sec.missing || !sec.missing.length) return;
+    if (sec.framed || !sec.missing || !sec.missing.length) return;
     var u = null; units.forEach(function(x){ if (x.sec.id === sec.id) u = x; });
     if (!u || !u.el || u.el.querySelector('[data-se-ph],.se-addcard')) return;
     var box = document.createElement('div'); box.className = 'se-photos';
@@ -753,6 +755,7 @@ try {
 
   // button destinations (hero, banner): hover-free menu on click, same choices and warnings as the section editor
   units.forEach(function(u){
+    if (u.sec.framed) return;
     if (!u.el) return; var seen = {};
     u.el.querySelectorAll('[data-se-cta]').forEach(function(a){
       a.dataset.seSid = u.sec.id; var cur = a.getAttribute('data-se-cur');
@@ -785,6 +788,18 @@ try {
       box.appendChild(b); })(n); }
     draw();
   });
+
+  // each section is edited by its own section editor, shown right where the section sits on the site
+  var frameLoads = 0;
+  document.querySelectorAll('iframe.se-fr').forEach(function(fr){
+    function fit(){ try { var d = fr.contentDocument; if (!d || !d.body) return; var h = d.body.offsetHeight; if (h && Math.abs(h - fr.offsetHeight) > 2) fr.style.height = h + 'px'; } catch (e) {} }
+    fr.addEventListener('load', function(){
+      fit(); try { var w = fr.contentWindow; if (w.ResizeObserver) new w.ResizeObserver(fit).observe(w.document.body); w.addEventListener('load', fit); } catch (e) {}
+      setTimeout(fit, 300); setTimeout(fit, 1000); if (++frameLoads > DATA.filter(function(x){ return x.framed; }).length) refreshHist();
+    });
+    fr.src = fr.dataset.src + '&vh=' + window.innerHeight;
+  });
+  window.addEventListener('message', function(e){ if (e.origin !== location.origin) return; var m = e.data && e.data.seToast; if (m) toast(m.msg || (m.ok ? 'Saved' : 'Could not save'), !m.ok); });
 
   // colour pencil: one site-wide control, told which section a text belongs to
   window.somahubColorSid = function(el){ var h = el.closest('[data-se-sid]'); return h ? h.dataset.seSid : 0; };

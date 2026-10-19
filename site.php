@@ -778,11 +778,15 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
   </div>
 </header>
 
+<?php if ($editMode) { require_once __DIR__ . '/dashboard/_live_editor_map.php'; $__liveFiles = get_live_editor_files(); } ?>
 <?php foreach ($sections as $s):
     $c = json_decode($s['content_json'], true) ?: [];
     $key = $s['key_name'];
 ?>
 <?php if ($editMode): ?><i class="se-marker" data-sid="<?= (int)$s['id'] ?>"<?= !empty($s['__locked']) ? ' data-locked="1"' : '' ?> hidden></i><?php endif; ?>
+<?php if ($editMode && isset($__liveFiles[$key])): ?>
+<section id="<?= esc($key) ?>" class="se-frame"><iframe class="se-fr" title="<?= esc($s['label']) ?>" scrolling="no" data-src="/dashboard/<?= esc($__liveFiles[$key]) ?>?id=<?= (int)$s['id'] ?>&amp;embed=1" style="width:100%;border:0;display:block;height:320px;background:transparent;"></iframe></section>
+<?php continue; endif; ?>
 <?php if ($__tc = get_section_text_color_css($key, $c)): ?><style><?= $__tc ?></style><?php endif; ?>
 
 <?php if ($key === 'hero'):
