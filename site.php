@@ -120,7 +120,12 @@ $sections = $sectionsStmt->fetchAll();
 
 // Payment lapsed: quietly drop premium sections, no public "overdue" notice.
 if (is_premium_locked($school)) {
-    $sections = array_filter($sections, fn($s) => !$s['is_premium']);
+    if ($editMode) {
+        // The owner still sees paid sections while editing, flagged as not live yet.
+        foreach ($sections as &$__ls) { $__ls['__locked'] = (bool)$__ls['is_premium']; } unset($__ls);
+    } else {
+        $sections = array_filter($sections, fn($s) => !$s['is_premium']);
+    }
 }
 
 // Hero CTA destinations - a curated list, not free text, so a CTA never
@@ -764,7 +769,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
     $c = json_decode($s['content_json'], true) ?: [];
     $key = $s['key_name'];
 ?>
-<?php if ($editMode): ?><i class="se-marker" data-sid="<?= (int)$s['id'] ?>" hidden></i><?php endif; ?>
+<?php if ($editMode): ?><i class="se-marker" data-sid="<?= (int)$s['id'] ?>"<?= !empty($s['__locked']) ? ' data-locked="1"' : '' ?> hidden></i><?php endif; ?>
 <?php if ($__tc = get_section_text_color_css($key, $c)): ?><style><?= $__tc ?></style><?php endif; ?>
 
 <?php if ($key === 'hero'):

@@ -399,8 +399,8 @@ CSS;
  * Live-site CSS for per-text colours saved by the live editors
  * (<field>_color keys in content_json). Returns '' when none are set.
  */
-function get_section_text_color_css(string $sectionKey, array $content): string {
-    $map = [
+function section_color_map(): array {
+    return [
         'about' => [
             'body' => "#about .about-text-only, #about .about-text-only p, #about .about-grid p, #about .about-list-intro, #about .about-list-intro p, #about .about-quote-text p",
             'author_name' => "#about .about-quote-author",
@@ -429,6 +429,27 @@ function get_section_text_color_css(string $sectionKey, array $content): string 
             'depts' => "#staff .staff-dept-heading",
         ],
     ];
+}
+
+/** The colour key (e.g. 'names_color') that styles a given text field, or '' when it has none. */
+function section_color_key(string $sectionKey, string $field): string {
+    if ($field === 'title') return 'title_color';
+    $map = section_color_map()[$sectionKey] ?? [];
+    if (isset($map[$field])) return $field . '_color';
+    $stem = preg_replace('/^stat_\d+_/', '', $field);
+    $stem = preg_replace('/_\d+$/', '', $stem);
+    $alias = ['name' => 'names', 'role' => 'roles', 'bio' => 'bios', 'dept' => 'depts', 'question' => 'questions', 'answer' => 'answers',
+              'quote' => 'quotes', 'author' => 'authors', 'title' => 'titles', 'body' => 'bodies', 'number' => 'numbers', 'label' => 'labels',
+              'value' => 'numbers', 'detail' => 'details', 'item' => 'items', 'amount' => 'amounts'];
+    foreach ([$stem, $alias[$stem] ?? null, $stem . 's'] as $c) {
+        if ($c && isset($map[$c])) return $c . '_color';
+    }
+    return '';
+}
+
+function get_section_text_color_css(string $sectionKey, array $content): string {
+    $map = section_color_map()[$sectionKey] ?? [];
+    $map = [$sectionKey => $map];
     $css = '';
     foreach ($content as $k => $v) {
         if (!is_string($v) || !preg_match('/^#[0-9a-fA-F]{6}$/', $v) || !preg_match('/^([a-z0-9_]+)_color$/', $k, $m)) continue;

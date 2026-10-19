@@ -87,8 +87,8 @@ function render_live_edit_color_tools(int $sectionId, array $theme): void {
     var dot = document.getElementById('cpDot'); if (dot) dot.style.background = getComputedStyle(target).color;
     if (value) { pushRecent(value); hex.value = value; picker.value = value; }
     var fd = new FormData();
-    fd.append('section_id', <?= $sectionId ?>); fd.append('field', target.getAttribute('data-color-field')); fd.append('value', value);
-    fetch('section-style-save-ajax.php', { method:'POST', body:fd, credentials:'same-origin' })
+    fd.append('section_id', window.somahubColorSid ? window.somahubColorSid(target) : <?= $sectionId ?>); fd.append('field', target.getAttribute('data-color-field')); fd.append('value', value);
+    fetch(window.somahubColorUrl || 'section-style-save-ajax.php', { method:'POST', body:fd, credentials:'same-origin' })
       .then(function(r){ return r.json(); })
       .then(function(d){ window.somahubShowSaved && window.somahubShowSaved(!!d.ok, d.ok ? 'Colour saved' : 'Could not save colour'); renderRecent(); })
       .catch(function(){ window.somahubShowSaved && window.somahubShowSaved(false); });

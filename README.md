@@ -1,5 +1,6 @@
 # Somahub — School Website Platform (PHP/MySQL)
 
+- On-page editor: text colour pencil on every text, dashed "add card" outlines (first card, then beside the last), per-card photo slots, hover Replace/Remove on photos, paid sections shown (flagged) while editing.
 - On-page editor: adding a section now stays on your site and scrolls to it; sections with empty text fields (enrollment form, results lookup) show "+ Add" chips; fees have a "Manage fees" window in the section menu (fee edits are not part of undo).
 
 ## Folder structure

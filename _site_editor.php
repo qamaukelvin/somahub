@@ -23,7 +23,7 @@ foreach ($sections as $s) {
         $v = $content[$f] ?? '';
         if (!is_string($v) || $v === '') continue;
         if ($type === 'image') $imgs[] = [$f, $v];
-        elseif (!preg_match($__skipField, $f)) $text[] = [$f, $v];
+        elseif (!preg_match($__skipField, $f)) { $ck = section_color_key($key, $f); if ($ck === '' && isset($schema[$f . '_color'])) $ck = $f . '_color'; $text[] = [$f, $v, $ck]; }
     }
     $cfg = $__registry[$key] ?? [];
     $photoFields = $cfg['photo_fields'] ?? [];
@@ -61,7 +61,7 @@ foreach ($sections as $s) {
     $needNow = (int)(($cfg['options'][$curVariant]['photos_needed'] ?? 0));
     $missing = $needNow > $have ? array_slice($emptyFields, 0, $needNow - $have) : [];
     $__data[] = [
-        'id' => (int)$s['id'], 'key' => $key, 'label' => $s['label'], 'visible' => (int)$s['is_visible'],
+        'id' => (int)$s['id'], 'key' => $key, 'label' => $s['label'], 'visible' => (int)$s['is_visible'], 'locked' => !empty($s['__locked']),
         'variant' => $curVariant, 'options' => $opts, 'item' => $item, 'fill' => $fill, 'missing' => $missing, 'needLabel' => $cfg['options'][$curVariant]['label'] ?? '',
         'text' => $text, 'imgs' => $imgs, 'editFile' => $__editorFiles[$key] ?? 'section-edit.php',
     ];
@@ -133,6 +133,14 @@ try {
   .se-flash{animation:seFlash 1.6s ease-out;} @keyframes seFlash{0%{box-shadow:inset 0 0 0 6px #F2A65A;}100%{box-shadow:inset 0 0 0 6px rgba(242,166,90,0);}}
   .se-fees{width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:12px;} .se-fees th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:#777;padding:4px 6px;} .se-fees td{padding:4px 3px;} .se-fees input{width:100%;padding:8px;border:1px solid #ccc;border-radius:8px;font:inherit;box-sizing:border-box;} .se-fees .rm{background:none;border:none;color:#B3261E;cursor:pointer;font-size:1.1rem;padding:6px;}
   #seModal .card.wide{max-width:640px;}
+  .se-lock{background:#F2A65A;color:#3b2500;border-radius:999px;padding:6px 12px;font:800 .72rem Arial,sans-serif;white-space:nowrap;align-self:center;}
+  .se-addcard{display:flex;} .se-addcard button{flex:1;min-height:inherit;border:2px dashed #0F5257;border-radius:14px;background:rgba(255,255,255,.65);color:#0F5257;font:800 .9rem Arial,sans-serif;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;cursor:pointer;padding:18px;text-align:center;}
+  .se-addcard button:hover{background:#E6F0EE;} .se-addcard small{font-weight:600;color:#5a5a52;} .se-addcard .se-i{font-size:30px;}
+  .se-addcard.first{margin:26px auto;max-width:340px;min-height:170px;} .se-addcard.card{min-height:120px;}
+  .se-photoslot{display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;width:100%;min-height:120px;margin:0 0 10px;box-sizing:border-box;border:2px dashed #0F5257;border-radius:12px;background:rgba(244,241,230,.9);color:#0F5257;font:800 .8rem Arial,sans-serif;cursor:pointer;}
+  .se-photoslot:hover{background:#E6F0EE;} .se-photoslot small{font-weight:500;color:#5a5a52;}
+  #seImgBar{position:fixed;z-index:99980;display:none;gap:6px;} #seImgBar.show{display:flex;}
+  #seImgBar button{background:#1C1C16;color:#fff;border:2px solid #fff;border-radius:999px;padding:6px 12px;font:700 .74rem Arial,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 8px rgba(0,0,0,.4);} #seImgBar button:hover{background:#0F5257;} #seImgBar button.del:hover{background:#B3261E;} #seImgBar .se-i{font-size:16px;}
   .se-grip{cursor:grab;} .se-grip:active{cursor:grabbing;}
   .se-gap{position:relative;height:30px;z-index:55;transition:height .12s;background:#f6f3ea;} .se-gap::before{content:'';position:absolute;left:0;right:0;top:50%;height:0;border-top:2px dashed rgba(15,82,87,.18);}
   .se-gap .se-gapbtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:24px;height:24px;padding:0;background:#fff;color:#0F5257;border:2px solid #0F5257;border-radius:50%;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.18);transition:transform .12s,background .12s;}
@@ -306,6 +314,7 @@ try {
       lb.onclick = function(e){ e.stopPropagation(); var was = lp.classList.contains('open'); closePops(); if (!was) lp.classList.add('open'); };
       l.appendChild(lb); l.appendChild(lp);
     }
+    if (sec.locked) { var lk = document.createElement('span'); lk.className = 'se-lock'; lk.textContent = 'Paid plan: visitors cannot see this yet'; l.appendChild(lk); }
     var grip = document.createElement('button'); grip.type = 'button'; grip.className = 'se-btn round se-grip'; grip.title = 'Drag to move this section'; grip.draggable = true;
     grip.innerHTML = '<span class="se-i">drag_indicator</span>'; l.appendChild(grip);
     grip.addEventListener('dragstart', function(e){ e.dataTransfer.setData('text/plain', 'sec:' + sec.id); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setDragImage(grip, 18, 18); } catch(x){} dragSrc = host; host.classList.add('se-dragsrc'); body.classList.add('se-dragging'); closePops(); });
@@ -353,7 +362,7 @@ try {
         hit = el; break;
       }
       if (!hit) return;
-      claimed.add(hit); hit.setAttribute('data-se-edit', f); hit.contentEditable = 'plaintext-only'; if (hit.contentEditable !== 'plaintext-only') hit.contentEditable = 'true'; hit.spellcheck = true;
+      claimed.add(hit); hit.dataset.seSid = sec.id; if (pair[2]) hit.setAttribute('data-color-field', pair[2]); hit.setAttribute('data-se-edit', f); hit.contentEditable = 'plaintext-only'; if (hit.contentEditable !== 'plaintext-only') hit.contentEditable = 'true'; hit.spellcheck = true;
       hit.addEventListener('input', function(){ queue(sec.id, f, hit); });
       hit.addEventListener('blur', function(){ var k = sec.id + ':' + f; if (pending[k]) { clearTimeout(timers[k]); pending[k](); } });
       hit.addEventListener('keydown', function(e){
@@ -435,8 +444,9 @@ try {
     var wrapEl = root.querySelector(':scope > .wrap, :scope > div') || root;
     keys.forEach(function(k, idx){
       var els = slots[k], c = lca(els) || els[0];
-      while (c.parentElement && c.parentElement !== root && c.parentElement !== wrapEl && !keys.some(function(o){ return o !== k && slots[o].some(function(e){ return c.parentElement.contains(e); }); })) c = c.parentElement;
+      while (c.parentElement && c.parentElement !== root && c.parentElement !== wrapEl && c.parentElement.offsetWidth <= c.offsetWidth * 1.35 + 24 && !keys.some(function(o){ return o !== k && slots[o].some(function(e){ return c.parentElement.contains(e); }); })) c = c.parentElement;
       if (c === root || c === wrapEl) return;
+      sec._last = c;
       c.classList.add('se-item');
       var bar = document.createElement('div'); bar.className = 'se-itemtools';
       function btn(icon, title, cls, fn, dis){ var b = document.createElement('button'); b.type = 'button'; b.title = title; if (cls) b.className = cls; b.disabled = !!dis; b.innerHTML = '<span class="se-i">' + icon + '</span>'; b.onclick = function(e){ e.preventDefault(); e.stopPropagation(); fn(); }; bar.appendChild(b); }
@@ -444,7 +454,12 @@ try {
         btn('arrow_back', 'Move earlier', '', function(){ moveItem(sec, k, 'up'); }, idx === 0);
         btn('arrow_forward', 'Move later', '', function(){ moveItem(sec, k, 'down'); }, idx === keys.length - 1);
       }
-      if (it.photoField && !els.some(function(e){ return e.hasAttribute('data-se-img'); })) btn('add_a_photo', 'Add a photo', '', function(){ pickPhoto(sec.id, it.photoField + '_' + k); });
+      if (it.photoField && !els.some(function(e){ return e.hasAttribute('data-se-img'); }) && !it.gallery) {
+        var ps = document.createElement('button'); ps.type = 'button'; ps.className = 'se-photoslot';
+        ps.innerHTML = '<span class="se-i" style="font-size:28px">add_a_photo</span>Photo<small>Click to upload</small>';
+        ps.onclick = function(e){ e.preventDefault(); e.stopPropagation(); pickPhoto(sec.id, it.photoField + '_' + k); };
+        c.insertBefore(ps, c.firstChild);
+      }
       btn('delete', 'Remove this ' + it.label.toLowerCase(), 'del', function(){ itemOp('item_remove', sec, {slot: k}, 'Removed. Undo brings it back.'); });
       c.appendChild(bar);
     });
@@ -457,16 +472,17 @@ try {
     flush().then(function(){ var p = {section_id: sec.id}; for (var k in (extra||{})) p[k] = extra[k]; return ops(action, p); })
       .then(function(d){ if (d.ok) { if (msg) toast(msg); setTimeout(reload, msg ? 500 : 0); } else toast(d.error || 'Could not do that', true); });
   }
-  function addButton(sec){
+  function addButton(sec, mode){
     var it = sec.item; if (!it || !it.canAdd) return null;
     var left = it.max - it.count; if (left <= 0) return null;
-    var w = document.createElement('div'); w.className = 'se-additem';
+    var w = document.createElement('div'); w.className = 'se-addcard ' + (mode || 'first');
     var b = document.createElement('button'); b.type = 'button';
+    var cnt = mode === 'inline' ? '' : ' <small>' + it.count + ' of ' + it.max + '</small>';
     if (it.gallery) {
-      b.innerHTML = '<span class="se-i">add_photo_alternate</span>Add photos <small>(' + it.count + ' of ' + it.max + ')</small>';
+      b.innerHTML = '<span class="se-i">add_photo_alternate</span>' + (it.count ? 'Add photos' : 'Add your first photos') + cnt;
       b.onclick = function(e){ e.stopPropagation(); galleryPick(sec); };
     } else {
-      b.innerHTML = '<span class="se-i">add_circle</span>Add ' + esc(it.label.toLowerCase()) + ' <small>(' + it.count + ' of ' + it.max + ')</small>';
+      b.innerHTML = '<span class="se-i">add_circle</span>' + (it.count ? 'Add ' : 'Add your first ') + esc(it.label.toLowerCase()) + cnt;
       b.onclick = function(e){ e.stopPropagation(); itemOp('item_add', sec, {}, ''); };
     }
     w.appendChild(b); return w;
@@ -486,9 +502,15 @@ try {
   });
   units.forEach(function(u){
     if (!u.el || !u.sec.item) return;
-    if (u.el.classList.contains('se-placeholder')) { var ab = addButton(u.sec); if (ab) { ab.querySelector('button').innerHTML = ab.querySelector('button').innerHTML.replace(/ <small>.*<\/small>/, ''); u.el.appendChild(ab); } return; }
+    if (u.el.classList.contains('se-placeholder')) { var ab = addButton(u.sec, 'inline'); if (ab) { ab.style.marginLeft = 'auto'; u.el.appendChild(ab); } return; }
     bindItems(u.sec, u.el);
-    var add = addButton(u.sec); if (add) { var host = u.el.querySelector(':scope > .wrap') || u.el; host.appendChild(add); }
+    var last = u.sec._last;
+    if (last && last.parentElement && u.sec.item.count > 0) {
+      var add = addButton(u.sec, 'card');
+      if (add) { var h = last.offsetHeight; if (h) add.style.minHeight = Math.max(110, Math.min(h, 460)) + 'px'; last.parentElement.insertBefore(add, last.nextSibling); }
+    } else {
+      var first = addButton(u.sec, 'first'); if (first) (u.el.querySelector(':scope > .wrap') || u.el).appendChild(first);
+    }
   });
 
   // photo slots: shown wherever the chosen layout needs a photo that has not been added yet
@@ -522,6 +544,31 @@ try {
     });
   } catch(e){}
 
+  // photo controls: replace and remove appear over any photo you hover
+  var imgBar = document.createElement('div'); imgBar.id = 'seImgBar'; document.body.appendChild(imgBar);
+  var imgHideT = null, imgOver = null;
+  function imgBarBtn(icon, label, cls, fn){ var b = document.createElement('button'); b.type = 'button'; if (cls) b.className = cls; b.innerHTML = '<span class="se-i">' + icon + '</span>' + label; b.onclick = function(e){ e.preventDefault(); e.stopPropagation(); fn(); }; imgBar.appendChild(b); }
+  imgBarBtn('photo_camera', 'Replace', '', function(){ if (imgOver) pickPhoto(imgOver.dataset.seSid, imgOver.getAttribute('data-se-img')); });
+  imgBarBtn('delete', 'Remove', 'del', function(){
+    if (!imgOver) return; var fd = new FormData(); fd.append('section_id', imgOver.dataset.seSid); fd.append('remove_' + imgOver.getAttribute('data-se-img'), '1');
+    imgBar.classList.remove('show'); toast('Removing...');
+    post(SAVE, fd).then(function(d){ if (d.ok) { toast('Photo removed. Undo brings it back.'); setTimeout(reload, 700); } else toast('Could not remove the photo', true); }).catch(function(){ toast('Could not remove the photo', true); });
+  });
+  function showImgBar(im){
+    clearTimeout(imgHideT); imgOver = im; var r = im.getBoundingClientRect(); if (r.width < 60 || r.height < 50) return;
+    imgBar.classList.add('show');
+    var top = Math.min(r.bottom, window.innerHeight) - 46, left = Math.max(r.left, 0) + (Math.min(r.right, window.innerWidth) - Math.max(r.left, 0)) / 2 - imgBar.offsetWidth / 2;
+    imgBar.style.top = Math.max(top, r.top + 6) + 'px'; imgBar.style.left = Math.max(6, left) + 'px';
+  }
+  function hideImgBar(){ clearTimeout(imgHideT); imgHideT = setTimeout(function(){ imgBar.classList.remove('show'); }, 350); }
+  document.addEventListener('mouseover', function(e){ var im = e.target.closest && e.target.closest('[data-se-img]'); if (im) showImgBar(im); else if (e.target.closest && e.target.closest('#seImgBar')) clearTimeout(imgHideT); else if (imgBar.classList.contains('show')) hideImgBar(); });
+  window.addEventListener('scroll', function(){ imgBar.classList.remove('show'); }, {passive:true});
+
+  // colour pencil: one site-wide control, told which section a text belongs to
+  window.somahubColorSid = function(el){ var h = el.closest('[data-se-sid]'); return h ? h.dataset.seSid : 0; };
+  window.somahubColorUrl = '/dashboard/section-style-save-ajax.php';
+  window.somahubShowSaved = function(ok){ toast(ok ? 'Colour saved' : 'Could not save colour', !ok); };
+
   // images: click to replace
   var imgTarget = null;
   function pickPhoto(sid, field){ imgTarget = {sid: sid, field: field}; galTarget = null; $('seFile').multiple = false; $('seFile').click(); }
@@ -554,3 +601,4 @@ try {
   window.addEventListener('scroll', function(){ closePops(); }, {passive:true});
 })();
 </script>
+<?php require_once __DIR__ . '/dashboard/_live_edit_color.php'; render_live_edit_color_tools(0, $theme); ?>
