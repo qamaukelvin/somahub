@@ -174,6 +174,14 @@ function img($path) {
     }
     return $path ? htmlspecialchars($path) : '';
 }
+function se_scaffold($key, $label, $cls) {
+    echo '<section id="' . $key . '"><div class="wrap"><div class="section-head"><h2>' . esc($label) . '</h2></div><div class="' . $cls . '" data-se-empty="1"></div></div></section>';
+}
+function fee_cell($editMode, $f, $field, $text) {
+    if (!$editMode) return esc($text);
+    $raw = $field === 'amount' ? rtrim(rtrim(number_format((float)$f['amount'], 2, '.', ''), '0'), '.') : $text;
+    return '<span data-se-fee="' . (int)$f['id'] . '" data-ff="' . $field . '" data-g="' . esc($f['grade']) . '" data-t="' . esc($f['term_label']) . '" data-a="' . esc(rtrim(rtrim(number_format((float)$f['amount'], 2, '.', ''), '0'), '.')) . '">' . esc($text) . '</span>';
+}
 function staff_photo_html($p) {
     if (!empty($p['photo'])) return '<img src="' . img($p['photo']) . '" alt="' . esc($p['name']) . '">';
     return '<div class="staff-avatar" role="img" aria-label="' . esc($p['name']) . '"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2.25c-3.6 0-9 1.8-9 5.4V21h18v-1.35c0-3.6-5.4-5.4-9-5.4Z"/></svg></div>';
@@ -1160,7 +1168,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
         if (empty($c["photo_$i"])) continue;
         $galleryItems[] = ['photo' => $c["photo_$i"], 'category' => $c["category_$i"] ?? ''];
     }
-    if (empty($galleryItems)) continue; // nothing uploaded yet - skip the section rather than show an empty grid
+    if (empty($galleryItems)) { if ($editMode) se_scaffold('gallery', $s['label'], 'gallery-grid'); continue; } // nothing uploaded yet - skip the section rather than show an empty grid
 
     if ($galleryVariant === 'before_after' && count($galleryItems) < 2) $galleryVariant = 'grid';
     if ($galleryVariant === 'tabs' && !array_filter($galleryItems, fn($g) => !empty($g['category']))) $galleryVariant = 'grid'; // no categories set - tabs would just be one unlabeled tab
@@ -1365,7 +1373,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
         if (empty($c["title_$i"])) continue;
         $blogPosts[] = ['title' => $c["title_$i"], 'body' => $c["body_$i"] ?? '', 'photo' => $c["photo_$i"] ?? ''];
     }
-    if (empty($blogPosts)) continue; // nothing entered yet - skip rather than show an empty section
+    if (empty($blogPosts)) { if ($editMode) se_scaffold('blog', $s['label'], 'blog-list'); continue; } // nothing entered yet - skip rather than show an empty section
 ?>
   <section id="blog">
     <div class="wrap">
@@ -1390,7 +1398,9 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
       <div class="section-head"><h2><?= esc($s['label']) ?></h2></div>
       <?php if (!empty($c['intro_text'])): ?><div class="text-block"><?= nl2p($c['intro_text']) ?></div><?php endif; ?>
 
-      <?php if (empty($fees)): ?>
+      <?php if (empty($fees) && $editMode && $feesVariant !== 'summary_only'): ?>
+        <table class="fee-table" data-se-feetable="table"><tr><th>Grade</th><th>Term</th><th>Amount</th></tr></table>
+      <?php elseif (empty($fees)): ?>
         <p style="color:#8a8a80;">Fee details will be published here soon.</p>
 
       <?php elseif ($feesVariant === 'summary_only'): ?>
@@ -1403,11 +1413,11 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
         </div>
 
       <?php elseif ($feesVariant === 'compact_list'): ?>
-        <div class="fee-compact-list">
+        <div class="fee-compact-list" data-se-feetable="compact_list">
           <?php foreach ($fees as $f): ?>
             <div class="fee-compact-row">
-              <span><?= esc($f['grade']) ?> — <?= esc($f['term_label']) ?></span>
-              <strong>KSh <?= number_format($f['amount'], 2) ?></strong>
+              <span><?= fee_cell($editMode, $f, 'grade', $f['grade']) ?> — <?= fee_cell($editMode, $f, 'term', $f['term_label']) ?></span>
+              <strong>KSh <?= fee_cell($editMode, $f, 'amount', number_format($f['amount'], 2)) ?></strong>
             </div>
           <?php endforeach; ?>
         </div>
@@ -1416,12 +1426,12 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
           $byGrade = [];
           foreach ($fees as $f) $byGrade[$f['grade']][] = $f;
       ?>
-        <div class="fee-group-grid">
+        <div class="fee-group-grid" data-se-feetable="by_grade">
           <?php foreach ($byGrade as $grade => $rows): ?>
             <div class="fee-group-card">
-              <h3><?= esc($grade) ?></h3>
+              <h3<?= $editMode ? ' data-se-fgroup="grade" data-orig="' . esc($grade) . '"' : '' ?>><?= esc($grade) ?></h3>
               <?php foreach ($rows as $f): ?>
-                <div class="fee-group-row"><span><?= esc($f['term_label']) ?></span><strong>KSh <?= number_format($f['amount'], 2) ?></strong></div>
+                <div class="fee-group-row"><span><?= fee_cell($editMode, $f, 'term', $f['term_label']) ?></span><strong>KSh <?= fee_cell($editMode, $f, 'amount', number_format($f['amount'], 2)) ?></strong></div>
               <?php endforeach; ?>
             </div>
           <?php endforeach; ?>
@@ -1431,22 +1441,22 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
           $byTerm = [];
           foreach ($fees as $f) $byTerm[$f['term_label']][] = $f;
       ?>
-        <div class="fee-group-grid">
+        <div class="fee-group-grid" data-se-feetable="by_term">
           <?php foreach ($byTerm as $term => $rows): ?>
             <div class="fee-group-card">
-              <h3><?= esc($term) ?></h3>
+              <h3<?= $editMode ? ' data-se-fgroup="term" data-orig="' . esc($term) . '"' : '' ?>><?= esc($term) ?></h3>
               <?php foreach ($rows as $f): ?>
-                <div class="fee-group-row"><span><?= esc($f['grade']) ?></span><strong>KSh <?= number_format($f['amount'], 2) ?></strong></div>
+                <div class="fee-group-row"><span><?= fee_cell($editMode, $f, 'grade', $f['grade']) ?></span><strong>KSh <?= fee_cell($editMode, $f, 'amount', number_format($f['amount'], 2)) ?></strong></div>
               <?php endforeach; ?>
             </div>
           <?php endforeach; ?>
         </div>
 
       <?php else: /* table - default */ ?>
-        <table class="fee-table">
+        <table class="fee-table" data-se-feetable="table">
           <tr><th>Grade</th><th>Term</th><th>Amount</th></tr>
           <?php foreach ($fees as $f): ?>
-            <tr><td><?= esc($f['grade']) ?></td><td><?= esc($f['term_label']) ?></td><td>KSh <?= number_format($f['amount'], 2) ?></td></tr>
+            <tr><td><?= fee_cell($editMode, $f, 'grade', $f['grade']) ?></td><td><?= fee_cell($editMode, $f, 'term', $f['term_label']) ?></td><td>KSh <?= fee_cell($editMode, $f, 'amount', number_format($f['amount'], 2)) ?></td></tr>
           <?php endforeach; ?>
         </table>
       <?php endif; ?>
@@ -1612,7 +1622,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
             'department' => $c["department_$i"] ?? '',
         ];
     }
-    if (empty($people)) continue; // nothing entered yet - skip rather than show an empty section
+    if (empty($people)) { if ($editMode) se_scaffold('staff', $s['label'], 'staff-grid'); continue; } // nothing entered yet - skip rather than show an empty section
 
     if ($staffVariant === 'grouped' && !array_filter($people, fn($p) => !empty($p['department']))) $staffVariant = 'grid'; // no departments set - grouping would just be one unlabeled group
 
@@ -1742,9 +1752,9 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
             'i' => $i,
         ];
     }
-    if (empty($quotes)) continue; // nothing entered yet - skip rather than show an empty section
+    if (empty($quotes)) { if ($editMode) se_scaffold('testimonials', $s['label'], 'testimonial-grid'); continue; } // nothing entered yet - skip rather than show an empty section
 
-    if ($testimonialVariant === 'photo_forward' && !array_filter($quotes, fn($q) => !empty($q['photo']))) $testimonialVariant = 'cards'; // no photos - photo-forward would just show blanks
+    if (!$editMode && $testimonialVariant === 'photo_forward' && !array_filter($quotes, fn($q) => !empty($q['photo']))) $testimonialVariant = 'cards'; // no photos - photo-forward would just show blanks
 
     $cappedTestimonialVariants = ['cards', 'wall', 'rating', 'photo_forward'];
     $totalQuotes = count($quotes);
@@ -1909,7 +1919,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
         if (empty($c["question_$i"])) continue;
         $faqItems[] = ['question' => $c["question_$i"], 'answer' => $c["answer_$i"] ?? ''];
     }
-    if (empty($faqItems)) continue; // nothing entered yet - skip rather than show an empty section
+    if (empty($faqItems)) { if ($editMode) se_scaffold('faq', $s['label'], 'faq-acc'); continue; } // nothing entered yet - skip rather than show an empty section
 ?>
   <section id="faq">
     <div class="wrap">
@@ -1943,7 +1953,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
         if (empty($c["stat_{$i}_number"])) continue;
         $statItems[] = ['number' => $c["stat_{$i}_number"], 'label' => $c["stat_{$i}_label"] ?? '', 'icon' => $c["stat_{$i}_icon"] ?? ''];
     }
-    if (empty($statItems)) continue; // nothing filled in yet - skip rather than show an empty strip
+    if (empty($statItems)) { if ($editMode) se_scaffold('stats', $s['label'], 'stats-strip'); continue; } // nothing filled in yet - skip rather than show an empty strip
 ?>
   <section id="stats">
     <div class="wrap">

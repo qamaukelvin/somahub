@@ -168,6 +168,10 @@ try {
   .se-size{display:flex;gap:6px;flex-wrap:wrap;padding:2px 10px 8px;} .se-size button{width:auto !important;border:1.5px solid #ccc !important;border-radius:16px !important;padding:5px 11px !important;font-size:.74rem !important;} .se-size button.on{background:#0F5257 !important;color:#fff !important;border-color:#0F5257 !important;}
   [data-se-stars] button{background:none;border:none;padding:0 1px;font:inherit;font-size:1.15rem;color:var(--accent,#F2A65A);cursor:pointer;line-height:1;} [data-se-stars] button:hover{transform:scale(1.2);}
   .se-listx{display:inline-block;margin-left:8px;border:none;background:none;color:#b33;cursor:pointer;font-size:1.05rem;line-height:1;vertical-align:middle;} .se-listadd{border:1.5px dashed #999;background:none;border-radius:6px;padding:8px 14px;font:600 .8rem Arial,sans-serif;color:#555;cursor:pointer;margin-top:8px;}
+  .se-newtext{min-height:1.5em;outline:1.5px dashed #bbb;outline-offset:2px;border-radius:4px;cursor:text;} .se-newtext:empty::before,[data-n]:empty::before{content:attr(data-ph);color:#999;font-style:italic;font-weight:400;}
+  [data-se-fee],[data-se-fgroup],[data-n]{outline:1.5px dashed transparent;outline-offset:2px;min-width:2ch;display:inline-block;cursor:text;} [data-se-fee]:hover,[data-se-fgroup]:hover,[data-n]:hover{outline-color:#F2A65A;} [data-se-fee]:focus,[data-se-fgroup]:focus,[data-n]:focus{outline:2px solid #F2A65A;}
+  tr.se-feenew td{border-top:2px dashed #0F5257 !important;} .fee-group-card.se-feenew,.fee-compact-row.se-feenew{outline:2px dashed #0F5257;outline-offset:-2px;border-radius:10px;}
+  .se-rowx{position:relative;} .se-rowx > .se-listx{opacity:0;margin-left:10px;} .se-rowx:hover > .se-listx{opacity:1;}
   .se-grip{cursor:grab;} .se-grip:active{cursor:grabbing;}
   .se-gap{position:relative;height:30px;z-index:55;transition:height .12s;background:#f6f3ea;} .se-gap::before{content:'';position:absolute;left:0;right:0;top:50%;height:0;border-top:2px dashed rgba(15,82,87,.18);}
   .se-gap .se-gapbtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:24px;height:24px;padding:0;background:#fff;color:#0F5257;border:2px solid #0F5257;border-radius:50%;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.18);transition:transform .12s,background .12s;}
@@ -364,7 +368,6 @@ try {
     rp.appendChild(menuBtn('Move down', 'arrow_downward', function(){ doOp('move', sec, {dir:'down'}); }));
     rp.appendChild(menuBtn('Duplicate', 'content_copy', function(){ doOp('duplicate', sec); }));
     rp.appendChild(menuBtn(sec.visible ? 'Hide from site' : 'Show on site', sec.visible ? 'visibility_off' : 'visibility', function(){ doOp('toggle', sec); }));
-    if (sec.key === 'fees') rp.appendChild(menuBtn('Manage fees', 'payments', function(){ openFees(); }));
     rp.appendChild(menuBtn('Edit all details', 'tune', function(){ flush().then(function(){ location.href = '/dashboard/' + sec.editFile + '?id=' + sec.id; }); }));
     rp.appendChild(document.createElement('hr'));
     rp.appendChild(menuBtn('Remove section', 'delete', function(){ modal('Remove "' + sec.label + '"?', 'It is taken off your site. You can bring it back with Undo.', [{t:'Keep it'}, {t:'Remove', c:'bad', f:function(){ doOp('remove', sec); }}]); }, 'danger'));
@@ -414,6 +417,51 @@ try {
     add.onclick = function(e){ e.stopPropagation(); var last = parent.lastElementChild, li = last.cloneNode(false); li.className = last.className; parent.appendChild(li); wire(li); li.focus(); };
     parent.parentElement.insertBefore(add, parent.nextSibling);
   }
+  function bindFees(sec, root){
+    if (sec.key !== 'fees') return;
+    var FEE = '/dashboard/fee-save-ajax.php';
+    function done(d, fail){ if (d.ok) setTimeout(reload, 250); else { toast(d.error || 'Could not save', true); if (fail) fail(); } }
+    function edit(el){ el.contentEditable = 'plaintext-only'; if (el.contentEditable !== 'plaintext-only') el.contentEditable = 'true'; el.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); el.blur(); } }); el.addEventListener('paste', function(e){ e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text').replace(/\s+/g, ' ')); }); }
+    root.querySelectorAll('[data-se-fee]').forEach(function(el){
+      edit(el); var disp = el.textContent, ff = el.dataset.ff;
+      if (ff === 'amount') el.addEventListener('focus', function(){ el.textContent = el.dataset.a; });
+      el.addEventListener('blur', function(){
+        var v = {grade: el.dataset.g, term: el.dataset.t, amount: el.dataset.a}, now = el.textContent.trim();
+        var same = ff === 'amount' ? parseFloat(now.replace(/[^0-9.]/g, '')) === parseFloat(el.dataset.a) : now === v[ff];
+        if (same || !now) { el.textContent = disp; return; }
+        v[ff] = now; var fd = new FormData(); fd.append('action', 'save'); fd.append('id', el.dataset.seFee); fd.append('grade', v.grade); fd.append('term_label', v.term); fd.append('amount', v.amount);
+        post(FEE, fd).then(function(d){ done(d, function(){ el.textContent = disp; }); }).catch(function(){ toast('Could not save', true); });
+      });
+      var row = el.closest('tr, .fee-compact-row, .fee-group-row');
+      if (row && !row.querySelector(':scope > .se-listx') && !row.querySelector(':scope td > .se-listx') && el.dataset.ff === 'amount') {
+        var x = document.createElement('button'); x.type = 'button'; x.className = 'se-listx'; x.contentEditable = 'false'; x.title = 'Remove this fee'; x.innerHTML = '&times;';
+        x.onclick = function(e){ e.preventDefault(); e.stopPropagation(); if (!window.confirm('Remove this fee?')) return; var fd = new FormData(); fd.append('action', 'delete'); fd.append('id', el.dataset.seFee); post(FEE, fd).then(done); };
+        (row.tagName === 'TR' ? row.lastElementChild : row).appendChild(x); row.classList.add('se-rowx'); if (row.tagName === 'TR') row.lastElementChild.classList.add('se-rowx');
+      }
+    });
+    root.querySelectorAll('[data-se-fgroup]').forEach(function(h){
+      edit(h); h.addEventListener('blur', function(){ var to = h.textContent.trim(), from = h.dataset.orig; if (!to) { h.textContent = from; return; } if (to === from) return;
+        var fd = new FormData(); fd.append('action', 'rename_group'); fd.append('by', h.dataset.seFgroup); fd.append('from', from); fd.append('to', to); post(FEE, fd).then(function(d){ done(d, function(){ h.textContent = from; }); }); });
+    });
+    // the blank row at the end of the fees is where the next fee is typed
+    var host = root.querySelector('[data-se-feetable]'); if (!host) return;
+    var kind = host.dataset.seFeetable, ph = {g: 'Grade', t: 'Term', a: 'Amount'};
+    function cell(tag, k){ var e = document.createElement(tag); e.setAttribute('data-n', k); e.setAttribute('data-ph', ph[k]); edit(e); return e; }
+    var rowEl;
+    if (kind === 'table') { rowEl = document.createElement('tr'); ['g','t','a'].forEach(function(k){ var td = document.createElement('td'); td.appendChild(cell('span', k)); rowEl.appendChild(td); }); (host.tBodies[0] || host).appendChild(rowEl); }
+    else if (kind === 'compact_list') { rowEl = document.createElement('div'); rowEl.className = 'fee-compact-row'; var sp = document.createElement('span'); sp.appendChild(cell('span','g')); sp.appendChild(document.createTextNode(' \u2014 ')); sp.appendChild(cell('span','t')); var st = document.createElement('strong'); st.appendChild(document.createTextNode('KSh ')); st.appendChild(cell('span','a')); rowEl.appendChild(sp); rowEl.appendChild(st); host.appendChild(rowEl); }
+    else { var first = kind === 'by_grade' ? 'g' : 't', second = kind === 'by_grade' ? 't' : 'g'; rowEl = document.createElement('div'); rowEl.className = 'fee-group-card'; var h3 = document.createElement('h3'); h3.appendChild(cell('span', first)); rowEl.appendChild(h3);
+      var r2 = document.createElement('div'); r2.className = 'fee-group-row'; var s2 = document.createElement('span'); s2.appendChild(cell('span', second)); var s3 = document.createElement('strong'); s3.appendChild(document.createTextNode('KSh ')); s3.appendChild(cell('span','a')); r2.appendChild(s2); r2.appendChild(s3); rowEl.appendChild(r2); host.appendChild(rowEl); }
+    rowEl.classList.add('se-feenew');
+    rowEl.addEventListener('focusout', function(){
+      setTimeout(function(){
+        if (rowEl.contains(document.activeElement)) return;
+        var v = {}; rowEl.querySelectorAll('[data-n]').forEach(function(e){ v[e.getAttribute('data-n')] = e.textContent.trim(); });
+        if (!v.g || !v.t || !v.a) return;
+        var fd = new FormData(); fd.append('action', 'save'); fd.append('grade', v.g); fd.append('term_label', v.t); fd.append('amount', v.a); post(FEE, fd).then(done).catch(function(){ toast('Could not save', true); });
+      }, 80);
+    });
+  }
   function bindText(sec, root){
     root.querySelectorAll('[data-countup-target]').forEach(function(el){ el.textContent = (el.getAttribute('data-countup-target') || '') + (el.getAttribute('data-countup-suffix') || ''); });
     var claimed = new Set();
@@ -453,7 +501,7 @@ try {
     var el = targetFor(m);
     if (el) {
       if (!sec.visible) el.classList.add('se-hidden');
-      tools(sec, el); bindText(sec, el); bindPh(sec, el); bindList(sec, el); el.querySelectorAll('details').forEach(function(d){ d.open = true; });
+      tools(sec, el); bindText(sec, el); bindPh(sec, el); bindList(sec, el); bindFees(sec, el); el.querySelectorAll('details').forEach(function(d){ d.open = true; });
     } else {
       var ph = document.createElement('div'); ph.className = 'se-placeholder';
       ph.innerHTML = '<span class="se-i">' + (sec.visible ? 'edit_note' : 'visibility_off') + '</span><span style="flex:1;padding-left:4px"><b>' + esc(sec.label) + '</b> &mdash; ' + (sec.visible ? 'nothing to show yet. Use the menu to fill it in.' : 'hidden from your site.') + '</span>';
@@ -567,13 +615,15 @@ try {
 
   units.forEach(function(u){
     if (!u.el || !u.sec.fill || !u.sec.fill.length || u.el.classList.contains('se-placeholder')) return;
-    var row = document.createElement('div'); row.className = 'se-fill'; row.appendChild(document.createTextNode('Add to this section:'));
+    var head = u.el.querySelector('.section-head'), form = u.el.querySelector('.enroll-inline-form'), wrapEl = u.el.querySelector(':scope > .wrap') || u.el;
     u.sec.fill.slice(0, 5).forEach(function(pair){
-      var b = document.createElement('button'); b.type = 'button'; b.textContent = '+ ' + pair[1];
-      b.onclick = function(e){ e.stopPropagation(); flush().then(function(){ return ops('field_fill', {section_id: u.sec.id, field: pair[0]}); }).then(function(d){ if (d.ok) { try { sessionStorage.setItem('seScroll', String(window.scrollY)); sessionStorage.setItem('seFill', u.sec.id + '|' + pair[0]); } catch(x){} location.reload(); } else toast(d.error || 'Could not add', true); }); };
-      row.appendChild(b);
+      var f = pair[0], p = document.createElement('p'); p.className = 'se-newtext'; p.setAttribute('data-ph', pair[1] + ' \u2013 click to write');
+      p.setAttribute('data-se-edit', f); p.dataset.seSid = u.sec.id; p.contentEditable = 'plaintext-only'; if (p.contentEditable !== 'plaintext-only') p.contentEditable = 'true';
+      if (form) form.insertBefore(p, form.firstChild); else if (head && /intro|caption|subheading|body|headline|subtext/.test(f)) head.appendChild(p); else wrapEl.appendChild(p);
+      p.addEventListener('input', function(){ queue(u.sec.id, f, p); });
+      p.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); p.blur(); } });
+      p.addEventListener('blur', function(){ var k = u.sec.id + ':' + f; if (pending[k]) { clearTimeout(timers[k]); pending[k](); } if (p.textContent.trim()) flush().then(function(){ setTimeout(reload, 300); }); });
     });
-    (u.el.querySelector(':scope > .wrap') || u.el).appendChild(row);
   });
   units.forEach(function(u){
     if (!u.el || !u.sec.item) return;
@@ -584,6 +634,11 @@ try {
       var add = addButton(u.sec, 'card');
       if (add) { var h = last.offsetHeight; if (h) { add.style.height = Math.max(70, Math.min(h, 460)) + 'px'; add.style.minHeight = '0'; } last.parentElement.insertBefore(add, last.nextSibling); }
     } else {
+      var emptyHost = u.el.querySelector('[data-se-empty]');
+      if (emptyHost && !u.sec.item.count) {
+        var ec = addButton(u.sec, 'card');
+        if (ec) { var hts = {staff: 230, testimonials: 190, blog: 150, faq: 64, stats: 110, gallery: 170}; ec.style.height = (hts[u.sec.key] || 170) + 'px'; ec.style.minHeight = '0'; if (u.sec.key === 'stats') ec.style.minWidth = '220px'; emptyHost.appendChild(ec); return; }
+      }
       var first = addButton(u.sec, 'first');
       if (first) {
         var ref = u.sec.item.count > 0 ? Array.prototype.filter.call(u.el.querySelectorAll('.wrap img'), function(x){ return x.offsetHeight > 40; })[0] : null;
@@ -598,7 +653,7 @@ try {
   DATA.forEach(function(sec){
     if (!sec.missing || !sec.missing.length) return;
     var u = null; units.forEach(function(x){ if (x.sec.id === sec.id) u = x; });
-    if (!u || !u.el || u.el.querySelector('[data-se-ph]')) return;
+    if (!u || !u.el || u.el.querySelector('[data-se-ph],.se-addcard')) return;
     var box = document.createElement('div'); box.className = 'se-photos';
     box.innerHTML = '<b>Photo needed for this layout</b><p>' + esc(sec.needLabel || 'This layout') + ' shows photos. Until you add ' + (sec.missing.length > 1 ? 'them' : 'it') + ', your visitors see the default layout instead.</p>';
     var row = document.createElement('div'); row.className = 'se-slots';
