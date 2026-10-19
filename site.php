@@ -167,6 +167,10 @@ if (in_array('fees', array_column($sections, 'key_name'))) {
 }
 
 function img($path) {
+    // Edit mode: a missing photo is drawn as a beige placeholder the editor turns into an upload spot.
+    if (is_string($path) && strncmp($path, '__ph:', 5) === 0) {
+        return 'data:image/svg+xml;utf8,' . rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="#e6e2d3"/></svg>') . '#ph=' . htmlspecialchars(substr($path, 5));
+    }
     return $path ? htmlspecialchars($path) : '';
 }
 function staff_photo_html($p) {
@@ -780,10 +784,19 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
 
     // Graceful fallbacks when the content a variant needs isn't there yet -
     // matches the same requirements enforced in section-design-save-ajax.php.
-    if ($heroVariant === 'carousel' && count($heroPhotos) < 2) $heroVariant = 'split';
-    if (in_array($heroVariant, ['background_fixed', 'background'], true) && empty($heroPhotos)) $heroVariant = 'split';
     if ($heroVariant === 'default') $heroVariant = 'split'; // legacy key from before this rewrite
     if ($heroVariant === 'background') $heroVariant = 'background_fixed'; // legacy key from before this rewrite
+    if ($editMode) {
+        // Keep the chosen layout and show where each missing photo goes.
+        $needH = ['split' => 1, 'split_cta' => 1, 'carousel' => 2, 'background_fixed' => 1][$heroVariant] ?? 0;
+        foreach (['hero_photo', 'hero_photo_2', 'hero_photo_3'] as $__hf) {
+            if (count($heroPhotos) >= $needH) break;
+            if (empty($c[$__hf])) $heroPhotos[] = '__ph:' . $__hf;
+        }
+    } else {
+        if ($heroVariant === 'carousel' && count($heroPhotos) < 2) $heroVariant = 'split';
+        if ($heroVariant === 'background_fixed' && empty($heroPhotos)) $heroVariant = 'split';
+    }
 
     $showCta = in_array($heroVariant, ['text_cta', 'split_cta', 'carousel', 'background_fixed'], true);
     $sizeClass = $heroSize === 'full' ? ' hero-size-full' : ($heroSize === 'half' ? ' hero-size-half' : '');
@@ -883,8 +896,16 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
     $listItems = array_values(array_filter(array_map('trim', explode("\n", $c['list_items'] ?? ''))));
 
     // Graceful fallbacks when the content a variant needs isn't there yet.
-    if ($aboutVariant === 'carousel_left' && count($aboutPhotos) < 2) $aboutVariant = 'photo_right';
-    if (in_array($aboutVariant, ['photo_right', 'photo_left', 'quote', 'stats_inline'], true) && empty($aboutPhotos)) $aboutVariant = 'text_only';
+    if ($editMode) {
+        $needA = ['photo_right' => 1, 'photo_left' => 1, 'quote' => 1, 'stats_inline' => 1, 'carousel_left' => 2][$aboutVariant] ?? 0;
+        foreach (['photo', 'photo_2', 'photo_3'] as $__af) {
+            if (count($aboutPhotos) >= $needA) break;
+            if (empty($c[$__af])) $aboutPhotos[] = '__ph:' . $__af;
+        }
+    } else {
+        if ($aboutVariant === 'carousel_left' && count($aboutPhotos) < 2) $aboutVariant = 'photo_right';
+        if (in_array($aboutVariant, ['photo_right', 'photo_left', 'quote', 'stats_inline'], true) && empty($aboutPhotos)) $aboutVariant = 'text_only';
+    }
     if ($aboutVariant === 'list' && empty($listItems)) $aboutVariant = 'text_only';
     if ($aboutVariant === 'timeline' && empty($listItems)) $aboutVariant = 'text_only';
 ?>
@@ -1012,7 +1033,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
     }
     if (in_array($admissionsVariant, ['steps', 'checklist', 'key_dates'], true) && empty($admListItems)) $admissionsVariant = 'text_cta';
     if ($admissionsVariant === 'faq_style' && empty($admFaqPairs)) $admissionsVariant = 'text_cta';
-    if ($admissionsVariant === 'text_photo' && empty($c['photo'])) $admissionsVariant = 'text_cta';
+    if ($admissionsVariant === 'text_photo' && empty($c['photo'])) { if ($editMode) $c['photo'] = '__ph:photo'; else $admissionsVariant = 'text_cta'; }
     $applyBtn = '<a href="' . (in_array('enrollment_form', $availableSectionKeys, true) ? '#enrollment_form' : 'enrollment-apply.php?school=' . urlencode($school['slug'])) . '" class="btn-primary" style="margin-top:20px;display:inline-block;">Apply for Admission</a>';
 ?>
   <section id="admissions">
@@ -1081,7 +1102,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
     $academicsVariant = $s['layout_variant'] ?? 'text_only';
     $acaListItems = array_values(array_filter(array_map('trim', explode("\n", $c['list_items'] ?? ''))));
     if (in_array($academicsVariant, ['curriculum_grid', 'grade_levels'], true) && empty($acaListItems)) $academicsVariant = 'text_only';
-    if ($academicsVariant === 'text_photo' && empty($c['photo'])) $academicsVariant = 'text_only';
+    if ($academicsVariant === 'text_photo' && empty($c['photo'])) { if ($editMode) $c['photo'] = '__ph:photo'; else $academicsVariant = 'text_only'; }
 ?>
   <section id="academics">
     <div class="wrap">
@@ -2028,7 +2049,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
 
 <?php elseif ($key === 'cta_banner'):
     $ctaBannerVariant = $s['layout_variant'] ?? 'simple';
-    if ($ctaBannerVariant === 'background_photo' && empty($c['photo'])) $ctaBannerVariant = 'simple';
+    if ($ctaBannerVariant === 'background_photo' && empty($c['photo'])) { if ($editMode) $c['photo'] = '__ph:photo'; else $ctaBannerVariant = 'simple'; }
 
     // Resolve up to 2 buttons the same way Hero does: curated destination
     // first, falling back to the old free-text button_link for any school

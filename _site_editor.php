@@ -148,6 +148,9 @@ try {
   .se-photoslot:hover{background:#E6F0EE;} .se-photoslot small{font-weight:500;color:#5a5a52;}
   #seImgBar{position:fixed;z-index:99980;display:none;gap:6px;} #seImgBar.show{display:flex;}
   #seImgBar button{background:#1C1C16;color:#fff;border:2px solid #fff;border-radius:999px;padding:6px 12px;font:700 .74rem Arial,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 8px rgba(0,0,0,.4);} #seImgBar button:hover{background:#0F5257;} #seImgBar button.del:hover{background:#B3261E;} #seImgBar .se-i{font-size:16px;}
+  .se-phbtn{position:absolute;transform:translate(-50%,-50%);z-index:6;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;padding:0;}
+  .se-phbtn .ic{font-size:46px;color:#9a968a;} .se-phbtn .pill{background:#5a1a1a;background:var(--primary,#0F5257);color:#fff;border-radius:8px;padding:11px 20px;font:800 .88rem Arial,sans-serif;white-space:nowrap;}
+  [data-se-ph]{cursor:pointer;}
   .se-grip{cursor:grab;} .se-grip:active{cursor:grabbing;}
   .se-gap{position:relative;height:30px;z-index:55;transition:height .12s;background:#f6f3ea;} .se-gap::before{content:'';position:absolute;left:0;right:0;top:50%;height:0;border-top:2px dashed rgba(15,82,87,.18);}
   .se-gap .se-gapbtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:24px;height:24px;padding:0;background:#fff;color:#0F5257;border:2px solid #0F5257;border-radius:50%;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.18);transition:transform .12s,background .12s;}
@@ -352,6 +355,19 @@ try {
     }
     return null;
   }
+  function bindPh(sec, root){
+    root.querySelectorAll('img[src*="#ph="], [style*="#ph="]').forEach(function(el){
+      var m = /#ph=([a-z0-9_]+)/.exec(el.getAttribute('src') || el.getAttribute('style') || ''); if (!m) return;
+      var field = m[1], img = el.tagName === 'IMG'; el.setAttribute('data-se-ph', field); el.dataset.seSid = sec.id;
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'se-phbtn'; b.dataset.seSid = sec.id;
+      b.innerHTML = '<span class="se-i ic">add_photo_alternate</span><span class="pill">Upload photo(s)</span>';
+      b.onclick = function(e){ e.preventDefault(); e.stopPropagation(); pickPhoto(sec.id, field); };
+      var host = img ? el.parentElement : el; if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+      host.appendChild(b);
+      function place(){ if (img) { b.style.left = (el.offsetLeft + el.offsetWidth / 2) + 'px'; b.style.top = (el.offsetTop + el.offsetHeight / 2) + 'px'; } else { b.style.left = '50%'; b.style.top = '86px'; } }
+      place(); window.addEventListener('load', place); window.addEventListener('resize', place); if (img) el.addEventListener('load', place);
+    });
+  }
   function bindText(sec, root){
     root.querySelectorAll('[data-countup-target]').forEach(function(el){ el.textContent = (el.getAttribute('data-countup-target') || '') + (el.getAttribute('data-countup-suffix') || ''); });
     var claimed = new Set();
@@ -391,7 +407,7 @@ try {
     var el = targetFor(m);
     if (el) {
       if (!sec.visible) el.classList.add('se-hidden');
-      tools(sec, el); bindText(sec, el); el.querySelectorAll('details').forEach(function(d){ d.open = true; });
+      tools(sec, el); bindText(sec, el); bindPh(sec, el); el.querySelectorAll('details').forEach(function(d){ d.open = true; });
     } else {
       var ph = document.createElement('div'); ph.className = 'se-placeholder';
       ph.innerHTML = '<span class="se-i">' + (sec.visible ? 'edit_note' : 'visibility_off') + '</span><span style="flex:1;padding-left:4px"><b>' + esc(sec.label) + '</b> &mdash; ' + (sec.visible ? 'nothing to show yet. Use the menu to fill it in.' : 'hidden from your site.') + '</span>';
@@ -536,7 +552,7 @@ try {
   DATA.forEach(function(sec){
     if (!sec.missing || !sec.missing.length) return;
     var u = null; units.forEach(function(x){ if (x.sec.id === sec.id) u = x; });
-    if (!u || !u.el) return;
+    if (!u || !u.el || u.el.querySelector('[data-se-ph]')) return;
     var box = document.createElement('div'); box.className = 'se-photos';
     box.innerHTML = '<b>Photo needed for this layout</b><p>' + esc(sec.needLabel || 'This layout') + ' shows photos. Until you add ' + (sec.missing.length > 1 ? 'them' : 'it') + ', your visitors see the default layout instead.</p>';
     var row = document.createElement('div'); row.className = 'se-slots';
@@ -577,9 +593,9 @@ try {
   function hideGrid(){ clearTimeout(gridT); gridT = setTimeout(function(){ grid.classList.remove('show'); }, 300); }
   grid.addEventListener('mouseenter', function(){ clearTimeout(gridT); }); grid.addEventListener('mouseleave', hideGrid);
   function showGrid(im){
-    var sec = byId[parseInt(im.dataset.seSid, 10)]; if (!sec || !sec.photos || sec.photos.length < 2 || sec.variant !== 'carousel') return false;
+    var sec = byId[parseInt(im.dataset.seSid, 10)]; if (!sec || !sec.photos || sec.photos.length < 2 || !/carousel/.test(sec.variant)) return false;
     clearTimeout(gridT); clearTimeout(imgHideT); imgBar.classList.remove('show');
-    var host = im.closest('section') || document.body, els = host.querySelectorAll('[data-se-img]'), box = im;
+    var host = im.closest('section') || document.body, els = host.querySelectorAll('[data-se-img],[data-se-ph]'), box = im;
     while (box.parentElement && box.parentElement !== host && !Array.prototype.every.call(els, function(x){ return box.contains(x); })) box = box.parentElement;
     var r = box.getBoundingClientRect(); if (r.width < 200) r = im.getBoundingClientRect();
     grid.innerHTML = '';
@@ -608,7 +624,7 @@ try {
     imgBar.style.top = Math.max(top, r.top + 6) + 'px'; imgBar.style.left = Math.max(6, left) + 'px';
   }
   function hideImgBar(){ clearTimeout(imgHideT); imgHideT = setTimeout(function(){ imgBar.classList.remove('show'); }, 350); }
-  document.addEventListener('mouseover', function(e){ var im = e.target.closest && e.target.closest('[data-se-img]'); if (im) showImgBar(im); else if (e.target.closest && (e.target.closest('#seImgBar') || e.target.closest('#seGrid'))) clearTimeout(imgHideT); else if (imgBar.classList.contains('show')) hideImgBar(); });
+  document.addEventListener('mouseover', function(e){ var im = e.target.closest && e.target.closest('[data-se-img],[data-se-ph],.se-phbtn'); if (im && im.hasAttribute('data-se-ph') || im && im.classList.contains('se-phbtn')) { showGrid(im); } else if (im) showImgBar(im); else if (e.target.closest && (e.target.closest('#seImgBar') || e.target.closest('#seGrid'))) clearTimeout(imgHideT); else if (imgBar.classList.contains('show')) hideImgBar(); });
   window.addEventListener('scroll', function(){ imgBar.classList.remove('show'); grid.classList.remove('show'); }, {passive:true});
 
   // colour pencil: one site-wide control, told which section a text belongs to
@@ -620,6 +636,8 @@ try {
   var imgTarget = null;
   function pickPhoto(sid, field){ imgTarget = {sid: sid, field: field}; galTarget = null; $('seFile').multiple = false; $('seFile').click(); }
   document.addEventListener('click', function(e){
+    var ph = e.target.closest('[data-se-ph]');
+    if (ph && !e.target.closest('.se-tools,#seBar,#seGrid')) { e.preventDefault(); e.stopPropagation(); pickPhoto(ph.dataset.seSid, ph.getAttribute('data-se-ph')); return; }
     var im = e.target.closest('[data-se-img]');
     if (im && !e.target.closest('.se-tools,#seBar')) { e.preventDefault(); e.stopPropagation(); pickPhoto(im.dataset.seSid, im.getAttribute('data-se-img')); return; }
     // keep links and buttons inside sections from navigating away while editing
