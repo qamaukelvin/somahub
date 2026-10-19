@@ -51,9 +51,13 @@ $newEnrollments = $enrollCount->fetch()['c'];
   <?php endif; ?>
 
   <div class="cards">
+    <a href="https://<?= htmlspecialchars($school['slug']) ?>.somahub.top/?edit=1" class="card-link" style="border:2px solid #F2A65A;background:#FFF8EC;">
+      <h3>Edit your site</h3>
+      <p>Open your real website and click anything to change it. Colours, fonts, photos, sections and undo are all there.</p>
+    </a>
     <a href="sections.php" class="card-link">
-      <h3>Edit Website</h3>
-      <p>Manage your site's sections — reorder, edit, duplicate, or hide.</p>
+      <h3>Sections (advanced)</h3>
+      <p>Edit one section's details at a time, or manage the section list.</p>
     </a>
     <a href="enrollment.php" class="card-link">
       <h3>Enrollment Enquiries</h3>

@@ -99,8 +99,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ";
                     send_somahub_email(get_setting($db, 'admin_notify_email', 'admin@somahub.top'), "New school: " . $schoolData['school_name'], $adminBody, $email);
 
-                    // Straight into the Hero live editor with the first-run welcome.
-                    header('Location: dashboard/sections.php?welcome=1');
+                    // Straight into the on-page editor on their new site, with the first-run welcome.
+                    header('Location: ' . $siteUrl . '/?edit=1&welcome=1');
                     exit;
                 }
             }

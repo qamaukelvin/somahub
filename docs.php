@@ -116,10 +116,18 @@ $toc = [
     <h2 id="first-look"><span class="material-symbols-outlined">waving_hand</span>2. Your first look</h2>
     <p>After signup you land on the <strong>Website</strong> page of your dashboard, with a short welcome message that shows you the four things to do first. This page lists every section of your site, in the order visitors see them.</p>
     <p>Your site starts with these sections: Hero, About, Academics, Admissions, Enrollment form, Gallery, Staff, Testimonials, FAQ, Results lookup and Contact. A Fees section is also added but kept <strong>hidden until you add a fee</strong>. Your head teacher's name and your contact details are filled in where we already know them.</p>
-    <p>The top bar of every dashboard page has the same links: <strong>Home</strong>, <strong>Website</strong>, <strong>School data</strong>, <strong>Account</strong>, <strong>View site</strong> and <strong>Log out</strong>. The bell shows reminders such as verifying your school.</p>
+    <p>The top bar of every dashboard page has the same links: <strong>Home</strong>, <strong>Edit site</strong>, <strong>Sections</strong>, <strong>School data</strong>, <strong>Account</strong>, <strong>View site</strong> and <strong>Log out</strong>. The bell shows reminders such as verifying your school.</p>
 
     <h2 id="editing"><span class="material-symbols-outlined">edit</span>3. Editing your site</h2>
-    <p>Open any section from the Website page and you are in its <strong>live editor</strong>: the section looks exactly as visitors see it, and you edit it in place.</p>
+    <p>The quickest way is <strong>Edit site</strong> (the orange button in the top bar, and where you land right after signing up). It opens your <strong>real website</strong> with editing switched on, so you change things exactly where visitors see them. Everything saves by itself, and you can <strong>undo and redo</strong> from the bar at the bottom.</p>
+    <ul>
+      <li><strong>Click any text or photo</strong> to change it. A dashed box shows where a photo is still needed.</li>
+      <li><strong>Layout</strong> (top left of a section) switches its design. The <strong>three dots</strong> (top right) move, duplicate, hide or remove the section, or open its full details.</li>
+      <li>The small <strong>+</strong> between sections adds a new section right there, and you can drag one from the Add section list to the spot you want.</li>
+      <li>Staff, testimonials, FAQs, gallery photos, blog posts and statistics each have an <strong>Add</strong> button and small tools on each item to move or remove it.</li>
+      <li>The bottom bar holds <strong>Undo, Redo, Colours, Fonts, Add section</strong> and <strong>Done</strong>.</li>
+    </ul>
+    <p>Prefer one section at a time? Open it from the <strong>Sections</strong> page and you are in its <strong>live editor</strong>: the section looks exactly as visitors see it, and you edit it in place.</p>
     <ul>
       <li><strong>Text.</strong> Click it and type. Changes save automatically.</li>
       <li><strong>Photos.</strong> Click a photo box to upload or replace. Where there is no photo yet, a person icon is shown as a placeholder. Photos are shrunk automatically so your site stays fast.</li>

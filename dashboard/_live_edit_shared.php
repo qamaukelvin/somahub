@@ -303,6 +303,7 @@ function render_live_edit_topbar(array $section, array $fontPairs, string $curre
   <div class="le-menu" id="leMenu">
     <button type="button" class="font-picker-btn" onclick="document.getElementById('leMenuPanel').classList.toggle('open')"><span class="material-symbols-outlined" style="font-size:18px;">menu</span> Menu</button>
     <div class="le-menu-panel" id="leMenuPanel">
+      <?php $__s2 = $GLOBALS['school']['slug'] ?? ''; if ($__s2): ?><a href="https://<?= urlencode($__s2) ?>.somahub.top/?edit=1"><span class="material-symbols-outlined">edit_square</span>Edit on your site</a><?php endif; ?>
       <a href="sections.php"><span class="material-symbols-outlined">arrow_back</span>Back to sections</a>
       <a href="index.php"><span class="material-symbols-outlined">dashboard</span>Dashboard home</a>
       <a href="enrollment.php"><span class="material-symbols-outlined">how_to_reg</span>Enrollment</a>

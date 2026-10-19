@@ -1,5 +1,7 @@
 # Somahub — School Website Platform (PHP/MySQL)
 
+- On-page editor: adding a section now stays on your site and scrolls to it; sections with empty text fields (enrollment form, results lookup) show "+ Add" chips; fees have a "Manage fees" window in the section menu (fee edits are not part of undo).
+
 ## Folder structure
 Public facing files sit at the root, alongside the panel folders:
 ```
@@ -52,7 +54,7 @@ you deploy to real hosting with a real domain.
    `get_starter_layout()`: hero, about, academics, admissions, enrollment form, gallery, staff,
    testimonials, FAQ, fees (hidden until a fee is added), results lookup, contact. Sections can be
    reordered, hidden or removed.
-3. They land on `/dashboard/sections.php` with a first-time welcome modal.
+3. They land on their own site in edit mode (`https://<slug>.somahub.top/?edit=1&welcome=1`) with a first-time welcome card. The dashboard's "Edit site" button, home card and Sections page banner all open the same editor; `sections.php` and the per-section live editors remain as the advanced route.
 4. The site is public straight away and must be verified within 7 days of first login
    (`VERIFICATION_GRACE_PERIOD_DAYS`) or it goes offline to the public.
 5. Admin-created schools (`admin/school-new.php`, `leads-convert.php`) still seed the older six
@@ -125,8 +127,6 @@ or date of birth together, so no one can browse by guessing sequential numbers.
 - Real MIME-type validation on uploaded files (currently trusts file extension).
 - Password reset flow for school owners.
 - Email/SMS notification when a new enrollment application or lead comes in.
-- Reordering of repeatable items (staff, FAQs, ...) inside live editors.
-- Head teacher contact is stored but not yet shown on the verify page or admin screens.
 
 ## Security notes already handled
 - All dashboard queries filter by `school_id` from the session, not from user input — a school
@@ -149,3 +149,6 @@ or date of birth together, so no one can browse by guessing sequential numbers.
 - Section toolbar: top-left **Layout** (from `includes/section_variants.php`), top-right **⋮** (move, duplicate, hide/show, edit all details, remove). Bottom bar: undo/redo, colours, fonts, add section, done.
 - Structural actions live in `dashboard/editor-ops-ajax.php`.
 - **Undo/redo:** `includes/edit-history.php` snapshots all sections plus colour/font settings after each change (tables `edit_history`, `edit_history_ptr`, auto-created, last 40 steps, same-field typing within 15s is one step). Editing endpoints opt in with one `history_track_request()` line.
+
+### Editor phase 2: repeatable items
+Staff, testimonials, gallery, stats, FAQ and blog items get hover tools (move earlier/later, add photo, remove) and an "Add ..." button, driven by the `repeatable`/`item_fields` entries in `includes/section_variants.php`. `dashboard/editor-ops-ajax.php` actions `item_add` / `item_remove` fill or clear a numbered slot (starter text per section type); moves use `dashboard/section-item-move-ajax.php`. Gallery "Add photos" uploads several files into the next free `photo_N` slots in one request. Everything is undoable.

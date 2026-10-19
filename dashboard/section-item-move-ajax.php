@@ -17,17 +17,19 @@ $stmt = $db->prepare("SELECT ss.*, st.key_name FROM site_sections ss JOIN sectio
 $stmt->execute([$id, $user['school_id']]);
 $section = $stmt->fetch();
 $cfg = $section ? (get_section_variant_registry()[$section['key_name']] ?? null) : null;
-if (!$section || !$cfg || empty($cfg['repeatable']) || empty($cfg['item_fields']) || $section['key_name'] === 'stats') {
+if (!$section || !$cfg || empty($cfg['repeatable']) || empty($cfg['item_fields'])) {
     echo json_encode(['ok' => false, 'error' => 'This section cannot be reordered.']); exit;
 }
 
 $content = json_decode($section['content_json'], true) ?: [];
 $stems = $cfg['item_fields'];
+$fmt = $cfg['field_name_format'] ?? '{stem}_{index}';
+$fn = fn($st, $i) => str_replace(['{stem}', '{index}'], [$st, $i], $fmt);
 $max = (int)($cfg['max_items'] ?? 10);
 
 $occupied = [];
 for ($i = 1; $i <= $max; $i++) {
-    foreach ($stems as $st) { if (!empty($content["{$st}_$i"])) { $occupied[] = $i; break; } }
+    foreach ($stems as $st) { if (!empty($content[$fn($st, $i)])) { $occupied[] = $i; break; } }
 }
 $pos = array_search($slot, $occupied, true);
 if ($pos === false) { echo json_encode(['ok' => false, 'error' => 'Item not found.']); exit; }
@@ -36,10 +38,10 @@ if (!isset($occupied[$swapPos])) { echo json_encode(['ok' => true, 'unchanged' =
 $other = $occupied[$swapPos];
 
 foreach ($stems as $st) {
-    $a = $content["{$st}_$slot"] ?? '';
-    $b = $content["{$st}_$other"] ?? '';
-    $content["{$st}_$slot"] = $b;
-    $content["{$st}_$other"] = $a;
+    $a = $content[$fn($st, $slot)] ?? '';
+    $b = $content[$fn($st, $other)] ?? '';
+    $content[$fn($st, $slot)] = $b;
+    $content[$fn($st, $other)] = $a;
 }
 $db->prepare("UPDATE site_sections SET content_json = ? WHERE id = ? AND school_id = ?")
    ->execute([json_encode($content), $id, $user['school_id']]);

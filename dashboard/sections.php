@@ -133,7 +133,11 @@ foreach ($availableTypes as $t) {
       <button type="button" class="add-section-btn" onclick="openAddSection()"><span class="material-symbols-outlined">add</span>Add section</button>
     </div>
   </div>
-  <p class="sub">Drag <span class="drag-handle" style="display:inline;padding:0;">☰</span> to reorder. On desktop, click Edit. On mobile, tap ✎ to edit inline. The palette icon opens layout options for sections that support them.</p>
+  <div style="background:#FFF8EC;border:2px solid #F2A65A;border-radius:12px;padding:14px 18px;margin:0 0 16px;font-size:.9rem;display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+    <span style="flex:1;min-width:220px;"><strong>Easiest way to edit:</strong> open your real site and click what you want to change. Everything on this page is also there, plus undo.</span>
+    <a href="https://<?= htmlspecialchars($school['slug']) ?>.somahub.top/?edit=1" style="background:#0F5257;color:#fff;text-decoration:none;font-weight:800;border-radius:999px;padding:10px 18px;white-space:nowrap;">Edit on your site &rarr;</a>
+  </div>
+  <p class="sub">Advanced: drag <span class="drag-handle" style="display:inline;padding:0;">☰</span> to reorder. On desktop, click Edit. On mobile, tap ✎ to edit inline. The palette icon opens layout options for sections that support them.</p>
 
   <?php if (isset($_GET['error']) && $_GET['error'] === 'upgrade_required'): ?>
     <div style="background:#FBE8E4;color:#8C3B2E;padding:12px 16px;border-radius:6px;margin-bottom:16px;font-size:0.88rem;">
