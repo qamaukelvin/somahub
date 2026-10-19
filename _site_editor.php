@@ -61,7 +61,7 @@ foreach ($sections as $s) {
     $needNow = (int)(($cfg['options'][$curVariant]['photos_needed'] ?? 0));
     $missing = $needNow > $have ? array_slice($emptyFields, 0, $needNow - $have) : [];
     $__data[] = [
-        'id' => (int)$s['id'], 'key' => $key, 'label' => $s['label'], 'visible' => (int)$s['is_visible'], 'locked' => !empty($s['__locked']),
+        'id' => (int)$s['id'], 'key' => $key, 'label' => $s['label'], 'photos' => count($photoFields) > 1 ? array_map(fn($pf) => [$pf, (string)($content[$pf] ?? '')], $photoFields) : [], 'visible' => (int)$s['is_visible'], 'locked' => !empty($s['__locked']),
         'variant' => $curVariant, 'options' => $opts, 'item' => $item, 'fill' => $fill, 'missing' => $missing, 'needLabel' => $cfg['options'][$curVariant]['label'] ?? '',
         'text' => $text, 'imgs' => $imgs, 'editFile' => $__editorFiles[$key] ?? 'section-edit.php',
     ];
@@ -136,7 +136,14 @@ try {
   .se-lock{background:#F2A65A;color:#3b2500;border-radius:999px;padding:6px 12px;font:800 .72rem Arial,sans-serif;white-space:nowrap;align-self:center;}
   .se-addcard{display:flex;} .se-addcard button{flex:1;min-height:inherit;border:2px dashed #0F5257;border-radius:14px;background:rgba(255,255,255,.65);color:#0F5257;font:800 .9rem Arial,sans-serif;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;cursor:pointer;padding:18px;text-align:center;}
   .se-addcard button:hover{background:#E6F0EE;} .se-addcard small{font-weight:600;color:#5a5a52;} .se-addcard .se-i{font-size:30px;}
-  .se-addcard.first{margin:26px auto;max-width:340px;min-height:170px;} .se-addcard.card{min-height:120px;}
+  .se-addcard.first{margin:26px 0;max-width:260px;min-height:190px;} .se-addcard.card{min-height:90px;align-self:start;}
+  .se-photoslot.circle{width:100%;max-width:190px;aspect-ratio:1;min-height:0;border-radius:50%;margin:0 auto 12px;} .se-photoslot.rect{aspect-ratio:4/3;min-height:0;}
+  .se-avatarslot{outline:2px dashed #0F5257;outline-offset:-2px;cursor:pointer;position:relative;} .se-avatarslot:hover{background:#cfe3df !important;}
+  .se-avatarslot .se-cam{position:absolute;right:6%;bottom:6%;width:34px;height:34px;border-radius:50%;background:#0F5257;color:#fff;border:2px solid #fff;display:flex;align-items:center;justify-content:center;} .se-avatarslot .se-cam .se-i{font-size:18px;}
+  #seGrid{position:fixed;z-index:99970;display:none;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px;box-sizing:border-box;background:rgba(15,25,25,.72);border-radius:8px;align-content:center;}
+  #seGrid.show{display:grid;} #seGrid .t{position:relative;aspect-ratio:4/3;border-radius:10px;background:#222 center/cover no-repeat;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;gap:6px;padding:8px;box-sizing:border-box;}
+  #seGrid .t.empty{background:rgba(255,255,255,.12);border:2px dashed #fff;align-items:center;flex-direction:column;color:#fff;font:800 .8rem Arial,sans-serif;cursor:pointer;} #seGrid .t.empty small{font-weight:500;opacity:.8;}
+  #seGrid .t button{background:#1C1C16;color:#fff;border:2px solid #fff;border-radius:999px;padding:5px 10px;font:700 .72rem Arial,sans-serif;cursor:pointer;display:inline-flex;gap:4px;align-items:center;} #seGrid .t button:hover{background:#0F5257;} #seGrid .t button.del:hover{background:#B3261E;} #seGrid .se-i{font-size:15px;}
   .se-photoslot{display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;width:100%;min-height:120px;margin:0 0 10px;box-sizing:border-box;border:2px dashed #0F5257;border-radius:12px;background:rgba(244,241,230,.9);color:#0F5257;font:800 .8rem Arial,sans-serif;cursor:pointer;}
   .se-photoslot:hover{background:#E6F0EE;} .se-photoslot small{font-weight:500;color:#5a5a52;}
   #seImgBar{position:fixed;z-index:99980;display:none;gap:6px;} #seImgBar.show{display:flex;}
@@ -455,10 +462,16 @@ try {
         btn('arrow_forward', 'Move later', '', function(){ moveItem(sec, k, 'down'); }, idx === keys.length - 1);
       }
       if (it.photoField && !els.some(function(e){ return e.hasAttribute('data-se-img'); }) && !it.gallery) {
-        var ps = document.createElement('button'); ps.type = 'button'; ps.className = 'se-photoslot';
-        ps.innerHTML = '<span class="se-i" style="font-size:28px">add_a_photo</span>Photo<small>Click to upload</small>';
-        ps.onclick = function(e){ e.preventDefault(); e.stopPropagation(); pickPhoto(sec.id, it.photoField + '_' + k); };
-        c.insertBefore(ps, c.firstChild);
+        var up = function(e){ e.preventDefault(); e.stopPropagation(); pickPhoto(sec.id, it.photoField + '_' + k); };
+        var av = c.querySelector('.staff-avatar');
+        if (av) {
+          av.classList.add('se-avatarslot'); av.title = 'Click to add a photo'; av.onclick = up;
+          var cam = document.createElement('span'); cam.className = 'se-cam'; cam.innerHTML = '<span class="se-i">add_a_photo</span>'; av.appendChild(cam);
+        } else {
+          var ps = document.createElement('button'); ps.type = 'button'; ps.className = 'se-photoslot ' + (sec.key === 'staff' ? 'circle' : 'rect');
+          ps.innerHTML = '<span class="se-i" style="font-size:26px">add_a_photo</span>' + (sec.key === 'staff' ? '' : '<small>Photo</small>');
+          ps.title = 'Click to add a photo'; ps.onclick = up; c.insertBefore(ps, c.firstChild);
+        }
       }
       btn('delete', 'Remove this ' + it.label.toLowerCase(), 'del', function(){ itemOp('item_remove', sec, {slot: k}, 'Removed. Undo brings it back.'); });
       c.appendChild(bar);
@@ -507,9 +520,14 @@ try {
     var last = u.sec._last;
     if (last && last.parentElement && u.sec.item.count > 0) {
       var add = addButton(u.sec, 'card');
-      if (add) { var h = last.offsetHeight; if (h) add.style.minHeight = Math.max(110, Math.min(h, 460)) + 'px'; last.parentElement.insertBefore(add, last.nextSibling); }
+      if (add) { var h = last.offsetHeight; if (h) { add.style.height = Math.max(70, Math.min(h, 460)) + 'px'; add.style.minHeight = '0'; } last.parentElement.insertBefore(add, last.nextSibling); }
     } else {
-      var first = addButton(u.sec, 'first'); if (first) (u.el.querySelector(':scope > .wrap') || u.el).appendChild(first);
+      var first = addButton(u.sec, 'first');
+      if (first) {
+        var ref = u.sec.item.count > 0 ? Array.prototype.filter.call(u.el.querySelectorAll('.wrap img'), function(x){ return x.offsetHeight > 40; })[0] : null;
+        if (ref) { first.style.height = ref.offsetHeight + 'px'; first.style.minHeight = '0'; first.style.maxWidth = ref.offsetWidth + 'px'; first.style.margin = '10px 0'; }
+        (u.el.querySelector(':scope > .wrap') || u.el).appendChild(first);
+      }
     }
   });
 
@@ -554,15 +572,44 @@ try {
     imgBar.classList.remove('show'); toast('Removing...');
     post(SAVE, fd).then(function(d){ if (d.ok) { toast('Photo removed. Undo brings it back.'); setTimeout(reload, 700); } else toast('Could not remove the photo', true); }).catch(function(){ toast('Could not remove the photo', true); });
   });
+  var grid = document.createElement('div'); grid.id = 'seGrid'; document.body.appendChild(grid);
+  var gridT = null;
+  function hideGrid(){ clearTimeout(gridT); gridT = setTimeout(function(){ grid.classList.remove('show'); }, 300); }
+  grid.addEventListener('mouseenter', function(){ clearTimeout(gridT); }); grid.addEventListener('mouseleave', hideGrid);
+  function showGrid(im){
+    var sec = byId[parseInt(im.dataset.seSid, 10)]; if (!sec || !sec.photos || sec.photos.length < 2 || sec.variant !== 'carousel') return false;
+    clearTimeout(gridT); clearTimeout(imgHideT); imgBar.classList.remove('show');
+    var host = im.closest('section') || document.body, els = host.querySelectorAll('[data-se-img]'), box = im;
+    while (box.parentElement && box.parentElement !== host && !Array.prototype.every.call(els, function(x){ return box.contains(x); })) box = box.parentElement;
+    var r = box.getBoundingClientRect(); if (r.width < 200) r = im.getBoundingClientRect();
+    grid.innerHTML = '';
+    sec.photos.forEach(function(pr){
+      var t = document.createElement('div'), el = host.querySelector('[data-se-img="' + pr[0] + '"]');
+      if (pr[1] && el) {
+        var url = el.currentSrc || el.src || ((getComputedStyle(el).backgroundImage.match(/url\(["']?(.*?)["']?\)/) || [])[1]) || '';
+        t.className = 't'; if (url) t.style.backgroundImage = 'url("' + url + '")';
+        var rb = document.createElement('button'); rb.type = 'button'; rb.innerHTML = '<span class="se-i">photo_camera</span>Replace'; rb.onclick = function(e){ e.stopPropagation(); pickPhoto(sec.id, pr[0]); };
+        var db = document.createElement('button'); db.type = 'button'; db.className = 'del'; db.innerHTML = '<span class="se-i">delete</span>Remove';
+        db.onclick = function(e){ e.stopPropagation(); var fd = new FormData(); fd.append('section_id', sec.id); fd.append('remove_' + pr[0], '1'); grid.classList.remove('show'); toast('Removing...'); post(SAVE, fd).then(function(d){ if (d.ok) { toast('Photo removed. Undo brings it back.'); setTimeout(reload, 700); } else toast('Could not remove the photo', true); }); };
+        t.appendChild(rb); t.appendChild(db);
+      } else {
+        t.className = 't empty'; t.innerHTML = '<span class="se-i" style="font-size:26px">add_a_photo</span>Add photo<small>Click to upload</small>'; t.onclick = function(e){ e.stopPropagation(); pickPhoto(sec.id, pr[0]); };
+      }
+      grid.appendChild(t);
+    });
+    grid.style.left = r.left + 'px'; grid.style.top = Math.max(r.top, 0) + 'px'; grid.style.width = r.width + 'px'; grid.style.height = Math.min(r.height, window.innerHeight - Math.max(r.top, 0)) + 'px';
+    grid.classList.add('show'); return true;
+  }
   function showImgBar(im){
+    if (showGrid(im)) return;
     clearTimeout(imgHideT); imgOver = im; var r = im.getBoundingClientRect(); if (r.width < 60 || r.height < 50) return;
     imgBar.classList.add('show');
     var top = Math.min(r.bottom, window.innerHeight) - 46, left = Math.max(r.left, 0) + (Math.min(r.right, window.innerWidth) - Math.max(r.left, 0)) / 2 - imgBar.offsetWidth / 2;
     imgBar.style.top = Math.max(top, r.top + 6) + 'px'; imgBar.style.left = Math.max(6, left) + 'px';
   }
   function hideImgBar(){ clearTimeout(imgHideT); imgHideT = setTimeout(function(){ imgBar.classList.remove('show'); }, 350); }
-  document.addEventListener('mouseover', function(e){ var im = e.target.closest && e.target.closest('[data-se-img]'); if (im) showImgBar(im); else if (e.target.closest && e.target.closest('#seImgBar')) clearTimeout(imgHideT); else if (imgBar.classList.contains('show')) hideImgBar(); });
-  window.addEventListener('scroll', function(){ imgBar.classList.remove('show'); }, {passive:true});
+  document.addEventListener('mouseover', function(e){ var im = e.target.closest && e.target.closest('[data-se-img]'); if (im) showImgBar(im); else if (e.target.closest && (e.target.closest('#seImgBar') || e.target.closest('#seGrid'))) clearTimeout(imgHideT); else if (imgBar.classList.contains('show')) hideImgBar(); });
+  window.addEventListener('scroll', function(){ imgBar.classList.remove('show'); grid.classList.remove('show'); }, {passive:true});
 
   // colour pencil: one site-wide control, told which section a text belongs to
   window.somahubColorSid = function(el){ var h = el.closest('[data-se-sid]'); return h ? h.dataset.seSid : 0; };
