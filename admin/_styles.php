@@ -65,4 +65,22 @@
   form.stacked label{display:block;font-size:0.85rem;font-weight:700;margin-bottom:6px;color:var(--ink);}
   form.stacked input,form.stacked select{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;margin-bottom:16px;box-sizing:border-box;font-family:inherit;}
   form.stacked input:focus,form.stacked select:focus{outline:none;border-color:var(--teal);}
+
+  /* ---- visual refresh ---- */
+  .navbar .brand{color:#fff;text-decoration:none;font-weight:800;display:flex;align-items:center;gap:8px;} .navbar .brand .dot{color:var(--amber);} .navbar .brand small{background:rgba(255,255,255,.14);border-radius:99px;padding:2px 9px;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;}
+  .navlinks a.top.active,.nav-group-label.active{color:var(--amber);}
+  .nav-dropdown a:hover{background:rgba(255,255,255,.08);}
+  main.wrap{padding-top:30px;}
+  h1{letter-spacing:-.01em;} h2{color:var(--teal-deep);font-size:1.15rem;}
+  @media(min-width:641px){
+    table{border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(28,28,22,.05);}
+    th{padding:14px 16px;font-weight:800;} td{padding:14px 16px;vertical-align:middle;}
+    tr:nth-child(even) td{background:#FCFAF4;} tr:hover td{background:#F2F8F8;} thead tr:hover th{background:var(--sand);}
+    td a{color:var(--teal);font-weight:700;text-decoration:none;} td a:hover{text-decoration:underline;}
+  }
+  td select,select{border-radius:999px;}
+  .box{border:1px solid var(--line);}
+  .btn{transition:transform .1s,box-shadow .1s;} .btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(15,82,87,.25);}
+  .btn.danger-link,.link-danger{background:none;border:none;color:#C0392B;font-weight:700;cursor:pointer;padding:0;font:inherit;}
+  .bulkbar{display:flex;gap:10px;align-items:center;margin:0 0 12px;flex-wrap:wrap;}
 </style>

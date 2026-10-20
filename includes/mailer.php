@@ -62,7 +62,7 @@ function resolve_smtp_config(): array {
  * @param string $replyTo   Defaults to hello@somahub.top
  * @return bool             True if accepted for delivery
  */
-function send_somahub_email(string $to, string $subject, string $bodyHtml, string $replyTo = 'hello@somahub.top'): bool {
+function send_somahub_email(string $to, string $subject, string $bodyHtml, string $replyTo = 'hello@somahub.top', array $opts = []): bool {
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
         return false;
     }
@@ -85,6 +85,12 @@ function send_somahub_email(string $to, string $subject, string $bodyHtml, strin
 
         $mail->isHTML(true);
         $mail->Subject = $subject;
+        if (!empty($opts['unsubscribe'])) {
+            // One-click unsubscribe keeps bulk mail out of spam folders (Gmail/Yahoo expect it).
+            $mail->addCustomHeader('List-Unsubscribe', '<' . $opts['unsubscribe'] . '>');
+            $mail->addCustomHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
+            $bodyHtml .= '<p style="margin-top:26px;font-size:12px;color:#8a8677;">Don\'t want these emails? <a href="' . htmlspecialchars($opts['unsubscribe']) . '" style="color:#8a8677;">Unsubscribe</a>.</p>';
+        }
         $mail->Body = email_wrapper($bodyHtml);
         $mail->AltBody = strip_tags($bodyHtml);
 

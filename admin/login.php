@@ -7,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     if (login($email, $password) && current_user()['role'] === 'platform_admin') {
-        header('Location: index.php');
+        header('Location: home.php');
         exit;
     } else {
         logout();
