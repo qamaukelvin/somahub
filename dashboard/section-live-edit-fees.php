@@ -37,7 +37,7 @@ foreach ($fontPairs as $pairKey => $pair) {
 }
 
 require_once __DIR__ . '/../includes/plan.php';
-if (is_premium_locked($school)) {
+if (is_premium_locked($school) && empty($_GET['embed'])) {
     exit('Fee publishing is a paid-plan feature, or your paid term has ended. <a href="checkout.php">Upgrade now</a> to reactivate.');
 }
 $content = json_decode($section['content_json'], true) ?: [];

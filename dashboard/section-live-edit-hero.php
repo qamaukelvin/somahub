@@ -133,7 +133,7 @@ $extraCss = <<<CSS
   .hero-cta.secondary{background:transparent;color:inherit;border:2px solid currentColor;padding:11px 26px;}
   .hero-cta.placeholder{opacity:.75;border-style:dashed;cursor:pointer;}
   .cta-slot{position:relative;display:inline-block;}
-  .cta-menu{display:none;position:absolute;top:100%;left:0;padding-top:8px;z-index:50;}
+  .cta-menu{display:none;position:absolute;top:100%;left:0;padding-top:8px;z-index:9999;}
   .cta-slot:hover .cta-menu{display:block;}
   .cta-menu-panel{background:#1C1C16;border-radius:10px;padding:6px;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);text-align:left;font-family:Arial,sans-serif;}
   .cta-menu-title{color:rgba(255,255,255,.55);font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;padding:6px 8px 4px;}

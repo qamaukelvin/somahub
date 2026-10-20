@@ -12,7 +12,8 @@ function fee_fail(string $m, int $code = 400): void { http_response_code($code);
 
 $sch = $db->prepare("SELECT plan, promo_ends_at FROM schools WHERE id = ?");
 $sch->execute([$user['school_id']]);
-if (is_premium_locked($sch->fetch())) fee_fail('Fee publishing is a paid-plan feature.', 403);
+// Locked schools may still draft fees in the editor; the public site hides the section until the plan is active.
+$sch->fetch();
 
 $action = $_POST['action'] ?? '';
 $sid = (int)$user['school_id'];

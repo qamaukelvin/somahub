@@ -195,6 +195,8 @@ function render_live_edit_head(array $theme, string $extraCss = ''): void { ?>
   [contenteditable="true"]:empty::before{content:attr(data-placeholder);color:#999;font-style:italic;}
 
   .live-photo-wrap{position:relative;}
+  .live-photo-wrap.about-photo{border-radius:10px;overflow:hidden;}
+  .live-photo-wrap.about-photo img{width:100%;max-height:420px;object-fit:cover;display:block;}
   .live-photo-wrap .photo-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.0);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s,background .15s;cursor:pointer;}
   .live-photo-wrap:hover .photo-overlay{opacity:1;background:rgba(0,0,0,0.35);}
   .live-photo-wrap .photo-overlay-btn{background:#fff;color:#1C1C16;border-radius:6px;padding:8px 14px;font-size:0.78rem;font-weight:700;display:flex;align-items:center;gap:6px;}
@@ -265,6 +267,7 @@ function render_live_edit_head(array $theme, string $extraCss = ''): void { ?>
   /* Embedded in the on-site editor: no page chrome, transparent canvas, heights follow the visitor's window. */
   html,body{background:transparent !important;margin:0;overflow:hidden;}
   .live-editor-topbar,.variant-switcher,.size-switcher,.welcome-bar,.save-toast{display:none !important;}
+  <?php if (preg_match('/live-edit-(hero|cta-banner)\.php$/', $_SERVER['SCRIPT_NAME'] ?? '')): ?>body{padding-bottom:140px;}<?php endif; ?>
   .hero-size-full{min-height:<?= $__vh ?>px !important;} .hero-size-half{min-height:<?= intdiv($__vh, 2) ?>px !important;}
 </style>
 <?php endif; ?>

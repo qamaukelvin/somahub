@@ -75,7 +75,7 @@ function render_live_edit_color_tools(int $sectionId, array $theme): void {
       }
     } catch(e){}
     // Top-LEFT of the text: the remove (x) button lives top-right, so they never overlap.
-    pencil.style.top = (window.scrollY + top - 16) + 'px';
+    pencil.style.top = (window.scrollY + Math.max(2, top - 34)) + 'px';
     pencil.style.left = (window.scrollX + Math.max(4, left - 6)) + 'px';
     var dot = document.getElementById('cpDot'); if (dot) dot.style.background = getComputedStyle(el).color;
     pencil.classList.add('show');
