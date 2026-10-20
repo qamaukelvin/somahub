@@ -137,8 +137,6 @@ function plan_badge_text(array $school): array {
       </div>
     </div>
     <?php endif; ?>
-      <?php if ($mySlug): ?><a class="dl" href="https://<?= htmlspecialchars($mySlug) ?>.somahub.top/?edit=1" style="background:#F2A65A;color:#0A3A3E;border-radius:999px;font-weight:800;"><span class="material-symbols-outlined">edit_square</span>Edit site</a><?php endif; ?>
-      <?php if ($mySlug): ?><a class="dl dl-site" href="https://<?= urlencode($mySlug) ?>.somahub.top/" target="_blank" rel="noopener"><span class="material-symbols-outlined">open_in_new</span>View site</a><?php endif; ?>
       <div class="nav-group nav-right">
         <button type="button" class="dl nav-group-label<?= nav_active(['verify.php','checkout.php','invoices.php','google-business.php','account.php']) ?>"><span class="material-symbols-outlined">account_circle</span>Account<span class="material-symbols-outlined caret">expand_more</span></button>
         <div class="nav-dropdown">
@@ -150,6 +148,8 @@ function plan_badge_text(array $school): array {
           <?php if ($impersonatingSchoolId): ?><a href="exit-impersonation.php"><span class="material-symbols-outlined">logout</span>Exit admin mode</a><?php else: ?><a href="logout.php"><span class="material-symbols-outlined">logout</span>Log out</a><?php endif; ?>
         </div>
       </div>
+      <?php if ($mySlug): ?><a class="dl dl-site" href="https://<?= urlencode($mySlug) ?>.somahub.top/" target="_blank" rel="noopener"><span class="material-symbols-outlined">open_in_new</span>View site</a><?php endif; ?>
+      <?php if ($mySlug): ?><a class="dl" href="https://<?= htmlspecialchars($mySlug) ?>.somahub.top/?edit=1" style="background:#F2A65A;color:#0A3A3E;border-radius:999px;font-weight:800;"><span class="material-symbols-outlined">edit_square</span>Edit site</a><?php endif; ?>
     </div>
 
     <button type="button" class="menu-toggle" aria-label="Menu" onclick="document.getElementById('dashnavlinks').classList.toggle('open')"><span class="material-symbols-outlined">menu</span></button>
