@@ -294,24 +294,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   .box{background:#fff;border-radius:8px;padding:28px;margin-bottom:24px;}
   .success{background:#E4F0E7;color:#1B4D3E;padding:12px 16px;border-radius:6px;margin-bottom:20px;font-size:0.9rem;}
   .creds{background:#F4F1E6;padding:14px;border-radius:6px;font-family:monospace;margin:12px 0;}
+  .shead{display:flex;gap:18px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 22px;box-shadow:0 2px 8px rgba(28,28,22,.05);margin-bottom:16px;}
+  .sav{width:60px;height:60px;border-radius:18px;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800;}
+  .sinfo{flex:1;min-width:240px;} .sinfo h1{font-size:1.4rem;margin:0 0 8px;} .chips{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .sacts{display:flex;gap:8px;flex-wrap:wrap;}
+  .vchip{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.72rem;font-weight:800;} .v-verified{background:#DCEFE1;color:#1B4D3E;} .v-pending{background:#FFF1DC;color:#8A5A12;} .v-rejected{background:#FBE8E4;color:#8C3B2E;}
+  .stabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;border-bottom:1px solid var(--line);padding-bottom:12px;}
+  .stabs button{border:none;background:none;padding:9px 16px;border-radius:99px;font:inherit;font-size:.86rem;font-weight:800;color:var(--muted);cursor:pointer;}
+  .stabs button.on{background:var(--teal);color:#fff;} .stabs button.dng{color:#C0392B;} .stabs button.dng.on{background:#C0392B;color:#fff;}
+  .tabpane{display:none;} .tabpane.show{display:block;}
 </style>
 </head>
 <body>
 <?php include __DIR__ . '/_nav.php'; ?>
 
 <main class="wrap">
-  <p style="margin-bottom:16px;"><a href="index.php">&larr; Back to all schools</a></p>
-  <h1>Manage: <?= htmlspecialchars($school['name']) ?></h1>
-  <p style="color:#666;margin-bottom:8px;">
-    Address: <a href="https://<?= urlencode($school['slug']) ?>.somahub.top/" target="_blank"><?= htmlspecialchars($school['slug']) ?>.somahub.top</a>
-    <?php if (($school['verification_status'] ?? '') !== 'verified'): ?>
-      <span style="color:#8C6D1F;font-size:0.82rem;"> (not public yet — pending verification)</span>
-    <?php endif; ?>
-  </p>
-  <p style="margin-bottom:24px;">
-    <a href="https://<?= urlencode($school['slug']) ?>.somahub.top/" target="_blank" class="btn-secondary" style="display:inline-block;background:#0F5257;color:#fff;padding:8px 18px;border-radius:6px;font-size:0.85rem;font-weight:700;text-decoration:none;">👁 Preview Site</a>
-    <span style="font-size:0.78rem;color:#888;margin-left:8px;">Admin preview — visible to you even before it's public.</span>
-  </p>
+  <p style="margin-bottom:14px;"><a href="index.php">&larr; All schools</a></p>
+  <?php $__v = $school['verification_status'] ?? 'pending'; $__since = !empty($school['created_at']) ? date('d M Y', strtotime($school['created_at'])) : '—'; ?>
+  <div class="shead">
+    <div class="sav"><?= htmlspecialchars(strtoupper(mb_substr($school['name'], 0, 1))) ?></div>
+    <div class="sinfo">
+      <h1><?= htmlspecialchars($school['name']) ?></h1>
+      <div class="chips">
+        <span class="plan-badge plan-<?= htmlspecialchars($school['plan']) ?>"><?= ucfirst(str_replace('_', ' ', $school['plan'])) ?></span>
+        <span class="vchip v-<?= htmlspecialchars($__v) ?>"><?= $__v === 'rejected' ? 'Needs attention' : ucfirst($__v) ?></span>
+        <span class="vchip" style="background:#EEE;color:#555;"><?= ucfirst($school['status']) ?></span>
+        <span style="color:var(--muted);font-size:.82rem;">Joined <?= $__since ?></span>
+      </div>
+      <div style="font-size:.86rem;color:var(--muted);margin-top:6px;">
+        <a href="https://<?= urlencode($school['slug']) ?>.somahub.top/" target="_blank"><?= htmlspecialchars($school['slug']) ?>.somahub.top</a>
+        <?php if ($owner): ?> · Owner: <?= htmlspecialchars($owner['name'] ?? '') ?> <a href="mailto:<?= htmlspecialchars($owner['email']) ?>"><?= htmlspecialchars($owner['email']) ?></a><?php endif; ?>
+      </div>
+    </div>
+    <div class="sacts">
+      <form method="POST" action="impersonate.php" style="display:inline"><input type="hidden" name="school_id" value="<?= (int)$school['id'] ?>"><button class="btn" type="submit">Edit their site</button></form>
+      <a class="btn secondary" href="https://<?= urlencode($school['slug']) ?>.somahub.top/" target="_blank">View site</a>
+      <?php if (!empty($school['email'])): ?><a class="btn secondary" href="outreach.php?<?= htmlspecialchars(http_build_query(['school_name' => $school['name'], 'name' => $owner['name'] ?? '', 'email' => $school['email'], 'phone' => $school['phone'] ?? '', 'slug' => $school['slug']])) ?>">Message</a><?php endif; ?>
+    </div>
+  </div>
+  <div class="stabs" id="stabs">
+    <button type="button" data-t="details" class="on">Details</button><button type="button" data-t="verify">Verification</button><button type="button" data-t="owner">Owner &amp; access</button><button type="button" data-t="content">Content</button><button type="button" data-t="site">Website</button><button type="button" data-t="danger" class="dng">Danger zone</button>
+  </div>
 
   <?php if ($message): ?><div class="success"><?= htmlspecialchars($message) ?></div><?php endif; ?>
   <?php if ($newTempPassword): ?>
@@ -321,7 +344,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   <?php endif; ?>
 
-  <div class="box">
+  <div class="box tabpane" data-tab="details">
     <h3 style="margin-bottom:16px;">School Details</h3>
     <form method="POST" class="stacked">
       <input type="hidden" name="action" value="update_details">
@@ -384,7 +407,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
   </div>
 
-  <div class="box">
+  <div class="box tabpane" data-tab="content">
     <h3 style="margin-bottom:10px;">Generic Content</h3>
     <p style="font-size:0.85rem;color:#666;margin-bottom:14px;">Fill in starter content matched to the school type — useful if the school hasn't written their own yet, or as a quick starting point for you to hand off.</p>
     <form method="POST" class="stacked">
@@ -404,7 +427,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
   </div>
 
-  <div class="box">
+  <div class="box tabpane" data-tab="verify">
     <h3 style="margin-bottom:16px;">Verification</h3>
     <?php
       $statusLabels = ['pending' => 'Pending Review', 'verified' => 'Verified', 'rejected' => 'Needs Attention'];
@@ -466,7 +489,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
   </div>
 
-  <div class="box">
+  <div class="box tabpane" data-tab="owner">
     <h3 style="margin-bottom:16px;">Owner Login</h3>
     <?php if ($owner): ?>
       <p style="margin-bottom:16px;">
@@ -483,7 +506,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
   </div>
 
-  <div class="box">
+  <div class="box tabpane" data-tab="site">
     <h3 style="margin-bottom:16px;">Website Content</h3>
     <p style="color:var(--muted);font-size:0.88rem;margin-bottom:14px;">Edit this school's sections directly, using the same editor they use.</p>
     <form method="POST" action="impersonate.php">
@@ -492,7 +515,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
   </div>
 
-  <div class="box" style="border:1.5px solid #F5C6C0;">
+  <div class="box tabpane" data-tab="danger" style="border:1.5px solid #F5C6C0;">
     <h3 style="margin-bottom:8px;color:#C0392B;">Danger Zone</h3>
     <p style="color:var(--muted);font-size:0.88rem;margin-bottom:16px;">
       This permanently deletes <strong><?= htmlspecialchars($school['name']) ?></strong>, including their website, all uploaded photos, enrollment applications, results, and fee records. A full data backup is automatically saved to <a href="archived-schools.php">Archived Schools</a> first, and a summary is emailed to them if they have a real email on file. The live account itself cannot be restored.
@@ -505,5 +528,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
   </div>
 </main>
+<script>
+(function(){ var tabs=document.querySelectorAll('#stabs button'), panes=document.querySelectorAll('.tabpane');
+  function go(t){ tabs.forEach(function(b){ b.classList.toggle('on', b.dataset.t===t); }); panes.forEach(function(p){ p.classList.toggle('show', p.dataset.tab===t); }); try{ history.replaceState(null,'','#'+t); }catch(e){} }
+  tabs.forEach(function(b){ b.addEventListener('click', function(){ go(b.dataset.t); }); });
+  var h=(location.hash||'').slice(1); go(['details','verify','owner','content','site','danger'].indexOf(h)>-1?h:'details'); })();
+</script>
 </body>
 </html>

@@ -77,6 +77,13 @@ function qs_with($overrides) {
 <title>Somahub Admin</title>
 <?php include __DIR__ . '/_styles.php'; ?>
 <style>
+  .fbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;}
+  .fbar input[type=text]{flex:1;min-width:200px;padding:10px 14px;border:1.5px solid var(--line);border-radius:99px;font:inherit;}
+  .fbar select{padding:9px 12px;border:1.5px solid var(--line);font:inherit;font-size:.85rem;background:#fff;}
+  .sch{display:flex;align-items:center;gap:12px;} .sch .av{width:40px;height:40px;border-radius:12px;background:#E3F1F2;color:var(--teal);display:flex;align-items:center;justify-content:center;font-weight:800;flex:0 0 auto;}
+  .sch b{display:block;color:var(--teal-deep);} .sch small{color:var(--muted);}
+  .vchip{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.72rem;font-weight:800;} .v-verified{background:#DCEFE1;color:#1B4D3E;} .v-pending{background:#FFF1DC;color:#8A5A12;} .v-rejected{background:#FBE8E4;color:#8C3B2E;}
+  .rowacts a{display:inline-block;margin-right:6px;padding:6px 12px;border-radius:99px;border:1.5px solid var(--teal);font-size:.78rem;} .rowacts a.fill{background:var(--teal);color:#fff !important;}
   .pagination{display:flex;gap:6px;justify-content:center;margin-top:20px;flex-wrap:wrap;}
   .pagination a, .pagination span{padding:6px 12px;border-radius:5px;font-size:0.85rem;text-decoration:none;color:#0F5257;background:#F4F1E6;}
   .pagination .current{background:#0F5257;color:#fff;font-weight:700;}
@@ -91,27 +98,27 @@ function qs_with($overrides) {
     <a href="school-new.php" class="btn">+ Add School</a>
   </div>
 
-  <form method="GET" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+  <form method="GET" class="fbar">
     <input type="text" name="q" value="<?= htmlspecialchars($search) ?>" placeholder="Search by name, subdomain, or county…" style="flex:1;min-width:200px;padding:9px 12px;border:1px solid #ddd;border-radius:4px;">
-    <select name="plan" style="padding:9px;border:1px solid #ddd;border-radius:4px;">
+    <select name="plan">
       <option value="">All Plans</option>
       <option value="free" <?= $planFilter === 'free' ? 'selected' : '' ?>>Free</option>
       <option value="promo_paid" <?= $planFilter === 'promo_paid' ? 'selected' : '' ?>>Trial</option>
       <option value="paid" <?= $planFilter === 'paid' ? 'selected' : '' ?>>Premium</option>
     </select>
-    <select name="status" style="padding:9px;border:1px solid #ddd;border-radius:4px;">
+    <select name="status">
       <option value="">All Statuses</option>
       <option value="trial" <?= $statusFilter === 'trial' ? 'selected' : '' ?>>Trial</option>
       <option value="active" <?= $statusFilter === 'active' ? 'selected' : '' ?>>Active</option>
       <option value="suspended" <?= $statusFilter === 'suspended' ? 'selected' : '' ?>>Suspended</option>
     </select>
-    <select name="verification" style="padding:9px;border:1px solid #ddd;border-radius:4px;">
+    <select name="verification">
       <option value="">All Verification</option>
       <option value="pending" <?= $verificationFilter === 'pending' ? 'selected' : '' ?>>Pending</option>
       <option value="verified" <?= $verificationFilter === 'verified' ? 'selected' : '' ?>>Verified</option>
       <option value="rejected" <?= $verificationFilter === 'rejected' ? 'selected' : '' ?>>Needs Attention</option>
     </select>
-    <select name="sort" style="padding:9px;border:1px solid #ddd;border-radius:4px;">
+    <select name="sort">
       <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Newest First</option>
       <option value="oldest" <?= $sort === 'oldest' ? 'selected' : '' ?>>Oldest First</option>
       <option value="name_asc" <?= $sort === 'name_asc' ? 'selected' : '' ?>>Name A-Z</option>
@@ -128,11 +135,10 @@ function qs_with($overrides) {
     <p style="color:#888;padding:20px;text-align:center;">No schools match your search or filters.</p>
   <?php else: ?>
   <table>
-    <thead><tr><th>School</th><th>Subdomain</th><th>Plan</th><th>Status</th><th>Enquiries</th><th></th></tr></thead>
+    <thead><tr><th>School</th><th>Plan</th><th>Verification</th><th>Status</th><th>Enquiries</th><th></th></tr></thead>
     <?php foreach ($schools as $s): ?>
     <tr>
-      <td data-label="School"><?= htmlspecialchars($s['name']) ?></td>
-      <td data-label="Subdomain"><?= htmlspecialchars($s['slug']) ?>.somahub.top</td>
+      <td data-label="School"><div class="sch"><span class="av"><?= htmlspecialchars(strtoupper(mb_substr($s['name'], 0, 1))) ?></span><span><b><?= htmlspecialchars($s['name']) ?></b><small><?= htmlspecialchars($s['slug']) ?>.somahub.top<?= !empty($s['county']) ? ' · ' . htmlspecialchars($s['county']) : '' ?></small></span></div></td>
       <td data-label="Plan">
         <span class="plan-badge plan-<?= $s['plan'] ?>"><?= ucfirst(str_replace('_',' ',$s['plan'])) ?></span>
         <?php if (is_premium_locked($s) && $s['plan'] === 'promo_paid'): ?>
@@ -141,9 +147,10 @@ function qs_with($overrides) {
           <br><small>until <?= date('d M Y', strtotime($s['promo_ends_at'])) ?></small>
         <?php endif; ?>
       </td>
+      <td data-label="Verification"><span class="vchip v-<?= htmlspecialchars($s['verification_status']) ?>"><?= $s['verification_status'] === 'rejected' ? 'Needs attention' : ucfirst($s['verification_status']) ?></span></td>
       <td data-label="Status"><?= ucfirst($s['status']) ?></td>
       <td data-label="Enquiries"><?= $s['new_enrollments'] > 0 ? '<strong>'.$s['new_enrollments'].' new</strong>' : '—' ?></td>
-      <td data-label=""><a href="school-edit.php?id=<?= $s['id'] ?>">Manage</a></td>
+      <td data-label="" class="rowacts"><a class="fill" href="school-edit.php?id=<?= $s['id'] ?>">Manage</a><a href="https://<?= htmlspecialchars($s['slug']) ?>.somahub.top/" target="_blank">View</a></td>
     </tr>
     <?php endforeach; ?>
   </table>

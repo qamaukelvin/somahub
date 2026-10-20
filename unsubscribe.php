@@ -3,6 +3,7 @@
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/settings.php';
 $db = get_db();
+try { $db->exec("CREATE TABLE IF NOT EXISTS email_unsubscribes (email VARCHAR(190) PRIMARY KEY, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)"); } catch (Throwable $e) {}
 function unsub_token(PDO $db, string $email): string {
     $key = get_setting($db, 'unsub_key', '');
     if ($key === '') { $key = bin2hex(random_bytes(16)); set_setting($db, 'unsub_key', $key); }

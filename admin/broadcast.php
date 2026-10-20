@@ -5,6 +5,12 @@ require_once __DIR__ . '/../includes/mailer.php';
 require_once __DIR__ . '/../includes/settings.php';
 require_once __DIR__ . '/../unsubscribe.php'; // unsub_token()
 $db = get_db();
+// Create the bulk-mail tables on first visit so nothing has to be run by hand.
+foreach ([
+ "CREATE TABLE IF NOT EXISTS broadcasts (id INT AUTO_INCREMENT PRIMARY KEY, subject VARCHAR(200) NOT NULL, body TEXT NOT NULL, cta_text VARCHAR(80) NOT NULL DEFAULT '', cta_link VARCHAR(300) NOT NULL DEFAULT '', audience VARCHAR(40) NOT NULL, total INT NOT NULL DEFAULT 0, sent INT NOT NULL DEFAULT 0, failed INT NOT NULL DEFAULT 0, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+ "CREATE TABLE IF NOT EXISTS broadcast_recipients (id INT AUTO_INCREMENT PRIMARY KEY, broadcast_id INT NOT NULL, email VARCHAR(190) NOT NULL, name VARCHAR(150) NOT NULL DEFAULT '', school VARCHAR(190) NOT NULL DEFAULT '', status ENUM('queued','sent','failed') NOT NULL DEFAULT 'queued', error VARCHAR(255) NULL, sent_at DATETIME NULL, INDEX (broadcast_id, status))",
+ "CREATE TABLE IF NOT EXISTS email_unsubscribes (email VARCHAR(190) PRIMARY KEY, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+] as $__ddl) { try { $db->exec($__ddl); } catch (Throwable $e) { error_log('broadcast tables: ' . $e->getMessage()); } }
 
 $audiences = [
     'schools_all'        => 'All schools',
