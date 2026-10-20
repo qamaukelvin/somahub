@@ -55,6 +55,21 @@ $newEnrollments = $enrollCount->fetch()['c'];
       <h3>Edit your site</h3>
       <p>Open your real website and click anything to change it. Colours, fonts, photos, sections and undo are all there.</p>
     </a>
+    <a href="https://<?= htmlspecialchars($school['slug']) ?>.somahub.top/" target="_blank" rel="noopener" class="card-link">
+      <h3>View my site</h3>
+      <p>See your website the way parents and visitors see it: <?= htmlspecialchars($school['slug']) ?>.somahub.top</p>
+    </a>
+    <?php $__vs = $school['verification_status'] ?? ''; if ($__vs === 'verified'): ?>
+    <a href="verify.php" class="card-link">
+      <h3>Verification: done &#10003;</h3>
+      <p>Your school is verified. Open to review your documents.</p>
+    </a>
+    <?php else: ?>
+    <a href="verify.php" class="card-link" style="border:2px solid #C0392B;background:#FDF1EF;">
+      <h3>Verify your school</h3>
+      <p><?= $__vs === 'pending' ? 'Your documents are under review. Open to see the status.' : 'Upload your agreement and ID to keep your site online. It only takes a few minutes.' ?></p>
+    </a>
+    <?php endif; ?>
     <a href="enrollment.php" class="card-link">
       <h3>Enrollment Enquiries</h3>
       <p><?= $newEnrollments ?> new application<?= $newEnrollments == 1 ? '' : 's' ?> waiting for review.</p>

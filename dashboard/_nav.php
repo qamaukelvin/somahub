@@ -105,7 +105,6 @@ function plan_badge_text(array $school): array {
 
     <div class="navlinks" id="dashnavlinks">
       <a class="dl<?= nav_active(['index.php']) ?>" href="index.php"><span class="material-symbols-outlined">dashboard</span>Home</a>
-      <?php if ($mySlug): ?><a class="dl" href="https://<?= htmlspecialchars($mySlug) ?>.somahub.top/?edit=1" style="background:#F2A65A;color:#0A3A3E;border-radius:999px;font-weight:800;"><span class="material-symbols-outlined">edit_square</span>Edit site</a><?php endif; ?>
       <div class="nav-group">
         <button type="button" class="dl nav-group-label<?= nav_active(['enrollment.php','contact-messages.php','results.php','attendance.php','fees.php']) ?>"><span class="material-symbols-outlined">folder_open</span>School data<span class="material-symbols-outlined caret">expand_more</span></button>
         <div class="nav-dropdown">
@@ -116,26 +115,7 @@ function plan_badge_text(array $school): array {
           <a href="fees.php"><span class="material-symbols-outlined">payments</span>Fees</a>
         </div>
       </div>
-      <div class="nav-group">
-        <button type="button" class="dl nav-group-label<?= nav_active(['verify.php','checkout.php','invoices.php','google-business.php','account.php']) ?>"><span class="material-symbols-outlined">account_circle</span>Account<span class="material-symbols-outlined caret">expand_more</span></button>
-        <div class="nav-dropdown">
-          <a href="verify.php"><span class="material-symbols-outlined">verified</span>Verification</a>
-          <a href="checkout.php"><span class="material-symbols-outlined">workspace_premium</span>Upgrade</a>
-          <a href="invoices.php"><span class="material-symbols-outlined">receipt_long</span>Invoices</a>
-          <a href="google-business.php"><span class="material-symbols-outlined">storefront</span>Google Business</a>
-          <a href="account.php"><span class="material-symbols-outlined">manage_accounts</span>Account settings</a>
-        </div>
-      </div>
-      <span class="dnav-sep"></span>
-      <?php if ($mySlug): ?><a class="dl dl-site" href="https://<?= urlencode($mySlug) ?>.somahub.top/" target="_blank" rel="noopener"><span class="material-symbols-outlined">open_in_new</span>View site</a><?php endif; ?>
-      <?php if ($impersonatingSchoolId): ?>
-        <a class="dl" href="exit-impersonation.php"><span class="material-symbols-outlined">logout</span>Exit admin mode</a>
-      <?php else: ?>
-        <a class="dl" href="logout.php"><span class="material-symbols-outlined">logout</span>Log out</a>
-      <?php endif; ?>
-    </div>
-
-    <?php if ($effectiveSchoolId): ?>
+      <?php if ($effectiveSchoolId): ?>
     <div class="notif-bell-wrap">
       <button type="button" class="notif-bell" onclick="toggleNotifPanel()" aria-label="Notifications">
         <span class="material-symbols-outlined"><?= $unreadCount > 0 ? 'notifications_unread' : 'notifications' ?></span><?php if ($unreadCount > 0): ?><span class="notif-badge"><?= $unreadCount > 9 ? '9+' : $unreadCount ?></span><?php endif; ?>
@@ -157,6 +137,21 @@ function plan_badge_text(array $school): array {
       </div>
     </div>
     <?php endif; ?>
+      <?php if ($mySlug): ?><a class="dl" href="https://<?= htmlspecialchars($mySlug) ?>.somahub.top/?edit=1" style="background:#F2A65A;color:#0A3A3E;border-radius:999px;font-weight:800;"><span class="material-symbols-outlined">edit_square</span>Edit site</a><?php endif; ?>
+      <?php if ($mySlug): ?><a class="dl dl-site" href="https://<?= urlencode($mySlug) ?>.somahub.top/" target="_blank" rel="noopener"><span class="material-symbols-outlined">open_in_new</span>View site</a><?php endif; ?>
+      <div class="nav-group nav-right">
+        <button type="button" class="dl nav-group-label<?= nav_active(['verify.php','checkout.php','invoices.php','google-business.php','account.php']) ?>"><span class="material-symbols-outlined">account_circle</span>Account<span class="material-symbols-outlined caret">expand_more</span></button>
+        <div class="nav-dropdown">
+          <a href="verify.php"><span class="material-symbols-outlined">verified</span>Verification</a>
+          <a href="checkout.php"><span class="material-symbols-outlined">workspace_premium</span>Upgrade</a>
+          <a href="invoices.php"><span class="material-symbols-outlined">receipt_long</span>Invoices</a>
+          <a href="google-business.php"><span class="material-symbols-outlined">storefront</span>Google Business</a>
+          <a href="account.php"><span class="material-symbols-outlined">manage_accounts</span>Account settings</a>
+          <?php if ($impersonatingSchoolId): ?><a href="exit-impersonation.php"><span class="material-symbols-outlined">logout</span>Exit admin mode</a><?php else: ?><a href="logout.php"><span class="material-symbols-outlined">logout</span>Log out</a><?php endif; ?>
+        </div>
+      </div>
+    </div>
+
     <button type="button" class="menu-toggle" aria-label="Menu" onclick="document.getElementById('dashnavlinks').classList.toggle('open')"><span class="material-symbols-outlined">menu</span></button>
   </div>
 </nav>
@@ -175,6 +170,8 @@ function plan_badge_text(array $school): array {
   .dnav .dl .material-symbols-outlined{font-size:19px;opacity:.9;} .dnav .caret{font-size:18px;margin-left:-2px;opacity:.7;}
   .dnav .dl:hover,.dnav .nav-group:hover .nav-group-label,.dnav .nav-group:focus-within .nav-group-label{background:rgba(255,255,255,.12);text-decoration:none;}
   .dnav .dl.active{background:rgba(255,255,255,.2);color:#fff;}
+  .dnav .nav-right .nav-dropdown{left:auto;right:0;}
+  .dnav .navlinks .notif-bell-wrap{display:inline-flex;align-items:center;}
   .dnav-sep{width:1px;height:22px;background:rgba(255,255,255,.2);margin:0 6px;}
   .dnav .dl-site{color:#fff;}
   .dnav .nav-dropdown{top:calc(100% - 2px);left:0;background:#fff;border-radius:12px;padding:6px;min-width:210px;box-shadow:0 14px 34px rgba(0,0,0,.22);}
@@ -200,7 +197,6 @@ function plan_badge_text(array $school): array {
     .dnav .menu-toggle{display:flex;margin-left:0;}
     .dnav .navlinks{display:none;position:absolute;top:58px;left:0;right:0;margin:0;flex-direction:column;align-items:stretch;gap:2px;background:var(--teal);padding:10px 14px 16px;max-height:calc(100vh - 58px);overflow-y:auto;box-shadow:0 14px 24px rgba(0,0,0,.25);}
     .dnav .navlinks.open{display:flex;}
-    .dnav .notif-bell-wrap{margin-left:auto;}
     .dnav .dl,.dnav .nav-group-label{width:100%;padding:11px 12px;}
     .dnav .nav-group{width:100%;} .dnav .nav-group-label .caret{display:none;}
     .dnav .nav-dropdown,.dnav .nav-group:hover .nav-dropdown{display:flex !important;position:static;background:rgba(255,255,255,.07);box-shadow:none;padding:2px 0 4px 14px;min-width:0;}
