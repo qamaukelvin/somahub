@@ -100,6 +100,27 @@ function render_live_edit_script(int $sectionId, string $currentVariant, string 
     span.focus();
   };
 
+  // POST with real upload progress. In the on-site editor the percentage is
+  // relayed to the parent window's pill; standalone it shows in the toast.
+  function uploadProgress(pct, name, done) {
+    try { if (window.parent !== window) { window.parent.postMessage({seProg: {pct: pct, name: name || '', done: !!done}}, location.origin); return; } } catch (e) {}
+    if (done) return;
+    toastMsg.textContent = 'Uploading ' + (name ? name + ' ' : '') + pct + '%';
+    toast.classList.remove('err'); toast.classList.add('show');
+  }
+  function uploadXhr(url, fd, name) {
+    return new Promise(function(resolve, reject){
+      var x = new XMLHttpRequest();
+      x.open('POST', url); x.withCredentials = true;
+      x.upload.onprogress = function(e){ if (e.lengthComputable) uploadProgress(Math.round(e.loaded / e.total * 100), name, false); };
+      x.upload.onload = function(){ uploadProgress(100, name, false); };
+      x.onload = function(){ uploadProgress(100, name, true); try { resolve(JSON.parse(x.responseText)); } catch (e) { reject(e); } };
+      x.onerror = function(){ uploadProgress(0, name, true); reject(new Error('network')); };
+      uploadProgress(0, name, false);
+      x.send(fd);
+    });
+  }
+
   // Single photo upload (used by every photo slot, including each box's
   // grid slot) - returns a Promise so bulk upload can chain calls.
   function uploadPhoto(field, file) {
@@ -107,8 +128,7 @@ function render_live_edit_script(int $sectionId, string $currentVariant, string 
     fd.append('section_id', sectionId);
     fd.append(field, file);
     var wrap = document.querySelector('.live-photo-wrap[data-photo-field="' + field + '"]');
-    return fetch('section-save-ajax.php', { method: 'POST', body: fd, credentials: 'same-origin' })
-      .then(function(r){ return r.json(); })
+    return uploadXhr('section-save-ajax.php', fd, file.name)
       .then(function(data){
         if (data.ok && data.content && data.content[field]) {
           if (!wrap) return true; // no slot on screen yet (e.g. an "+ Add photo" tile) - caller reloads

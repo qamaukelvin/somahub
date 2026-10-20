@@ -119,6 +119,8 @@ try {
   .se-pal button.on{border-color:#0F5257;background:#E6F0EE;} .se-dots span{display:inline-block;width:13px;height:13px;border-radius:50%;margin-right:-4px;border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.14);}
   .se-pop h5{margin:2px 4px 8px;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#777;} .se-pop select{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font:inherit;}
   #seToast{position:fixed;top:14px;right:14px;z-index:99999;background:#0F5257;color:#fff;border-radius:999px;padding:9px 16px;font:700 .8rem Arial,sans-serif;opacity:0;transform:translateY(-8px);transition:.2s;pointer-events:none;}
+  #seProg{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:99999;background:#1C1C16;color:#fff;border-radius:12px;padding:10px 16px;font:700 .8rem Arial,sans-serif;min-width:220px;display:none;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+  #seProg.show{display:block;} #seProg .bar{height:6px;border-radius:99px;background:rgba(255,255,255,.25);margin-top:7px;overflow:hidden;} #seProg .bar i{display:block;height:100%;width:0;background:#4ADE9B;transition:width .15s;}
   #seToast.show{opacity:1;transform:none;} #seToast.err{background:#B3261E;}
   #seModal{position:fixed;inset:0;z-index:99998;background:rgba(10,30,32,.6);display:none;align-items:center;justify-content:center;padding:16px;} #seModal.open{display:flex;}
   #seModal .card{background:#fff;color:#1C1C16;border-radius:18px;max-width:420px;width:100%;padding:22px;font-family:Arial,sans-serif;max-height:80vh;overflow:auto;}
@@ -182,7 +184,7 @@ try {
   section.se-dragsrc,.se-placeholder.se-dragsrc{opacity:.35;} #seModal.se-away{opacity:0;pointer-events:none;}
   @media(max-width:640px){#seBar .lbl{display:none;} .se-btn .lbl{display:none;} .se-btn{padding:7px 9px;}}
 </style>
-<div id="seToast"></div>
+<div id="seToast"></div><div id="seProg"><span id="seProgT">Uploading…</span><div class="bar"><i id="seProgB"></i></div></div>
 <div id="seModal"><div class="card"><h3 id="seMT"></h3><p id="seMP"></p><div id="seMB"></div><div class="acts" id="seMA"></div></div></div>
 <div id="seBar">
   <button type="button" id="seUndo" title="Undo" <?= $__hist['canUndo'] ? '' : 'disabled' ?>><span class="se-i">undo</span><span class="lbl">Undo</span></button>
@@ -232,7 +234,19 @@ try {
 
   // ---------- saving ----------
   var pending = {}, timers = {};
-  function post(url, fd){ return fetch(url, { method:'POST', body:fd, credentials:'same-origin' }).then(function(r){ return r.json(); }); }
+  var progT;
+  function prog(pct, name, done){ var p = $('seProg'); if (done) { clearTimeout(progT); progT = setTimeout(function(){ p.className = ''; }, 500); return; } clearTimeout(progT); p.className = 'show'; $('seProgT').textContent = (pct >= 100 ? 'Saving ' : 'Uploading ') + (name || 'photo') + (pct >= 100 ? '…' : ' ' + pct + '%'); $('seProgB').style.width = pct + '%'; }
+  function hasFile(fd){ var f = false; try { fd.forEach(function(v){ if (v instanceof File) f = true; }); } catch (e) {} return f; }
+  function post(url, fd){
+    if (hasFile(fd)) return new Promise(function(res, rej){
+      var x = new XMLHttpRequest(), nm = ''; fd.forEach(function(v){ if (v instanceof File && !nm) nm = v.name; });
+      x.open('POST', url); x.withCredentials = true;
+      x.upload.onprogress = function(e){ if (e.lengthComputable) prog(Math.round(e.loaded / e.total * 100), nm, false); };
+      x.onload = function(){ prog(100, nm, true); try { res(JSON.parse(x.responseText)); } catch (e) { rej(e); } };
+      x.onerror = function(){ prog(0, nm, true); rej(new Error('network')); };
+      prog(0, nm, false); x.send(fd);
+    });
+    return fetch(url, { method:'POST', body:fd, credentials:'same-origin' }).then(function(r){ return r.json(); }); }
   function ops(action, extra){ var fd = new FormData(); fd.append('action', action); for (var k in (extra||{})) fd.append(k, extra[k]); return post(OPS, fd); }
   function saveField(sid, field, value){
     var fd = new FormData(); fd.append('section_id', sid); fd.append(field, value);
@@ -799,7 +813,7 @@ try {
     });
     fr.src = fr.dataset.src + '&vh=' + window.innerHeight;
   });
-  window.addEventListener('message', function(e){ if (e.origin !== location.origin) return; var m = e.data && e.data.seToast; if (m) toast(m.msg || (m.ok ? 'Saved' : 'Could not save'), !m.ok); });
+  window.addEventListener('message', function(e){ if (e.origin !== location.origin) return; var pg = e.data && e.data.seProg; if (pg) prog(pg.pct, pg.name, pg.done); var m = e.data && e.data.seToast; if (m) toast(m.msg || (m.ok ? 'Saved' : 'Could not save'), !m.ok); });
 
   // colour pencil: one site-wide control, told which section a text belongs to
   window.somahubColorSid = function(el){ var h = el.closest('[data-se-sid]'); return h ? h.dataset.seSid : 0; };

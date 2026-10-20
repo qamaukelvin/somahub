@@ -115,7 +115,7 @@ $extraCss = <<<CSS
     .hero-photo img{max-height:220px;aspect-ratio:16/9;}
     .hero-mosaic{height:220px;}
   }
-  .hero-bgfixed-variant{position:relative;padding:0;overflow:hidden;min-height:420px;display:flex;align-items:flex-end;background-size:cover;background-position:center;}
+  .hero-bgfixed-variant{position:relative;padding:0;overflow:visible;min-height:420px;display:flex;align-items:flex-end;background-size:cover;background-position:center;}
   .hero-bg-overlay{position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.7));pointer-events:none;}
   .hero-bg-content{position:relative;z-index:2;padding:60px 6% 50px;color:#fff;max-width:720px;}
   .hero-bg-content h1{color:#fff;}
@@ -150,7 +150,7 @@ $extraCss = <<<CSS
   /* The CTA buttons themselves are a curated picker, not free text (see
      the dropdowns below), so they aren't contenteditable - this just
      keeps the editor's cursor from implying they are. */
-  .hero-photo-layer{position:absolute;inset:0;z-index:0;}
+  .hero-photo-layer{position:absolute;inset:0;z-index:0;overflow:hidden;}
   .hero-photo-layer .live-photo-box{height:100%;border-radius:0;}
   /* Text sits above the photo layer, but the layer's hover grid still
      needs to be reachable - the content only blocks the area it covers. */

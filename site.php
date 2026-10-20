@@ -442,7 +442,9 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
 
   /* TESTIMONIALS */
   .testimonial-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;}
-  .testimonial-card{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:24px;}
+  .testimonial-card{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:24px;min-width:0;overflow-wrap:anywhere;display:flex;flex-direction:column;}
+  .testimonial-card .quote{flex:1;}
+  .testimonial-slide,.testimonial-single,.testimonial-wall>*{overflow-wrap:anywhere;}
 
   /* Capping - same mechanism as Staff's, scoped to testimonialsContainer.
      All 4 capped variants' items default to display:block, so no
@@ -657,7 +659,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
 
   /* CONTACT */
   .contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
-  .contact-item{background:#fff;border-radius:10px;padding:20px 22px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+  .contact-item{background:#fff;border-radius:10px;padding:20px 22px;box-shadow:0 1px 4px rgba(0,0,0,0.05);min-width:0;overflow-wrap:anywhere;}
   .school-map-embed{height:300px;border-radius:12px;margin-top:20px;}
 
   .contact-side-by-side{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;}

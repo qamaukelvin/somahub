@@ -82,8 +82,9 @@ function tm_card(array $c, int $i, bool $isNew, array $o): void {
 
 $extraCss = <<<CSS
   section#testimonials{background:var(--bg);padding:60px 0;min-height:70vh;}
-  .testimonial-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px;align-items:start;}
-  .testimonial-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;padding:24px;}
+  .testimonial-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px;align-items:stretch;}
+  .testimonial-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;padding:24px;min-width:0;overflow-wrap:anywhere;display:flex;flex-direction:column;}
+  .testimonial-card .quote{flex:1;}
   .testimonial-card .quote{font-size:.95rem;font-style:italic;color:#3a3a34;margin-bottom:14px;}
   .testimonial-card .author{font-size:.82rem;font-weight:700;color:var(--primary);}
   .q-wrap::before{content:"\\201C";} .q-wrap::after{content:"\\201D";}

@@ -59,6 +59,8 @@ if ($action === 'save') {
         $new = $dup->fetch();
         if ($new) log_content_change($db, $sid, $user['id'], 'fee', $new['id'], $dupRow ? 'update' : 'create', $dupRow ?: null, $new);
     }
+    // First fee added: make the Fees section live so the owner doesn't have to toggle it by hand.
+    $db->prepare("UPDATE site_sections SET is_visible = 1 WHERE school_id = ? AND section_type_id = (SELECT id FROM section_types WHERE key_name = 'fees' LIMIT 1)")->execute([$sid]);
     echo json_encode(['ok' => true]); exit;
 }
 
