@@ -47,7 +47,7 @@ foreach ($schools as $school) {
             send_plan_reminder($db, $school, $planDaysLeft, 'plan_reminder_sent_1d');
             $sentCount++;
         }
-    } elseif ($planLocked && $school['plan'] === 'promo_paid' && !$school['plan_reminder_sent_expired']) {
+    } elseif ($planLocked && in_array($school['plan'], ['promo_paid', 'paid'], true) && !empty($school['promo_ends_at']) && !$school['plan_reminder_sent_expired']) {
         send_plan_expired_notice($db, $school);
         $sentCount++;
     }
@@ -97,29 +97,31 @@ function bell(PDO $db, int $schoolId, string $type, string $title, string $msg, 
 }
 
 function send_plan_reminder(PDO $db, array $school, int $daysLeft, string $column): void {
-    bell($db, (int)$school['id'], 'trial_ending', "Trial ends in {$daysLeft} day" . ($daysLeft == 1 ? '' : 's'), 'Upgrade to keep enrollment, results and fees running.', 'checkout.php');
+    $what = $school['plan'] === 'paid' ? 'Premium plan' : 'trial';
+    bell($db, (int)$school['id'], 'trial_ending', ucfirst($what) . " ends in {$daysLeft} day" . ($daysLeft == 1 ? '' : 's'), $what === 'trial' ? 'Upgrade to keep enrollment, results and fees running.' : 'Renew to keep enrollment, results and fees running.', 'checkout.php');
     $email = get_school_owner_email($db, $school['id']);
     if ($email) {
         $body = "
-            <h2 style='color:#0F5257;margin-top:0;'>Your Trial Ends in {$daysLeft} Day" . ($daysLeft == 1 ? '' : 's') . "</h2>
-            <p><strong>" . htmlspecialchars($school['name']) . "</strong>'s premium features (enrollment, results, fees) will be paused once your trial ends, unless you upgrade to the paid plan.</p>
-            <p><a href='https://somahub.top/dashboard/checkout.php' style='color:#0F5257;font-weight:700;'>Upgrade now &rarr;</a></p>
+            <h2 style='color:#0F5257;margin-top:0;'>Your " . ucfirst($what) . " Ends in {$daysLeft} Day" . ($daysLeft == 1 ? '' : 's') . "</h2>
+            <p><strong>" . htmlspecialchars($school['name']) . "</strong>'s premium features (enrollment, results, fees) will be paused once your {$what} ends, unless you " . ($what === 'trial' ? 'upgrade to the paid plan' : 'renew') . ".</p>
+            <p><a href='https://somahub.top/dashboard/checkout.php' style='color:#0F5257;font-weight:700;'>" . ($what === 'trial' ? 'Upgrade now' : 'Renew now') . " &rarr;</a></p>
         ";
-        send_somahub_email($email, "Your Somahub trial ends in {$daysLeft} day" . ($daysLeft == 1 ? '' : 's'), $body);
+        send_somahub_email($email, "Your Somahub {$what} ends in {$daysLeft} day" . ($daysLeft == 1 ? '' : 's'), $body);
     }
     $db->prepare("UPDATE schools SET {$column} = 1 WHERE id = ?")->execute([$school['id']]);
 }
 
 function send_plan_expired_notice(PDO $db, array $school): void {
-    bell($db, (int)$school['id'], 'trial_ended', 'Your trial has ended', 'Premium features are paused. Upgrade to restore them.', 'checkout.php');
+    $what = $school['plan'] === 'paid' ? 'Premium plan' : 'trial';
+    bell($db, (int)$school['id'], 'trial_ended', 'Your ' . $what . ' has ended', 'Premium features are paused. ' . ($what === 'trial' ? 'Upgrade' : 'Renew') . ' to restore them.', 'checkout.php');
     $email = get_school_owner_email($db, $school['id']);
     if ($email) {
         $body = "
-            <h2 style='color:#8C3B2E;margin-top:0;'>Your Trial Has Ended</h2>
+            <h2 style='color:#8C3B2E;margin-top:0;'>Your " . ucfirst($what) . " Has Ended</h2>
             <p><strong>" . htmlspecialchars($school['name']) . "</strong>'s premium features are now paused. Your website itself is still online on the Free plan.</p>
             <p><a href='https://somahub.top/dashboard/checkout.php' style='color:#0F5257;font-weight:700;'>Upgrade to restore them &rarr;</a></p>
         ";
-        send_somahub_email($email, 'Your Somahub trial has ended', $body);
+        send_somahub_email($email, "Your Somahub {$what} has ended", $body);
     }
     $db->prepare("UPDATE schools SET plan_reminder_sent_expired = 1 WHERE id = ?")->execute([$school['id']]);
 }

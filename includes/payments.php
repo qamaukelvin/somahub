@@ -36,34 +36,78 @@ function generate_order_reference(PDO $db): string {
     return $ref;
 }
 
+/** Adds the quantity column to order_items and creates the cart table, once. */
+function ensure_cart_schema(PDO $db): void {
+    static $done = false; if ($done) return; $done = true;
+    try {
+        $has = $db->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'order_items' AND COLUMN_NAME = 'quantity'")->fetchColumn();
+        if (!$has) $db->exec("ALTER TABLE order_items ADD COLUMN quantity INT NOT NULL DEFAULT 1");
+        $db->exec("CREATE TABLE IF NOT EXISTS cart_items (school_id INT NOT NULL, product_key VARCHAR(60) NOT NULL, qty INT NOT NULL DEFAULT 1, added_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (school_id, product_key))");
+    } catch (Throwable $e) { error_log('cart schema: ' . $e->getMessage()); }
+}
+
+/** Max quantity per product: the plan is bought in years, content writing in pieces, one-off setups once. */
+function product_max_qty(string $key): int {
+    return match ($key) { 'paid_plan' => 3, 'content_writing' => 10, default => 1 };
+}
+function product_qty_label(string $key): string {
+    return match ($key) { 'paid_plan' => 'year', 'content_writing' => 'piece', default => '' };
+}
+
+function cart_get(PDO $db, int $schoolId): array {
+    ensure_cart_schema($db);
+    $st = $db->prepare("SELECT c.product_key, c.qty, p.label, p.description, p.price, p.billing_cycle FROM cart_items c JOIN products p ON p.product_key = c.product_key AND p.is_active = 1 WHERE c.school_id = ? ORDER BY c.added_at");
+    $st->execute([$schoolId]);
+    $rows = $st->fetchAll();
+    foreach ($rows as &$r) { $r['qty'] = max(1, min((int)$r['qty'], product_max_qty($r['product_key']))); $r['line'] = $r['qty'] * (float)$r['price']; }
+    return $rows;
+}
+function cart_total(array $rows): float { return array_sum(array_column($rows, 'line')); }
+function cart_set(PDO $db, int $schoolId, string $key, int $qty): void {
+    ensure_cart_schema($db);
+    if ($qty <= 0) { $db->prepare("DELETE FROM cart_items WHERE school_id = ? AND product_key = ?")->execute([$schoolId, $key]); return; }
+    $ok = $db->prepare("SELECT COUNT(*) FROM products WHERE product_key = ? AND is_active = 1"); $ok->execute([$key]);
+    if (!$ok->fetchColumn()) return;
+    $qty = min($qty, product_max_qty($key));
+    $db->prepare("INSERT INTO cart_items (school_id, product_key, qty) VALUES (?,?,?) ON DUPLICATE KEY UPDATE qty = VALUES(qty)")->execute([$schoolId, $key, $qty]);
+}
+function cart_clear(PDO $db, int $schoolId): void {
+    ensure_cart_schema($db);
+    $db->prepare("DELETE FROM cart_items WHERE school_id = ?")->execute([$schoolId]);
+}
+function cart_count(PDO $db, int $schoolId): int {
+    try { ensure_cart_schema($db); $st = $db->prepare("SELECT COALESCE(SUM(qty),0) FROM cart_items WHERE school_id = ?"); $st->execute([$schoolId]); return (int)$st->fetchColumn(); } catch (Throwable $e) { return 0; }
+}
+
 /**
- * Creates a pending order for a school with the given product keys.
- * $productKeys e.g. ['paid_plan'] or ['paid_plan', 'custom_domain']
+ * Creates a pending order. $productKeys is either a list of keys (quantity 1
+ * each, as the Google Business form uses) or [key => quantity]. Prices always
+ * come from the products table, never from the browser.
  */
 function create_order(PDO $db, int $schoolId, array $productKeys): int {
-    $placeholders = implode(',', array_fill(0, count($productKeys), '?'));
-    $stmt = $db->prepare("SELECT * FROM products WHERE product_key IN ($placeholders) AND is_active = 1");
-    $stmt->execute($productKeys);
+    ensure_cart_schema($db);
+    $qty = [];
+    foreach ($productKeys as $k => $v) { if (is_int($k)) $qty[(string)$v] = 1; else $qty[(string)$k] = max(1, min((int)$v, product_max_qty((string)$k))); }
+    $keys = array_keys($qty);
+    if (!$keys) throw new Exception('No valid products selected.');
+    $stmt = $db->prepare("SELECT * FROM products WHERE product_key IN (" . implode(',', array_fill(0, count($keys), '?')) . ") AND is_active = 1");
+    $stmt->execute($keys);
     $products = $stmt->fetchAll();
+    if (!$products) throw new Exception('No valid products selected.');
 
-    if (!$products) {
-        throw new Exception('No valid products selected.');
-    }
-
-    $total = array_sum(array_column($products, 'price'));
+    $total = 0.0;
+    foreach ($products as $p) $total += (float)$p['price'] * $qty[$p['product_key']];
     $reference = generate_order_reference($db);
 
     $db->beginTransaction();
     try {
-        $insertOrder = $db->prepare("INSERT INTO orders (school_id, reference_code, total_amount, status) VALUES (?, ?, ?, 'pending')");
-        $insertOrder->execute([$schoolId, $reference, $total]);
+        $db->prepare("INSERT INTO orders (school_id, reference_code, total_amount, status) VALUES (?, ?, ?, 'pending')")->execute([$schoolId, $reference, $total]);
         $orderId = (int)$db->lastInsertId();
-
-        $insertItem = $db->prepare("INSERT INTO order_items (order_id, product_key, label, amount) VALUES (?, ?, ?, ?)");
+        $insertItem = $db->prepare("INSERT INTO order_items (order_id, product_key, label, amount, quantity) VALUES (?, ?, ?, ?, ?)");
         foreach ($products as $p) {
-            $insertItem->execute([$orderId, $p['product_key'], $p['label'], $p['price']]);
+            $q = $qty[$p['product_key']];
+            $insertItem->execute([$orderId, $p['product_key'], $q > 1 ? $p['label'] . ' × ' . $q : $p['label'], (float)$p['price'] * $q, $q]);
         }
-
         $db->commit();
         return $orderId;
     } catch (Exception $e) {
@@ -72,62 +116,87 @@ function create_order(PDO $db, int $schoolId, array $productKeys): int {
     }
 }
 
+function create_order_from_cart(PDO $db, int $schoolId): int {
+    $rows = cart_get($db, $schoolId);
+    if (!$rows) throw new Exception('Your cart is empty.');
+    $map = []; foreach ($rows as $r) $map[$r['product_key']] = $r['qty'];
+    $id = create_order($db, $schoolId, $map);
+    cart_clear($db, $schoolId);
+    return $id;
+}
+
+/** Schools can drop an unpaid order and start over (admin can still cancel any). */
+function cancel_pending_order(PDO $db, int $orderId, int $schoolId): bool {
+    $st = $db->prepare("UPDATE orders SET status = 'cancelled' WHERE id = ? AND school_id = ? AND status = 'pending'");
+    $st->execute([$orderId, $schoolId]);
+    return $st->rowCount() > 0;
+}
+
 /**
  * Called when a school submits their M-Pesa confirmation code after paying.
  * Does NOT mark the order paid — just records the code for admin review.
+ * Returns an error message, or '' on success.
  */
-function submit_mpesa_code(PDO $db, int $orderId, string $method, string $mpesaCode): void {
-    $stmt = $db->prepare("
-        UPDATE orders SET payment_method = ?, mpesa_code = ?, mpesa_code_submitted_at = NOW()
-        WHERE id = ? AND status = 'pending'
-    ");
-    $stmt->execute([$method, strtoupper(trim($mpesaCode)), $orderId]);
+function submit_mpesa_code(PDO $db, int $orderId, string $method, string $mpesaCode): string {
+    $code = strtoupper(preg_replace('/\s+/', '', $mpesaCode));
+    if (!preg_match('/^[A-Z0-9\-]{6,24}$/', $code)) return 'That code does not look right. M-Pesa codes are letters and numbers, like QJH7XXXXXX.';
+    $dup = $db->prepare("SELECT COUNT(*) FROM orders WHERE mpesa_code = ? AND id <> ? AND status IN ('pending','paid')");
+    $dup->execute([$code, $orderId]);
+    if ($dup->fetchColumn() > 0) return 'This code has already been used on another order. Check the code in your M-Pesa message, or contact us.';
+    $db->prepare("UPDATE orders SET payment_method = ?, mpesa_code = ?, mpesa_code_submitted_at = NOW() WHERE id = ? AND status = 'pending'")
+       ->execute([$method, $code, $orderId]);
+    return '';
 }
 
 /**
  * Called by the admin once they've checked their M-Pesa messages and confirmed
  * the code/amount genuinely match. This is the manual equivalent of a webhook.
+ * Safe to call twice: only a pending order can be marked paid.
  */
-function mark_order_paid(PDO $db, int $orderId, string $verifiedBy): void {
-    $stmt = $db->prepare("UPDATE orders SET status = 'paid', paid_at = NOW(), verified_by = ? WHERE id = ?");
-    $stmt->execute([$verifiedBy, $orderId]);
+function mark_order_paid(PDO $db, int $orderId, string $verifiedBy): bool {
+    ensure_cart_schema($db);
+    $claim = $db->prepare("UPDATE orders SET status = 'paid', paid_at = NOW(), verified_by = ? WHERE id = ? AND status = 'pending'");
+    $claim->execute([$verifiedBy, $orderId]);
+    if ($claim->rowCount() === 0) return false; // already paid, cancelled or refunded: do nothing, send nothing
 
-    // Apply plan/add-on effects
-    $items = $db->prepare("SELECT product_key FROM order_items WHERE order_id = ?");
+    $items = $db->prepare("SELECT product_key, quantity FROM order_items WHERE order_id = ?");
     $items->execute([$orderId]);
-    $productKeys = array_column($items->fetchAll(), 'product_key');
+    $lines = $items->fetchAll();
+    $productKeys = array_column($lines, 'product_key');
+    $qtyOf = []; foreach ($lines as $l) $qtyOf[$l['product_key']] = max(1, (int)$l['quantity']);
 
     $order = $db->prepare("SELECT school_id FROM orders WHERE id = ?");
     $order->execute([$orderId]);
     $schoolId = $order->fetchColumn();
 
     if (in_array('paid_plan', $productKeys, true)) {
-        $db->prepare("UPDATE schools SET plan = 'paid', promo_ends_at = DATE_ADD(NOW(), INTERVAL 1 YEAR) WHERE id = ?")
-           ->execute([$schoolId]);
+        // Years are added on top of whatever time is left, so renewing early never wastes days.
+        $years = $qtyOf['paid_plan'];
+        $db->prepare("
+            UPDATE schools SET plan = 'paid',
+                promo_ends_at = DATE_ADD(GREATEST(COALESCE(promo_ends_at, NOW()), NOW()), INTERVAL ? YEAR),
+                plan_reminder_sent_7d = 0, plan_reminder_sent_1d = 0, plan_reminder_sent_expired = 0
+            WHERE id = ?
+        ")->execute([$years, $schoolId]);
     }
     if (in_array('custom_domain', $productKeys, true)) {
-        $db->prepare("UPDATE schools SET custom_domain_enabled = 1 WHERE id = ?")
-           ->execute([$schoolId]);
+        $db->prepare("UPDATE schools SET custom_domain_enabled = 1 WHERE id = ?")->execute([$schoolId]);
     }
     if (in_array('custom_templates', $productKeys, true)) {
-        $db->prepare("UPDATE schools SET custom_templates_enabled = 1 WHERE id = ?")
-           ->execute([$schoolId]);
+        $db->prepare("UPDATE schools SET custom_templates_enabled = 1 WHERE id = ?")->execute([$schoolId]);
     }
-    if (in_array('content_writing', $productKeys, true)) {
-        // Manual service — tracked in the content-writing queue, not auto-applied
-        $db->prepare("UPDATE orders SET status = 'paid' WHERE id = ?")->execute([$orderId]); // already set above, kept explicit for clarity
-    }
+    // content_writing and google_business_setup are manual services, tracked in their admin queues.
 
     $schoolStmt = $db->prepare("SELECT name, email FROM schools WHERE id = ?");
     $schoolStmt->execute([$schoolId]);
     $school = $schoolStmt->fetch();
-    $itemsList = implode(', ', array_map(fn($k) => str_replace('_', ' ', $k), $productKeys));
+    $itemsList = implode(', ', array_map(fn($k) => str_replace('_', ' ', $k) . ($qtyOf[$k] > 1 ? ' × ' . $qtyOf[$k] : ''), $productKeys));
 
     if ($school && !empty($school['email'])) {
         $confirmBody = "
             <h2 style='color:#0F5257;margin-top:0;'>Payment Confirmed</h2>
             <p>Your payment for <strong>" . htmlspecialchars(ucwords($itemsList)) . "</strong> has been verified. The changes are live on your account now.</p>
-            <p><a href='https://somahub.top/dashboard/index.php' style='color:#0F5257;font-weight:700;'>Go to your dashboard &rarr;</a></p>
+            <p><a href='https://somahub.top/dashboard/invoices.php' style='color:#0F5257;font-weight:700;'>View your receipt &rarr;</a></p>
         ";
         send_somahub_email($school['email'], 'Your Somahub payment is confirmed', $confirmBody);
     }
@@ -137,6 +206,7 @@ function mark_order_paid(PDO $db, int $orderId, string $verifiedBy): void {
         'Payment confirmed',
         'Your payment for ' . ucwords($itemsList) . ' is verified and live on your account.',
         'invoices.php');
+    return true;
 }
 
 /**

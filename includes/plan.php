@@ -15,11 +15,13 @@ define('VERIFICATION_GRACE_PERIOD_DAYS', 7); // days a new school stays publicly
  * $school['plan'] directly when deciding whether to show/allow a premium feature.
  */
 function get_effective_plan(array $school): string {
-    if ($school['plan'] === 'paid') {
-        return 'paid'; // Manually confirmed real payment — never auto-expires
+    if ($school['plan'] === 'paid' && empty($school['promo_ends_at'])) {
+        return 'paid'; // Comped / legacy paid account with no end date: never expires
     }
 
-    if ($school['plan'] === 'promo_paid') {
+    // A paid plan bought through checkout carries an end date (promo_ends_at is
+    // reused as "paid until"), so it lapses like a trial once renewal is overdue.
+    if ($school['plan'] === 'promo_paid' || $school['plan'] === 'paid') {
         if (empty($school['promo_ends_at'])) {
             return 'paid'; // No end date set — treat as active rather than guessing
         }
@@ -43,7 +45,7 @@ function is_premium_locked(array $school): bool {
  * plan / already locked / no deadline set. Useful for warning banners.
  */
 function days_until_lockout(array $school): ?int {
-    if ($school['plan'] !== 'promo_paid' || empty($school['promo_ends_at'])) {
+    if (!in_array($school['plan'], ['promo_paid', 'paid'], true) || empty($school['promo_ends_at'])) {
         return null;
     }
     $deadline = strtotime($school['promo_ends_at'] . ' +' . PLAN_GRACE_DAYS . ' days');

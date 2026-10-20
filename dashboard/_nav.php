@@ -79,8 +79,12 @@ function plan_badge_text(array $school): array {
     $daysLeft = days_until_lockout($school);
 
     // Distinct color per plan tier so it reads at a glance, not just by text.
+    if ($school['plan'] === 'paid' && $locked) {
+        return ['label' => 'Premium ended', 'color' => '#fff', 'bg' => '#8C3B2E'];
+    }
     if ($school['plan'] === 'paid') {
-        return ['label' => 'Premium', 'color' => '#fff', 'bg' => '#0F5257'];
+        $suffix = ($daysLeft !== null && $daysLeft <= 30) ? " · {$daysLeft}d left" : '';
+        return ['label' => "Premium{$suffix}", 'color' => '#fff', 'bg' => '#0F5257'];
     }
     if ($school['plan'] === 'promo_paid' && !$locked) {
         $suffix = $daysLeft !== null ? " · {$daysLeft}d left" : '';
@@ -141,7 +145,7 @@ function plan_badge_text(array $school): array {
         <button type="button" class="dl nav-group-label<?= nav_active(['verify.php','checkout.php','invoices.php','google-business.php','account.php']) ?>"><span class="material-symbols-outlined">account_circle</span>Account<span class="material-symbols-outlined caret">expand_more</span></button>
         <div class="nav-dropdown">
           <a href="verify.php"><span class="material-symbols-outlined">verified</span>Verification</a>
-          <a href="checkout.php"><span class="material-symbols-outlined">workspace_premium</span>Upgrade</a>
+          <a href="checkout.php"><span class="material-symbols-outlined">shopping_cart</span>Plans &amp; services</a>
           <a href="invoices.php"><span class="material-symbols-outlined">receipt_long</span>Invoices</a>
           <a href="google-business.php"><span class="material-symbols-outlined">storefront</span>Google Business</a>
           <a href="account.php"><span class="material-symbols-outlined">manage_accounts</span>Account settings</a>

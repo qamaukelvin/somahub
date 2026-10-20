@@ -36,17 +36,18 @@ $newEnrollments = $enrollCount->fetch()['c'];
     $daysLeft = days_until_lockout($school);
     $locked = is_premium_locked($school);
   ?>
-  <?php if ($locked && $school['plan'] === 'promo_paid'): ?>
+  <?php $__paidPlan = $school['plan'] === 'paid'; ?>
+  <?php if ($locked && in_array($school['plan'], ['promo_paid', 'paid'], true)): ?>
     <div style="background:#FBE8E4;color:#8C3B2E;padding:16px 20px;border-radius:8px;margin-bottom:24px;font-size:0.9rem;">
-      <strong>Your paid features are currently paused.</strong> Your free term ended and payment wasn't received in time.
+      <strong>Your paid features are currently paused.</strong> <?= $__paidPlan ? 'Your Premium year ended and renewal was not received in time.' : "Your free term ended and payment wasn't received in time." ?>
       Results checking, online enrollment, and fees are hidden from your website until this is resolved.
       <a href="checkout.php" style="color:#8C3B2E;font-weight:700;">Reactivate now &rarr;</a>
     </div>
   <?php elseif ($daysLeft !== null && $daysLeft <= 14): ?>
     <div style="background:#FBF0D1;color:#8C6D1F;padding:16px 20px;border-radius:8px;margin-bottom:24px;font-size:0.9rem;">
-      <strong>Your free term ends in <?= $daysLeft ?> day<?= $daysLeft == 1 ? '' : 's' ?>.</strong>
+      <strong><?= $__paidPlan ? 'Your Premium plan renews' : 'Your free term ends' ?> in <?= $daysLeft ?> day<?= $daysLeft == 1 ? '' : 's' ?>.</strong>
       After that, results checking, online enrollment, and fees will be paused until payment is received.
-      <a href="checkout.php" style="color:#8C6D1F;font-weight:700;">Continue on paid plan &rarr;</a>
+      <a href="checkout.php" style="color:#8C6D1F;font-weight:700;"><?= $__paidPlan ? 'Renew now' : 'Continue on paid plan' ?> &rarr;</a>
     </div>
   <?php endif; ?>
 
