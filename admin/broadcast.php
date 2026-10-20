@@ -38,9 +38,9 @@ function bc_recipients(PDO $db, string $aud): array {
         if ($aud === 'schools_unverified') $w[] = "s.verification_status <> 'verified'";
         $where = implode(' AND ', $w);
         try {
-            $rows = $db->query("SELECT s.email, s.name AS school, COALESCE(NULLIF(u.name,''), s.name) AS name FROM schools s LEFT JOIN users u ON u.school_id = s.id AND u.email = s.email WHERE $where")->fetchAll();
+            $rows = $db->query("SELECT s.email, s.name AS school, COALESCE(u.name, '') AS name FROM schools s LEFT JOIN users u ON u.school_id = s.id AND u.email = s.email WHERE $where")->fetchAll();
         } catch (Throwable $e) {
-            $rows = $db->query("SELECT s.email, s.name AS school, s.name AS name FROM schools s WHERE $where")->fetchAll();
+            $rows = $db->query("SELECT s.email, s.name AS school, '' AS name FROM schools s WHERE $where")->fetchAll();
         }
     } else {
         $w = ["email IS NOT NULL", "email <> ''"];
@@ -109,7 +109,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $to = trim($_POST['test_to'] ?? '');
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) $error = 'Enter a valid test address.';
         elseif ($f['subject'] === '' || $f['body'] === '') $error = 'Write a subject and message first.';
-        else { [$ok] = bc_send($db, $f, ['email' => $to, 'name' => 'Kelvin', 'school' => 'Sample School']); $notice = $ok ? "Test sent to $to." : 'Test failed. Check your SMTP/Brevo settings.'; }
+        else {
+            // Preview with a real recipient's details (first person in the chosen audience), sent only to you.
+            $pool = bc_recipients($db, $aud);
+            $sample = $pool[0] ?? ['email' => $to, 'name' => 'Mary Wanjiru', 'school' => 'Sample Academy'];
+            $sample['email'] = $to;
+            [$ok] = bc_send($db, $f, $sample);
+            $notice = $ok ? "Test sent to $to, filled in as: " . ($sample['name'] ?: 'there') . ' / ' . $sample['school'] . '.' : 'Test failed. Check your SMTP/Brevo settings.';
+        }
     } elseif ($act === 'start') {
         if ($f['subject'] === '' || $f['body'] === '') $error = 'Write a subject and message first.';
         else {

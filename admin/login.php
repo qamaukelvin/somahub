@@ -38,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   button:hover{background:var(--teal-deep);}
   .error{background:#FBE8E4;color:#8C3B2E;font-size:0.85rem;padding:10px 14px;border-radius:8px;margin-bottom:16px;}
   .back{display:block;text-align:center;margin-top:20px;color:#BFD8D9;font-size:0.82rem;text-decoration:none;}
+  .remember{display:flex !important;align-items:center;gap:8px;font-weight:600 !important;font-size:.84rem !important;color:#4a4a42 !important;margin:-4px 0 16px !important;cursor:pointer;} .remember input{width:auto !important;margin:0 !important;}
 </style>
 </head>
 <body>
@@ -51,8 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="email" name="email" required autofocus>
       <label>Password</label>
       <input type="password" name="password" required>
+      <label class="remember"><input type="checkbox" name="remember" value="1" checked> Keep me logged in for 30 days</label>
       <button type="submit">Log In</button>
     </form>
   </div>
+<?php include __DIR__ . '/../includes/pw-toggle.php'; ?>
 </body>
 </html>

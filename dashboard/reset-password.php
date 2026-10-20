@@ -86,5 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </form>
   <a href="forgot-password.php" class="back">&larr; Request a new code</a>
   </div>
+<?php include __DIR__ . '/../includes/pw-toggle.php'; ?>
 </body>
 </html>

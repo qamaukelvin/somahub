@@ -6,9 +6,29 @@ require_once __DIR__ . '/../config/db.php';
 // somahub.top (e.g. the admin panel) is invisible on a school's subdomain
 // (slug.somahub.top) — which is why "Preview Site" from admin used to open
 // a logged-out view and show the "coming soon" gate even for admins.
+define('SESSION_REMEMBER_DAYS', 30);
 if (session_status() === PHP_SESSION_NONE) {
+    // Keep sessions in our own private folder. On shared hosting the default
+    // folder is cleaned out by every other site's garbage collector, which
+    // logs people out in the middle of a visit.
+    $__sessDir = __DIR__ . '/../storage/sessions';
+    if (!is_dir($__sessDir)) { @mkdir($__sessDir, 0700, true); }
+    if (is_dir($__sessDir) && is_writable($__sessDir)) { session_save_path($__sessDir); }
+    ini_set('session.gc_maxlifetime', (string)(SESSION_REMEMBER_DAYS * 86400));
+
+    // A dedicated cookie name, so stale PHPSESSID cookies from older versions
+    // (host-only vs .somahub.top copies) can no longer clash with the live one.
+    session_name('SOMAHUB_SID');
+    foreach (['.somahub.top', ''] as $__d) {
+        if (!empty($_COOKIE['PHPSESSID'])) {
+            $__o = ['expires' => 1, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax'];
+            if ($__d !== '') $__o['domain'] = $__d;
+            @setcookie('PHPSESSID', '', $__o);
+        }
+    }
+    $__remember = !empty($_COOKIE['sh_remember']); // "Keep me logged in" ticked at login
     session_set_cookie_params([
-        'lifetime' => 0,
+        'lifetime' => $__remember ? SESSION_REMEMBER_DAYS * 86400 : 0,
         'path' => '/',
         'domain' => '.somahub.top',
         'secure' => true,
@@ -16,6 +36,18 @@ if (session_status() === PHP_SESSION_NONE) {
         'samesite' => 'Lax',
     ]);
     session_start();
+}
+
+/** Sets or clears the 30-day "keep me logged in" cookies for the session that was just established. */
+function apply_remember_choice(bool $remember): void {
+    $base = ['path' => '/', 'domain' => '.somahub.top', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax'];
+    if ($remember) {
+        $exp = time() + SESSION_REMEMBER_DAYS * 86400;
+        @setcookie('sh_remember', '1', $base + ['expires' => $exp]);
+        @setcookie(session_name(), session_id(), $base + ['expires' => $exp]);
+    } else {
+        @setcookie('sh_remember', '', $base + ['expires' => 1]);
+    }
 }
 
 require_once __DIR__ . '/ratelimit.php';
@@ -67,6 +99,9 @@ function establish_session(PDO $db, array $user): void {
     if (session_status() === PHP_SESSION_ACTIVE) { session_regenerate_id(true); }
     unset($_SESSION['_csrf']);
     $_SESSION['user'] = $user;
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['password'])) {
+        apply_remember_choice(!empty($_POST['remember']));
+    }
 
     $db->prepare("UPDATE users SET last_login_at = NOW() WHERE id = ?")
        ->execute([$user['id']]);
@@ -140,6 +175,7 @@ function verify_magic_login_token(PDO $db, string $token): ?array {
 function logout() {
     $_SESSION = [];
     session_destroy();
+    @setcookie('sh_remember', '', ['expires' => 1, 'path' => '/', 'domain' => '.somahub.top', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
 }
 
 // Call at the top of any dashboard page (school staff)

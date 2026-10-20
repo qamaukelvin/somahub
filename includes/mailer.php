@@ -109,6 +109,14 @@ function send_somahub_email(string $to, string $subject, string $bodyHtml, strin
  * Wraps email content in simple, brand-consistent HTML styling.
  */
 function email_wrapper(string $innerHtml): string {
+    $wa = '254707306888'; $supportEmail = 'hello@somahub.top';
+    try { if (function_exists('get_db')) { $__db = get_db(); $wa = preg_replace('/[^0-9]/', '', get_setting($__db, 'support_whatsapp', $wa)); $supportEmail = get_setting($__db, 'support_email', $supportEmail); } } catch (\Throwable $e) {}
+    $lk = 'style="color:#0F5257;font-weight:700;text-decoration:none;"';
+    $links = '<a href="https://somahub.top/" ' . $lk . '>Website</a> &nbsp;·&nbsp; '
+        . '<a href="https://wa.me/' . $wa . '" ' . $lk . '>WhatsApp us</a> &nbsp;·&nbsp; '
+        . '<a href="mailto:' . htmlspecialchars($supportEmail) . '" ' . $lk . '>Email us</a> &nbsp;·&nbsp; '
+        . '<a href="https://somahub.top/#contact" ' . $lk . '>Contact</a> &nbsp;·&nbsp; '
+        . '<a href="https://somahub.top/dashboard/login.php" ' . $lk . '>Log in</a>';
     return '
     <div style="font-family: Arial, sans-serif; background:#F7F2E7; padding:30px 20px;">
       <div style="max-width:480px; margin:0 auto; background:#fff; border-radius:12px; overflow:hidden;">
@@ -119,7 +127,8 @@ function email_wrapper(string $innerHtml): string {
         <div style="padding:24px; color:#1C1C16; font-size:14px; line-height:1.6;">
           ' . $innerHtml . '
         </div>
-        <div style="padding:16px 24px; background:#F7F2E7; color:#6E6A5C; font-size:12px; text-align:center;">
+        <div style="padding:16px 24px; background:#F7F2E7; color:#6E6A5C; font-size:12px; text-align:center; line-height:2;">
+          <div style="font-size:13px;">' . $links . '</div>
           Somahub · Websites for Kenyan schools · somahub.top
         </div>
       </div>

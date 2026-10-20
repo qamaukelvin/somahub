@@ -271,5 +271,6 @@ $pendingRemoval = $pendingRemoval->fetch();
 
   <?php endif; ?>
 </main>
+<?php include __DIR__ . '/../includes/pw-toggle.php'; ?>
 </body>
 </html>

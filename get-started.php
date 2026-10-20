@@ -178,6 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="email" name="email" required autofocus>
         <label>Password</label>
         <input type="password" name="password" required>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:.84rem;margin:-4px 0 14px;cursor:pointer;"><input type="checkbox" name="remember" value="1" checked style="width:auto;margin:0;"> Keep me logged in for 30 days</label>
         <button type="submit">Log In</button>
         <p style="text-align:center;margin-top:14px;"><a href="dashboard/forgot-password.php" style="color:var(--teal);font-size:0.82rem;font-weight:700;">Forgot password?</a></p>
       <?php endif; ?>
@@ -187,5 +188,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </main>
 
 <?php include __DIR__ . '/_loader.php'; ?>
+<?php include __DIR__ . '/includes/pw-toggle.php'; ?>
 </body>
 </html>
