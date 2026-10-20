@@ -4,6 +4,9 @@ require_once __DIR__ . '/../includes/section_variants.php';
 $user = require_school_login();
 $db = get_db();
 $schoolId = $user['school_id'];
+// The section list is retired: everything is edited on the site itself.
+$__sl = $db->prepare('SELECT slug FROM schools WHERE id = ?'); $__sl->execute([$schoolId]); $__slug = $__sl->fetchColumn();
+if ($__slug && empty($_GET['error'])) { header('Location: https://' . $__slug . '.somahub.top/?edit=1'); exit; }
 
 $sections = $db->prepare("
     SELECT ss.id, ss.position, ss.is_visible, ss.content_json, st.key_name, st.label, st.is_premium

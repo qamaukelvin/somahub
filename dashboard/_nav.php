@@ -106,7 +106,6 @@ function plan_badge_text(array $school): array {
     <div class="navlinks" id="dashnavlinks">
       <a class="dl<?= nav_active(['index.php']) ?>" href="index.php"><span class="material-symbols-outlined">dashboard</span>Home</a>
       <?php if ($mySlug): ?><a class="dl" href="https://<?= htmlspecialchars($mySlug) ?>.somahub.top/?edit=1" style="background:#F2A65A;color:#0A3A3E;border-radius:999px;font-weight:800;"><span class="material-symbols-outlined">edit_square</span>Edit site</a><?php endif; ?>
-      <a class="dl<?= nav_active(['sections.php','section-edit.php']) ?><?= strpos($curPage,'section-live-edit') === 0 ? ' active' : '' ?>" href="sections.php"><span class="material-symbols-outlined">web</span>Sections</a>
       <div class="nav-group">
         <button type="button" class="dl nav-group-label<?= nav_active(['enrollment.php','contact-messages.php','results.php','attendance.php','fees.php']) ?>"><span class="material-symbols-outlined">folder_open</span>School data<span class="material-symbols-outlined caret">expand_more</span></button>
         <div class="nav-dropdown">

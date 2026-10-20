@@ -199,7 +199,7 @@ try {
     <div class="se-pop" id="seFont"><h5>Font pairing</h5><select id="seFontSel"><option value="default">Somahub default</option></select></div></div>
   <button type="button" id="seAdd"><span class="se-i">add_circle</span><span class="lbl">Add section</span></button>
   <span class="sep"></span>
-  <a class="se-done" href="https://somahub.top/dashboard/sections.php"><span class="se-i">check</span><span class="lbl">Done</span></a>
+  <a class="se-done" href="https://somahub.top/dashboard/index.php"><span class="se-i">check</span><span class="lbl">Done</span></a>
 </div>
 <input type="file" id="seFile" accept="image/*" style="display:none">
 <?php if (isset($_GET['welcome'])): ?>
@@ -213,6 +213,7 @@ try {
       <li><span class="se-i">dashboard_customize</span><div><strong>Layout</strong> (top left of each section) switches its design. The <strong>three dots</strong> (top right) move, duplicate, hide or remove it.</div></li>
       <li><span class="se-i">add_circle</span><div>The little <strong>+</strong> between sections adds a new one right there.</div></li>
       <li><span class="se-i">palette</span><div>The bar at the bottom has your <strong>colours, fonts and undo</strong>.</div></li>
+      <li><span class="se-i">check</span><div>Press <strong>Done</strong> (top right) when you finish. It takes you to your dashboard for enquiries, messages and fees.</div></li>
       <li><span class="se-i">verified</span><div><a href="https://somahub.top/dashboard/verify.php" style="color:#0F5257;font-weight:700;">Verify your school</a> within 7 days to keep the site online.</div></li>
     </ul>
     <button type="button" id="seWelcomeBtn" style="width:100%;background:#0F5257;color:#fff;border:none;border-radius:999px;padding:13px;font-weight:800;font-size:.95rem;cursor:pointer;">Got it, let's start</button>
@@ -382,7 +383,6 @@ try {
     rp.appendChild(menuBtn('Move down', 'arrow_downward', function(){ doOp('move', sec, {dir:'down'}); }));
     rp.appendChild(menuBtn('Duplicate', 'content_copy', function(){ doOp('duplicate', sec); }));
     rp.appendChild(menuBtn(sec.visible ? 'Hide from site' : 'Show on site', sec.visible ? 'visibility_off' : 'visibility', function(){ doOp('toggle', sec); }));
-    rp.appendChild(menuBtn('Edit all details', 'tune', function(){ flush().then(function(){ location.href = '/dashboard/' + sec.editFile + '?id=' + sec.id; }); }));
     rp.appendChild(document.createElement('hr'));
     rp.appendChild(menuBtn('Remove section', 'delete', function(){ modal('Remove "' + sec.label + '"?', 'It is taken off your site. You can bring it back with Undo.', [{t:'Keep it'}, {t:'Remove', c:'bad', f:function(){ doOp('remove', sec); }}]); }, 'danger'));
     rb.onclick = function(e){ e.stopPropagation(); var was = rp.classList.contains('open'); closePops(); if (!was) rp.classList.add('open'); };

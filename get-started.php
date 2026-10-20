@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $welcomeBody = "
                         <h2 style='color:#0F5257;margin-top:0;'>Welcome to Somahub, " . htmlspecialchars($name) . "!</h2>
                         <p>Your website for <strong>" . htmlspecialchars($schoolData['school_name']) . "</strong> is live at <a href='{$siteUrl}' style='color:#0F5257;font-weight:700;'>{$siteUrl}</a>, and your 60-day trial with every feature unlocked has started.</p>
-                        <p><a href='https://somahub.top/dashboard/sections.php' style='color:#0F5257;font-weight:700;'>Keep editing your site &rarr;</a></p>
+                        <p><a href='https://{$schoolData['slug']}.somahub.top/?edit=1' style='color:#0F5257;font-weight:700;'>Keep editing your site &rarr;</a></p>
                         <p style='margin-top:20px;color:#6E6A5C;'>Questions? Just reply to this email or message us on WhatsApp.</p>
                     ";
                     send_somahub_email($email, 'Your school website is live', $welcomeBody);

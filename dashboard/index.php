@@ -55,10 +55,6 @@ $newEnrollments = $enrollCount->fetch()['c'];
       <h3>Edit your site</h3>
       <p>Open your real website and click anything to change it. Colours, fonts, photos, sections and undo are all there.</p>
     </a>
-    <a href="sections.php" class="card-link">
-      <h3>Sections (advanced)</h3>
-      <p>Edit one section's details at a time, or manage the section list.</p>
-    </a>
     <a href="enrollment.php" class="card-link">
       <h3>Enrollment Enquiries</h3>
       <p><?= $newEnrollments ?> new application<?= $newEnrollments == 1 ? '' : 's' ?> waiting for review.</p>

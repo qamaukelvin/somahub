@@ -12,5 +12,5 @@ if (!$stmt->fetch()) {
 }
 
 $_SESSION['impersonating_school_id'] = $schoolId;
-header('Location: ../dashboard/sections.php');
+header('Location: ../dashboard/index.php');
 exit;

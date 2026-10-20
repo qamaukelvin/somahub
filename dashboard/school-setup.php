@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$error) {
             try {
                 $res = provision_school($db, $user, $schoolData);
-                header('Location: ' . ($res['hero_section_id'] ? 'section-live-edit-hero.php?id=' . $res['hero_section_id'] . '&welcome=1' : 'sections.php?welcome=1'));
+                header('Location: https://' . $schoolData['slug'] . '.somahub.top/?edit=1&welcome=1');
                 exit;
             } catch (\Throwable $e) {
                 app_log('school-setup.php failed: ' . $e->getMessage());
