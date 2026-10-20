@@ -1,488 +1,95 @@
 <?php
-require_once __DIR__ . '/includes/consent.php';
-require_once __DIR__ . '/config/db.php';
-require_once __DIR__ . '/includes/reviews.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/plan.php';
+$user = require_school_login();
 $db = get_db();
 
-// Live portfolio - schools actually on the platform (for social proof + showcase)
-$schools = $db->query("
-    SELECT name, slug, plan, county, verification_status
-    FROM schools
-    WHERE status IN ('active','trial') AND slug <> 'demo'
-    ORDER BY created_at DESC
-    LIMIT 60
-")->fetchAll();
+$stmt = $db->prepare("SELECT * FROM schools WHERE id = ?");
+$stmt->execute([$user['school_id']]);
+$school = $stmt->fetch();
 
-$schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('active','trial') AND slug <> 'demo'")->fetch()['c'];
-
-$platformReviews = get_approved_reviews($db, 'platform', null, 12);
-$platformAvgRating = get_average_rating($platformReviews);
+$enrollCount = $db->prepare("SELECT COUNT(*) c FROM enrollment_applications WHERE school_id=? AND status='new'");
+$enrollCount->execute([$user['school_id']]);
+$newEnrollments = $enrollCount->fetch()['c'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Somahub: Free Websites for Kenyan Schools</title>
-<link rel="canonical" href="https://somahub.top/">
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Somahub","url":"https://somahub.top/","logo":"https://somahub.top/assets/apple-touch-icon.png"},{"@type":"WebSite","name":"Somahub","url":"https://somahub.top/"}]}</script>
-<meta name="description" content="Get your school online free. Somahub builds and hosts your school's website, you just edit and go live.">
-
-<!-- Favicons -->
-<link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/icon-16.png">
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-
-<!-- Open Graph (WhatsApp, Facebook, Instagram DM previews) -->
-<meta property="og:type" content="website">
-<meta property="og:title" content="Somahub - Free Websites for Kenyan Schools">
-<meta property="og:description" content="Get your school online free. We build and host your school's website, you just edit and go live.">
-<meta property="og:image" content="https://somahub.top/assets/og-share-image.png">
-<meta property="og:url" content="https://somahub.top">
-<meta property="og:site_name" content="Somahub">
-
-<!-- Twitter Card -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Somahub - Free Websites for Kenyan Schools">
-<meta name="twitter:description" content="Get your school online free. We build and host your school's website, you just edit and go live.">
-<meta name="twitter:image" content="https://somahub.top/assets/og-share-image.png">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --teal:#0F5257;
-    --teal-deep:#0A3A3E;
-    --amber:#F2A65A;
-    --sand:#F7F2E7;
-    --ink:#1C1C16;
-    --muted:#6E6A5C;
-    --line:#E5DFCC;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  html,body{overflow-x:hidden;}
-  html{scroll-behavior:smooth;}
-  body{font-family:'Manrope',sans-serif;color:var(--ink);background:var(--sand);line-height:1.65;}
-  h1,h2,h3{font-family:'Manrope',sans-serif;font-weight:800;letter-spacing:-0.02em;}
-  .mono{font-family:'Space Mono',monospace;letter-spacing:0.02em;}
-  a{color:inherit;text-decoration:none;}
-  .wrap{max-width:1120px;margin:0 auto;padding:0 24px;}
-
-
-  /* HERO */
-  .hero{padding:80px 24px 50px;}
-  .hero-inner{max-width:1120px;margin:0 auto;text-align:center;}
-  .hero-tag{display:inline-flex;align-items:center;gap:8px;font-family:'Space Mono',monospace;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;background:#fff;border:1px solid var(--line);padding:7px 16px;border-radius:24px;margin-bottom:26px;}
-  .hero-tag .dot{width:7px;height:7px;background:var(--amber);border-radius:50%;}
-  .hero h1{font-size:clamp(2.3rem,6vw,4rem);line-height:1.08;max-width:18ch;margin:0 auto;}
-  .hero h1 .accent{color:var(--teal);}
-  .hero p{max-width:48ch;margin:22px auto 0;font-size:1.08rem;color:var(--muted);}
-  .hero-ctas{display:flex;gap:14px;justify-content:center;margin-top:32px;flex-wrap:wrap;}
-  .quick-links{display:flex;gap:20px;justify-content:center;margin-top:22px;flex-wrap:wrap;}
-  .quick-links a{font-size:0.85rem;color:var(--muted);text-decoration:underline;text-underline-offset:3px;}
-  .quick-links a:hover{color:var(--teal);}
-  .btn-primary{background:var(--teal);color:var(--sand);padding:15px 28px;font-weight:700;border-radius:24px;font-size:0.92rem;border:none;cursor:pointer;}
-  .btn-ghost{border:2px solid var(--teal);color:var(--teal);padding:13px 28px;border-radius:24px;font-weight:700;font-size:0.92rem;}
-
-  /* BENTO PREVIEW under hero */
-  .bento{display:grid;grid-template-columns:1.3fr 1fr 1fr;grid-template-rows:auto auto;gap:14px;max-width:1120px;margin:56px auto 0;}
-  @media(max-width:800px){.bento{grid-template-columns:1fr 1fr;}}
-  .bento-cell{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;}
-  .bento-cell.dark{background:var(--teal);color:var(--sand);}
-  .bento-cell.amber{background:var(--amber);color:var(--teal-deep);}
-  .bento-cell h4{font-size:0.95rem;margin-bottom:6px;}
-  .bento-cell p{font-size:0.82rem;color:var(--muted);}
-  .bento-cell.dark p{color:#BFD8D9;}
-  .bento-cell.tall{grid-row:span 2;display:flex;flex-direction:column;justify-content:space-between;}
-  .bento-num{font-size:2rem;font-weight:800;}
-
-  .mock{max-width:860px;margin:48px auto 0;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px rgba(10,58,62,.14);overflow:hidden;text-align:left;}
-  .mock-bar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:#EFE9D8;border-bottom:1px solid var(--line);}
-  .mock-bar i{width:10px;height:10px;border-radius:50%;background:#cfc7ae;} .mock-bar span{margin-left:10px;background:#fff;border-radius:20px;padding:3px 14px;font-size:.74rem;color:var(--muted);font-family:'Space Mono',monospace;}
-  .mock-body{display:grid;grid-template-columns:1fr 210px;gap:0;} @media(max-width:700px){.mock-body{grid-template-columns:1fr}.mock-side{display:none}}
-  .mock-hero{background:var(--teal);color:var(--sand);padding:38px 28px;} .mock-h{font-size:1.5rem;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .mock-edit{outline:2px dashed var(--amber);outline-offset:4px;border-radius:4px;} .mock-h em{font-style:normal;background:var(--amber);color:var(--teal-deep);border-radius:50%;padding:5px;font-size:16px;}
-  .mock-sub{margin:10px 0 18px;color:#BFD8D9;font-size:.9rem;} .mock-btn{display:inline-block;background:var(--amber);color:var(--teal-deep);font-weight:800;font-size:.8rem;padding:9px 16px;border-radius:20px;}
-  .mock-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:18px 28px;} .mock-row div{height:60px;background:var(--sand);border-radius:10px;}
-  .mock-side{background:#FAF7EE;border-left:1px solid var(--line);padding:16px;display:grid;gap:12px;align-content:start;}
-  .mock-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:.78rem;} .mock-card b{display:block;margin-bottom:8px;font-size:.78rem;}
-  .mock-card .sw{display:flex;gap:6px;} .mock-card .sw i{width:22px;height:22px;border-radius:50%;box-shadow:0 0 0 2px #fff,0 0 0 3px var(--line);}
-  .mock-card p{display:flex;align-items:center;gap:6px;padding:4px 0;color:var(--muted);} .mock-card p .material-symbols-outlined{font-size:16px;color:var(--teal);}
-  .material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:400;font-style:normal;line-height:1;display:inline-block;}
-  .try-frame{max-width:980px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px rgba(10,58,62,.14);overflow:hidden;}
-  .try-frame iframe{display:block;width:100%;height:620px;border:0;background:#fff;} @media(max-width:700px){.try-frame iframe{height:520px;}}
-  section{padding:70px 24px;}
-  .section-head{margin-bottom:44px;max-width:60ch;}
-  .section-head.center{margin-left:auto;margin-right:auto;text-align:center;}
-  .kicker{font-family:'Space Mono',monospace;font-size:0.74rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--teal);display:block;margin-bottom:10px;}
-  .section-head h2{font-size:clamp(1.6rem,3.6vw,2.3rem);}
-  .bg-white{background:#fff;}
-
-  /* HOW IT WORKS */
-  .steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;}
-  .step-card{background:var(--sand);border:1px solid var(--line);border-radius:16px;padding:26px;}
-  .step-card .num{font-weight:800;font-size:1.7rem;color:var(--amber);margin-bottom:14px;}
-  .step-card h3{font-size:1.05rem;margin-bottom:8px;}
-  .step-card p{font-size:0.88rem;color:var(--muted);}
-
-  /* FEATURES */
-  .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;}
-  .feature-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;}
-  .feature-card h3{font-size:0.98rem;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
-  .feature-card p{font-size:0.86rem;color:var(--muted);}
-  .tag{font-size:0.62rem;background:var(--teal);color:var(--sand);padding:2px 9px;border-radius:20px;font-weight:700;text-transform:uppercase;}
-
-  /* PLANS - two clean cards, not a table */
-  .plans-wrap{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;}
-  .plan-card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:32px;width:100%;max-width:300px;}
-  .plan-card.highlight{background:var(--teal);color:var(--sand);border-color:var(--teal);position:relative;}
-  .plan-card.highlight .plan-note{position:absolute;top:-14px;left:36px;background:var(--amber);color:var(--teal-deep);font-size:0.7rem;font-weight:800;padding:6px 14px;border-radius:20px;text-transform:uppercase;}
-  .plan-name{font-size:1.1rem;font-weight:700;margin-bottom:6px;}
-  .plan-price{font-size:2.1rem;font-weight:800;margin:10px 0 4px;}
-  .plan-price span{font-size:0.85rem;font-weight:500;opacity:0.7;}
-  .plan-desc{font-size:0.85rem;opacity:0.8;margin-bottom:24px;}
-  .plan-card ul{list-style:none;margin-bottom:28px;}
-  .plan-card li{font-size:0.88rem;padding:10px 0;display:flex;gap:10px;align-items:flex-start;}
-  .plan-card .check{color:var(--amber);font-weight:800;}
-  .plan-card.highlight .check{color:var(--amber);}
-  .plan-cta{display:block;text-align:center;padding:13px;border-radius:24px;font-weight:700;font-size:0.9rem;}
-  .plan-card:not(.highlight) .plan-cta{background:var(--teal);color:var(--sand);}
-  .plan-card.highlight .plan-cta{background:var(--amber);color:var(--teal-deep);}
-
-  /* PORTFOLIO */
-  .portfolio-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;}
-  .portfolio-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;}
-  .school-icon{width:42px;height:42px;background:var(--teal);color:var(--amber);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;margin-bottom:14px;}
-  .portfolio-card h3{font-size:1rem;margin-bottom:4px;}
-  .portfolio-card .url{font-family:'Space Mono',monospace;font-size:0.78rem;color:var(--muted);margin-bottom:10px;}
-  .portfolio-card .county-pill{font-size:0.72rem;background:var(--sand);padding:4px 12px;border-radius:20px;}
-  .verified-pill{display:inline-block;width:8px;height:8px;border-radius:50%;background:#F2A65A;vertical-align:middle;}
-  .empty-portfolio{padding:40px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:16px;}
-
-  /* CONTACT FORM */
-  .contact-form{max-width:600px;margin:0 auto;background:var(--sand);border:1px solid var(--line);border-radius:20px;padding:32px;}
-  .contact-form label{display:block;font-size:0.82rem;font-weight:700;margin-bottom:6px;margin-top:16px;}
-  .contact-form label:first-of-type{margin-top:0;}
-  .contact-form input, .contact-form textarea{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:0.92rem;box-sizing:border-box;background:#fff;}
-  .contact-form textarea{resize:vertical;}
-  .consent-check{display:flex;align-items:flex-start;gap:8px;font-size:0.82rem;color:var(--muted);margin-top:18px;font-weight:400;cursor:pointer;}
-  .consent-check input{width:auto;margin-top:2px;flex-shrink:0;}
-  .consent-check a{color:var(--teal);}
-  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  @media(max-width:560px){.form-row{grid-template-columns:1fr;}}
-
-  .cta-band{background:var(--teal-deep);color:var(--sand);padding:80px 24px;text-align:center;}
-  .cta-band h2{font-size:clamp(1.7rem,4.3vw,2.5rem);margin-bottom:16px;}
-  .cta-band p{max-width:50ch;margin:0 auto 30px;color:#BFD8D9;}
-
-  footer{background:var(--teal-deep);color:#7FA5A6;padding:36px 24px;text-align:center;font-size:0.85rem;border-top:1px solid #164447;}
-</style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - <?= htmlspecialchars($school['name']) ?></title>
+<?php include __DIR__ . '/_styles.php'; ?>
 </head>
 <body>
+<?php include __DIR__ . '/_nav.php'; ?>
 
-<?php $navRoot = '.'; include __DIR__ . '/_public_nav.php'; ?>
+<main class="wrap">
+  <?php if (isset($_GET['welcome'])): ?>
+    <div style="background:#E4F0E7;color:#1B4D3E;padding:18px 22px;border-radius:10px;margin-bottom:24px;">
+      <strong>Your site is live! 🎉</strong> It's already public at <?= htmlspecialchars($school['slug']) ?>.somahub.top. You have 7 days to complete <a href="verify.php" style="color:#1B4D3E;font-weight:700;text-decoration:underline;">Verification</a> before it's taken offline until confirmed — edit your content below, then verify when ready.
+    </div>
+  <?php endif; ?>
 
-<section class="hero">
-  <div class="hero-inner">
-    <span class="hero-tag"><span class="dot"></span> Built for Kenyan schools</span>
-    <h1>Your school deserves a <span class="accent">real website</span>, at no cost to you</h1>
-    <p>Sign up, answer a few questions, and your site is live in minutes. We set up the pages and host them. You edit text, photos and colours right on the page.</p>
-    <div class="hero-ctas">
-      <a href="get-started.php" class="btn-primary">Create my school site</a>
-      <a href="#try" class="btn-ghost">Try the editor</a>
-    </div>
-    <p style="margin-top:14px;font-size:.84rem;color:var(--muted);">60 days of everything free, no card needed. Already have a site? <a href="dashboard/login.php" style="color:var(--teal);font-weight:700;text-decoration:underline;">Log in</a></p>
+  <h1>Welcome back, <?= htmlspecialchars($user['name']) ?></h1>
+  <p class="sub"><?= htmlspecialchars($school['name']) ?> · <?= htmlspecialchars($school['slug']) ?>.somahub.top</p>
 
-  </div>
-</section>
+  <?php
+    $daysLeft = days_until_lockout($school);
+    $locked = is_premium_locked($school);
+  ?>
+  <?php if ($locked && $school['plan'] === 'promo_paid'): ?>
+    <div style="background:#FBE8E4;color:#8C3B2E;padding:16px 20px;border-radius:8px;margin-bottom:24px;font-size:0.9rem;">
+      <strong>Your paid features are currently paused.</strong> Your free term ended and payment wasn't received in time.
+      Results checking, online enrollment, and fees are hidden from your website until this is resolved.
+      <a href="checkout.php" style="color:#8C3B2E;font-weight:700;">Reactivate now &rarr;</a>
+    </div>
+  <?php elseif ($daysLeft !== null && $daysLeft <= 14): ?>
+    <div style="background:#FBF0D1;color:#8C6D1F;padding:16px 20px;border-radius:8px;margin-bottom:24px;font-size:0.9rem;">
+      <strong>Your free term ends in <?= $daysLeft ?> day<?= $daysLeft == 1 ? '' : 's' ?>.</strong>
+      After that, results checking, online enrollment, and fees will be paused until payment is received.
+      <a href="checkout.php" style="color:#8C6D1F;font-weight:700;">Continue on paid plan &rarr;</a>
+    </div>
+  <?php endif; ?>
 
-<?php $demoExists = (bool)$db->query("SELECT 1 FROM schools WHERE slug = 'demo' AND status IN ('active','trial') LIMIT 1")->fetchColumn(); ?>
-<section id="try" style="padding-top:20px;">
-  <div class="wrap">
-    <div class="section-head center">
-      <span class="kicker">Try it yourself</span>
-      <h2>Edit a real school site, right here</h2>
-      <p style="margin-top:10px;font-size:0.95rem;color:var(--muted);">Click any text to change it, tap a photo to swap it, try colours and fonts, then press <strong>Review changes</strong>. Your edits stay on your screen only and vanish when you refresh, so you can't break anything and nobody else sees them.</p>
-    </div>
-<?php if ($demoExists): ?>
-    <div class="try-frame">
-      <div class="mock-bar"><i></i><i></i><i></i><span>demo.somahub.top</span></div>
-      <iframe src="https://demo.somahub.top/?embed=1" title="Live demo school site you can edit" loading="lazy"></iframe>
-    </div>
-    <p style="text-align:center;margin-top:14px;font-size:.88rem;"><a href="https://demo.somahub.top/?try=1" target="_blank" rel="noopener" style="color:var(--teal);font-weight:700;">Open it full screen</a> for the best experience on a phone.</p>
-<?php else: ?>
-    <div class="mock" aria-hidden="true">
-      <div class="mock-bar"><i></i><i></i><i></i><span>mwangaza.somahub.top</span></div>
-      <div class="mock-body">
-        <div class="mock-site">
-          <div class="mock-hero">
-            <div class="mock-h"><span class="mock-edit">Welcome to Mwangaza Academy</span><em class="material-symbols-outlined">edit</em></div>
-            <div class="mock-sub">Click any text or photo to change it, right on the page.</div>
-            <div class="mock-btn">Apply for Admission</div>
-          </div>
-          <div class="mock-row"><div></div><div></div><div></div></div>
-        </div>
-        <div class="mock-side">
-          <div class="mock-card"><b>Colours</b><div class="sw"><i style="background:#0F5257"></i><i style="background:#F2A65A"></i><i style="background:#7B3F8C"></i><i style="background:#1F6FB2"></i></div></div>
-          <div class="mock-card"><b>Sections</b>
-            <p><span class="material-symbols-outlined">visibility</span>Hero</p><p><span class="material-symbols-outlined">visibility</span>About</p><p><span class="material-symbols-outlined">visibility</span>Admissions</p><p><span class="material-symbols-outlined">add_circle</span>Add section</p></div>
-        </div>
-      </div>
-    </div>
-<?php endif; ?>
-  </div>
-</section>
-
-<section class="bg-white" id="how">
-  <div class="wrap">
-    <div class="section-head">
-      <span class="kicker">How it works</span>
-      <h2>Three steps to get your school online</h2>
-    </div>
-    <div class="steps-grid">
-      <div class="step-card">
-        <div class="num">01</div>
-        <h3>Sign up in minutes</h3>
-        <p>Tell us your school's name, county and your role. We instantly set up a ready-made site: Home, About, Academics, Admissions, Gallery, Staff, Reviews, FAQ and Contact.</p>
-      </div>
-      <div class="step-card">
-        <div class="num">02</div>
-        <h3>Make it yours</h3>
-        <p>Click any text or photo to edit it on the page itself. Pick your colours and font, add or hide sections, and reorder them whenever you like.</p>
-      </div>
-      <div class="step-card">
-        <div class="num">03</div>
-        <h3>Verify and stay live</h3>
-        <p>Your site is public straight away on a free Somahub address. Verify your school within 7 days to keep it online. Add your own domain whenever you are ready.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="features">
-  <div class="wrap">
-    <div class="section-head">
-      <span class="kicker">What is included</span>
-      <h2>Free to start, more when you need it</h2>
-      <p style="margin-top:10px;font-size:0.92rem;color:var(--muted);">Everything tagged "Paid" below is included in the 60-day trial every new school starts with, no card required. After the trial it needs <a href="#plans" style="color:var(--teal);font-weight:700;">Premium</a>.</p>
-    </div>
-    <div class="feature-grid">
-      <div class="feature-card"><h3>Website and hosting</h3><p>Every core page your school needs, hosted and online, always free.</p></div>
-      <div class="feature-card"><h3>Free subdomain</h3><p>yourschool.somahub.top, live from day one, no setup fee.</p></div>
-      <div class="feature-card"><h3>Editable dashboard</h3><p>Update your own text and photos anytime, from a phone or a computer.</p></div>
-      <div class="feature-card"><h3>Your own domain <span class="tag">Add-on</span></h3><p>Bring a domain like yourschool.ac.ke, from KSh 900/year. <a href="pricing.php" style="color:var(--teal);font-weight:600;">See pricing</a></p></div>
-      <div class="feature-card"><h3>Online enrollment <span class="tag">Paid</span></h3><p>Parents apply directly through your site instead of calling the office.</p></div>
-      <div class="feature-card"><h3>Results checking <span class="tag">Paid</span></h3><p>Upload term results and let parents check them securely by admission number.</p></div>
-      <div class="feature-card"><h3>Fee structure <span class="tag">Paid</span></h3><p>Publish clear fees and payment details for every grade and term.</p></div>
-    </div>
-  </div>
-</section>
-
-<section class="bg-white" id="plans">
-  <div class="wrap">
-    <div class="section-head center">
-      <span class="kicker">Plans</span>
-      <h2>Pick what your school needs today</h2>
-      <p style="margin-top:10px;font-size:0.95rem;color:var(--muted);">Every new school starts with a 60-day trial of everything, no card required. Afterwards, stay on Free or upgrade to Premium.</p>
-    </div>
-    <div class="plans-wrap">
-      <div class="plan-card">
-        <div class="plan-name">Free</div>
-        <div class="plan-price">KSh 0 <span>forever</span></div>
-        <div class="plan-desc">Everything a school needs for a real presence online.</div>
-        <ul>
-          <li><span class="check">＋</span> Full website with all core pages</li>
-          <li><span class="check">＋</span> Free yourschool.somahub.top address</li>
-          <li><span class="check">＋</span> Self service editing dashboard</li>
-          <li><span class="check">＋</span> Optional: your own domain (add-on)</li>
-        </ul>
-        <a href="get-started.php" class="plan-cta">Get Started</a>
-      </div>
-      <div class="plan-card" style="border-color:var(--amber);">
-        <div class="plan-name">60-Day Trial <span style="font-size:.7rem;background:var(--amber);color:var(--teal-deep);padding:2px 9px;border-radius:20px;vertical-align:middle;">Starts automatically</span></div>
-        <div class="plan-price">KSh 0 <span>for 60 days</span></div>
-        <div class="plan-desc">Everything unlocked, free, so you can see the real value before deciding.</div>
-        <ul>
-          <li><span class="check">＋</span> Everything in Free</li>
-          <li><span class="check">＋</span> Online enrollment applications</li>
-          <li><span class="check">＋</span> Full report: results, attendance, position, trends & fees</li>
-        </ul>
-        <a href="get-started.php" class="plan-cta" style="background:var(--amber);color:var(--teal-deep);">Start Free Trial</a>
-      </div>
-      <div class="plan-card highlight">
-        <div class="plan-name">Premium</div>
-        <div class="plan-price">KSh 3,000 <span>per year</span></div>
-        <div class="plan-desc">About KSh 750 a term. Everything the Trial unlocks, permanently.</div>
-        <ul>
-          <li><span class="check">＋</span> Everything in Free</li>
-          <li><span class="check">＋</span> Online enrollment applications</li>
-          <li><span class="check">＋</span> Full report: results, attendance, position, trends & fees</li>
-        </ul>
-        <a href="get-started.php" class="plan-cta">Get Started</a>
-      </div>
-    </div>
-    <p style="text-align:center;margin-top:24px;font-size:0.9rem;color:var(--muted);">
-      Want your own domain or a custom designed site? <a href="pricing.php" style="color:var(--teal);font-weight:600;">See full pricing</a>
-    </p>
-  </div>
-</section>
-
-<section id="portfolio">
-  <div class="wrap">
-    <div class="section-head">
-      <span class="kicker">Schools using Somahub</span>
-      <h2><?= $schoolCount ?> school<?= $schoolCount == 1 ? '' : 's' ?> already online with us</h2>
-    </div>
-
-    <?php if ($schools): ?>
-    <?php if (count($schools) > 6): ?>
-    <input type="text" id="portfolioSearch" placeholder="Search schools by name or county…" style="width:100%;max-width:400px;padding:12px 16px;border:1.5px solid var(--line);border-radius:24px;margin-bottom:24px;font-family:inherit;font-size:0.9rem;">
-    <?php endif; ?>
-    <div class="portfolio-grid" id="portfolioGrid">
-      <?php foreach ($schools as $s): ?>
-      <a href="https://<?= urlencode($s['slug']) ?>.somahub.top/" class="portfolio-card" data-name="<?= htmlspecialchars(strtolower($s['name'])) ?>" data-county="<?= htmlspecialchars(strtolower($s['county'] ?? '')) ?>">
-        <div class="school-icon"><?= strtoupper(substr($s['name'], 0, 2)) ?></div>
-        <h3><?php if ($s['verification_status'] === 'verified'): ?><span class="verified-pill" title="Verified by Somahub"></span> <?php endif; ?><?= htmlspecialchars($s['name']) ?></h3>
-        <div class="url"><?= htmlspecialchars($s['slug']) ?>.somahub.top</div>
-        <span class="county-pill"><?= $s['county'] ? htmlspecialchars($s['county']) : ucfirst(str_replace('_',' ',$s['plan'])) ?></span>
-      </a>
-      <?php endforeach; ?>
-    </div>
-    <p id="portfolioNoResults" style="display:none;color:var(--muted);text-align:center;padding:30px;">No schools match that search.</p>
+  <div class="cards">
+    <a href="https://<?= htmlspecialchars($school['slug']) ?>.somahub.top/?edit=1" class="card-link" style="border:2px solid #F2A65A;background:#FFF8EC;">
+      <h3>Edit your site</h3>
+      <p>Open your real website and click anything to change it. Colours, fonts, photos, sections and undo are all there.</p>
+    </a>
+    <a href="https://<?= htmlspecialchars($school['slug']) ?>.somahub.top/" target="_blank" rel="noopener" class="card-link">
+      <h3>View my site</h3>
+      <p>See your website the way parents and visitors see it: <?= htmlspecialchars($school['slug']) ?>.somahub.top</p>
+    </a>
+    <?php $__vs = $school['verification_status'] ?? ''; if ($__vs === 'verified'): ?>
+    <a href="verify.php" class="card-link">
+      <h3>Verification: done &#10003;</h3>
+      <p>Your school is verified. Open to review your documents.</p>
+    </a>
     <?php else: ?>
-    <div class="empty-portfolio">
-      We are onboarding our first schools right now. Check back soon, or be one of the first.
+    <a href="verify.php" class="card-link" style="border:2px solid #C0392B;background:#FDF1EF;">
+      <h3>Verify your school</h3>
+      <p><?= $__vs === 'pending' ? 'Your documents are under review. Open to see the status.' : 'Upload your agreement and ID to keep your site online. It only takes a few minutes.' ?></p>
+    </a>
+    <?php endif; ?>
+    <a href="enrollment.php" class="card-link">
+      <h3>Enrollment Enquiries</h3>
+      <p><?= $newEnrollments ?> new application<?= $newEnrollments == 1 ? '' : 's' ?> waiting for review.</p>
+    </a>
+    <?php if ($school['plan'] !== 'free'): ?>
+    <a href="results.php" class="card-link">
+      <h3>Results</h3>
+      <p>Upload term results for parents to check online.</p>
+    </a>
+    <a href="fees.php" class="card-link">
+      <h3>Fee Structure</h3>
+      <p>Update fees shown to parents on your site.</p>
+    </a>
+    <?php else: ?>
+    <div class="card-link locked">
+      <h3>Results &amp; Fees 🔒</h3>
+      <p>Available on the paid plan. <a href="checkout.php">Upgrade now</a></p>
     </div>
     <?php endif; ?>
   </div>
-</section>
-
-<section id="reviews">
-  <div class="wrap">
-    <div class="section-head center">
-      <span class="kicker">What people are saying</span>
-      <h2>Reviews</h2>
-      <?php if ($platformAvgRating !== null): ?>
-        <p style="color:var(--muted);"><?= render_stars((int)round($platformAvgRating)) ?> <?= $platformAvgRating ?> out of 5 (<?= count($platformReviews) ?> review<?= count($platformReviews) == 1 ? '' : 's' ?>)</p>
-      <?php endif; ?>
-    </div>
-
-    <?php if (isset($_GET['review_submitted'])): ?>
-      <p style="background:#DCEFE1;color:#1B4D3E;padding:10px 16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;max-width:480px;margin-left:auto;margin-right:auto;text-align:center;">Thank you! Your review has been submitted and will appear once reviewed.</p>
-    <?php elseif (!empty($_GET['review_error'])): ?>
-      <p style="background:#FBE8E4;color:#8C3B2E;padding:10px 16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;max-width:480px;margin-left:auto;margin-right:auto;text-align:center;"><?= htmlspecialchars($_GET['review_error']) ?></p>
-    <?php endif; ?>
-
-    <div class="testimonial-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-bottom:32px;">
-      <?php foreach ($platformReviews as $r): ?>
-        <div class="testimonial-card" style="background:#fff;border-radius:10px;padding:22px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-          <div style="color:#F2A65A;letter-spacing:2px;margin-bottom:8px;"><?= render_stars((int)$r['rating']) ?></div>
-          <div style="font-style:italic;color:#333;margin-bottom:10px;">"<?= htmlspecialchars($r['comment']) ?>"</div>
-          <div style="font-weight:700;font-size:0.9rem;"><?= htmlspecialchars($r['reviewer_name']) ?><?= $r['reviewer_role'] ? ' - ' . htmlspecialchars($r['reviewer_role']) : '' ?></div>
-        </div>
-      <?php endforeach; ?>
-      <?php if (!$platformReviews): ?><p style="color:var(--muted);grid-column:1/-1;text-align:center;">No reviews yet - be the first to leave one.</p><?php endif; ?>
-    </div>
-
-    <details style="max-width:480px;margin:0 auto;">
-      <summary style="cursor:pointer;color:var(--teal);font-weight:700;text-align:center;">Leave a review</summary>
-      <form method="POST" action="/reviews-submit.php" style="margin-top:16px;">
-        <input type="hidden" name="reviewable_type" value="platform">
-        <input type="hidden" name="redirect_to" value="/index.php">
-        <input type="text" name="website" style="position:absolute;left:-9999px;" tabindex="-1" autocomplete="off">
-
-        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Your Name</label>
-        <input type="text" name="reviewer_name" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;box-sizing:border-box;">
-
-        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">You are a... (optional)</label>
-        <input type="text" name="reviewer_role" placeholder="e.g. Head Teacher, School Admin" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;box-sizing:border-box;">
-
-        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Rating</label>
-        <select name="rating" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-          <option value="">Choose a rating</option>
-          <option value="5">★★★★★ Excellent</option>
-          <option value="4">★★★★☆ Good</option>
-          <option value="3">★★★☆☆ Average</option>
-          <option value="2">★★☆☆☆ Below Average</option>
-          <option value="1">★☆☆☆☆ Poor</option>
-        </select>
-
-        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Your Review</label>
-        <textarea name="comment" rows="4" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:14px;box-sizing:border-box;"></textarea>
-
-        <?= consent_checkbox() ?>
-        <button type="submit" class="btn-primary" style="width:100%;">Submit Review</button>
-      </form>
-    </details>
-  </div>
-</section>
-
-<section class="bg-white" id="contact">
-  <div class="wrap">
-    <div class="section-head center">
-      <span class="kicker">Get In Touch</span>
-      <h2>Have a question?</h2>
-      <p style="margin-top:14px;font-size:0.95rem;color:var(--muted);">We'll get back to you as soon as we can.</p>
-    </div>
-    <form method="POST" action="contact-submit.php" class="contact-form loader-on-submit">
-      <div class="form-row">
-        <div>
-          <label>Email</label>
-          <input type="email" name="email" required>
-        </div>
-        <div>
-          <label>Phone (optional)</label>
-          <input type="tel" name="phone">
-        </div>
-      </div>
-      <label>Subject</label>
-      <input type="text" name="subject" required>
-      <label>Message</label>
-      <textarea name="message" rows="5" required></textarea>
-      <label class="consent-check">
-        <input type="checkbox" name="agreed_to_terms" required>
-        I agree to Somahub's <a href="terms.php" target="_blank">Terms of Service</a> and <a href="privacy.php" target="_blank">Privacy Policy</a>.
-      </label>
-      <button type="submit" class="btn-primary" style="width:100%;margin-top:10px;">Send Message</button>
-    </form>
-  </div>
-</section>
-
-<div class="cta-band">
-  <div class="wrap">
-    <h2>Prefer to reach us directly</h2>
-    <p>Call, message, or email and we will set up your school personally.</p>
-    <a href="mailto:hello@somahub.top" class="btn-primary" style="display:inline-block;">Email hello@somahub.top</a>
-  </div>
-</div>
-
-<footer>
-  <div>Somahub. Websites for Kenyan schools.</div>
-</footer>
-
-<script>
-const portfolioSearch = document.getElementById('portfolioSearch');
-if (portfolioSearch) {
-    portfolioSearch.addEventListener('input', () => {
-        const query = portfolioSearch.value.trim().toLowerCase();
-        const cards = document.querySelectorAll('#portfolioGrid .portfolio-card');
-        let visibleCount = 0;
-
-        cards.forEach(card => {
-            const matches = card.dataset.name.includes(query) || card.dataset.county.includes(query);
-            card.style.display = matches ? '' : 'none';
-            if (matches) visibleCount++;
-        });
-
-        document.getElementById('portfolioNoResults').style.display = visibleCount === 0 ? 'block' : 'none';
-    });
-}
-
-</script>
-
-<?php include __DIR__ . '/_loader.php'; ?>
-<?php include __DIR__ . '/_chat_widget.php'; ?>
+</main>
 </body>
 </html>
