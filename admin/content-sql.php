@@ -149,7 +149,7 @@ if ($school) {
 } else $runs = [];
 $ctx = '';
 foreach ($fieldsRef as $r) { $ctx .= $r['key'] . ': ' . implode(', ', array_map(fn($k, $t) => $k . ($t === 'image' ? ' (image, leave alone)' : ''), array_keys($r['fields']), $r['fields'])) . "\n"; }
-$factsTpl = $school ? "Name: {$school['name']}\nTown: \nCounty: " . ($school['county'] ?? '') . "\nDay / Boarding / Mixed: \nGrades offered: \nCurriculum: CBC" : '';
+$factsTpl = $school ? "Name: {$school['name']}\nTown: \nCounty: " . ($school['county'] ?? '') . "\nDay / Boarding / Mixed: \nGrades offered: \nCurriculum: CBC\nPhone: " . ($school['phone'] ?? '') . "\nWhatsApp: \nEmail: \nAddress / P.O. Box: \nOffice hours: " : '';
 $example = "-- Example: rewrite the hero and about text for this school\nUPDATE site_sections ss JOIN section_types st ON st.id = ss.section_type_id\nSET ss.content_json = JSON_SET(ss.content_json,\n  '\$.headline', 'Welcome to {school_name}',\n  '\$.subheading', 'Your text here')\nWHERE ss.school_id = {school_id} AND st.key_name = 'hero';";
 ?><!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Content SQL - Admin</title>
