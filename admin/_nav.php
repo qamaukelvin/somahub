@@ -48,6 +48,7 @@ function adm_active(array $f): string { global $__cur; return in_array($__cur, $
       </div>
       <a href="logout.php" class="top">Log out</a>
     </div>
-    <button class="menu-toggle" onclick="document.getElementById('adminnavlinks').classList.toggle('open')">☰</button>
+    <button class="menu-toggle" aria-label="Menu" data-menu-toggle="adminnavlinks">☰</button>
   </div>
 </nav>
+<?php include __DIR__ . '/../includes/menu-toggle.php'; ?>

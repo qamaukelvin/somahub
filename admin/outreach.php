@@ -16,64 +16,71 @@ function log_outreach(PDO $db, string $channel, string $name, string $rcpt, stri
 // Premade templates — {name}, {school}, {login_username}, {temp_password}
 // get substituted before sending. cta_text/cta_link are optional.
 $templates = [
-    'intro_who_we_are' => [
-        'label' => '1. Intro — who we are + preview',
+    'first_contact' => [
+        'label' => '1. First contact: free website offer',
         'subject' => 'A free website for {school}',
-        'body' => "Hi {name},\n\nMy name is Kelvin from Somahub — we build and host free websites for Kenyan schools. Parents can find your school online, see your programs, and reach you directly, and you don't pay anything to get started.\n\nWe've already put together a sample site for {school} so you can see exactly what it looks like before deciding anything.\n\nTake a look below — no commitment, just a preview.\n\nBest,\nKelvin, Somahub",
-        'cta_text' => 'Preview Your Site',
+        'body' => "Hi {name},\n\nI'm Kelvin from Somahub. We build and host websites for Kenyan schools, and the basic site is free.\n\nParents can find {school} online, see your programmes and photos, and contact you directly. You can edit everything yourself from your phone, no tech skills needed.\n\nIf you'd like, I will set up a preview of your site so you can see exactly how it would look. Just reply to this email or WhatsApp me.\n\nKind regards,\nKelvin, Somahub",
+        'cta_text' => 'See how it works',
+        'cta_link' => 'https://somahub.top/',
+    ],
+    'preview_ready' => [
+        'label' => '2. Preview is ready',
+        'subject' => "{school}'s website preview is ready",
+        'body' => "Hi {name},\n\nI have built a preview of the website for {school}. Please take a look and tell me what you would like changed: the school details, photos, and anything missing.\n\nIf you like it, I will give you a login so you can edit it yourself and publish it.",
+        'cta_text' => 'View the preview',
         'cta_link' => '',
     ],
     'login_details' => [
-        'label' => '2. Login link (after they like the preview)',
-        'subject' => 'Log in to make {school}\'s site yours',
-        'body' => "Hi {name},\n\nGlad you liked the preview! Tap the link below to log straight in — no password needed:\n\n{magic_link}\n\nOnce you're in, you can update photos, text, and contact details — everything is yours to edit.\n\nBest,\nKelvin, Somahub",
-        'cta_text' => 'Log In Now',
+        'label' => '3. Login link (they liked the preview)',
+        'subject' => "Log in to make {school}'s site yours",
+        'body' => "Hi {name},\n\nGlad you liked the preview! Use the button below to log in. No password is needed for this first visit.\n\nOnce you're in, click any text or photo on the page to change it. Everything saves by itself.\n\nIf the button does not work, copy this link into your browser:\n{magic_link}",
+        'cta_text' => 'Log in to my site',
         'cta_link' => '{magic_link}',
     ],
-    'post_login_orientation' => [
-        'label' => '3. How everything works (after first login)',
-        'subject' => 'Getting the most out of {school}\'s Somahub account',
-        'body' => "Hi {name},\n\nNow that you're logged in, here's a quick rundown:\n\n- Edit your site anytime from the dashboard — no tech skills needed\n- Your site is live now, but ask us about verification to keep it that way long-term\n- You're on a 60-day trial with every feature unlocked, including enrollment, results, and fees\n- Questions anytime — just message us here\n\nBest,\nKelvin, Somahub",
-        'cta_text' => 'Go to Dashboard',
+    'getting_started' => [
+        'label' => '4. Getting started tips (after first login)',
+        'subject' => "Getting the most out of {school}'s website",
+        'body' => "Hi {name},\n\nThanks for logging in. Three things worth doing first:\n\n1. Add your school's photos and write a short welcome.\n2. Check your contact details and map location.\n3. Verify your school so the site stays online. It takes a few minutes.\n\nStuck anywhere? Reply here or message me on WhatsApp and I will help.",
+        'cta_text' => 'Open my dashboard',
         'cta_link' => 'https://somahub.top/dashboard/login.php',
     ],
-    'cold_intro' => [
-        'label' => 'Cold outreach — first contact',
-        'subject' => 'Getting {school} online with Somahub',
-        'body' => "Hi {name},\n\nSomahub builds and hosts a free website for your school — parents can find you online, see your programs, and reach you directly.\n\nIt takes a few days to set up. You just review the content and we go live. No design or tech skills needed on your side.\n\nCould you share a few quick details (school name, location, and a contact number) so we can get started?\n\nBest,\nSomahub",
-        'cta_text' => 'Reply to Get Started',
-        'cta_link' => 'mailto:hello@somahub.top',
-    ],
-    'sample_ready' => [
-        'label' => 'Sample site ready',
-        'subject' => '{school}\'s website is ready to preview',
-        'body' => "Hi {name},\n\nYour school's website is built and ready for your review.\n\nPlease take a look and check:\n- School details (name, location, contact info) are correct\n- Any photos, staff info, or programs you'd like added\n- General look and feel\n\nThis is a live preview — once you confirm it's good, it's ready to share with parents and the community. Let me know if you'd like any changes, or if you're happy to go live as-is.\n\nBest,\nSomahub",
-        'cta_text' => 'View Your Website',
-        'cta_link' => '',
-    ],
     'follow_up' => [
-        'label' => 'Follow-up on quiet lead',
-        'subject' => 'Following up — {school}\'s website',
-        'body' => "Hi {name},\n\nJust following up on my earlier message about setting up a free website for {school}. No rush at all — just wanted to check if you had any questions, or if you're ready to move forward.\n\nHappy to hop on a call if that's easier.\n\nBest,\nSomahub",
-        'cta_text' => 'Reply Now',
+        'label' => '5. Gentle follow-up',
+        'subject' => "Quick follow-up for {school}",
+        'body' => "Hi {name},\n\nJust checking in on my earlier message about a free website for {school}. No pressure at all. If now is not a good time, tell me and I will check back later.\n\nIf you have questions, reply here and I will answer them.",
+        'cta_text' => 'Reply to Kelvin',
         'cta_link' => 'mailto:hello@somahub.top',
-    ],
-    'upgrade_prompt' => [
-        'label' => 'Upgrade prompt (Free to Premium)',
-        'subject' => 'Unlock more for {school}\'s website',
-        'body' => "Hi {name},\n\nHope the website has been useful so far. Wanted to check in about our Premium plan (KSh 3,000/year), which adds:\n\n- Online enrollment applications\n- Full report: results, attendance, position, trends & fees\n- Every premium theme\n\nThese tend to save admin offices real time, especially around enrollment and results season.\n\nBest,\nSomahub",
-        'cta_text' => 'See Full Pricing',
-        'cta_link' => 'https://somahub.top/pricing.php',
     ],
     'verification_nudge' => [
-        'label' => 'Verification nudge',
-        'subject' => 'Get {school} verified on Somahub',
-        'body' => "Hi {name},\n\nOne last step to complete your school's setup — verification.\n\nA verified badge on your page confirms to parents and the public that {school}'s site is genuine and managed by an authorized representative.\n\nHere's what you'll need:\n1. Download and sign the agreement: https://somahub.top/agreement.php\n2. Upload the signed copy plus your ID as the representative managing the account\n\nBest,\nSomahub",
-        'cta_text' => 'Verify Now',
+        'label' => '6. Verification reminder',
+        'subject' => "Please verify {school}",
+        'body' => "Hi {name},\n\nOne step is left to keep {school}'s website online: verification.\n\nIt confirms to parents that your site is genuine and run by the school. You only need your school agreement and an ID, and it takes a few minutes.",
+        'cta_text' => 'Verify my school',
         'cta_link' => 'https://somahub.top/dashboard/verify.php',
     ],
+    'upgrade' => [
+        'label' => '7. Upgrade to Premium',
+        'subject' => "Get more from {school}'s website",
+        'body' => "Hi {name},\n\nYour website has been live for a while. Premium (KSh 3,000 a year) adds the tools schools use every day:\n\n- Online enrollment applications\n- Results that parents can check online\n- Attendance and fee structure\n- Every theme\n\nYou can pay by M-Pesa and it is activated as soon as we confirm.",
+        'cta_text' => 'See plans',
+        'cta_link' => 'https://somahub.top/dashboard/checkout.php',
+    ],
+    'renewal' => [
+        'label' => '8. Premium renewal reminder',
+        'subject' => "{school}'s Premium plan is due for renewal",
+        'body' => "Hi {name},\n\nA quick reminder that {school}'s Premium plan is coming up for renewal. Renewing keeps enrollment, results, attendance and fees running without a break, and any time you have left is added on top.",
+        'cta_text' => 'Renew now',
+        'cta_link' => 'https://somahub.top/dashboard/checkout.php',
+    ],
+    'holiday' => [
+        'label' => '9. Holiday greeting',
+        'subject' => 'Warm wishes from Somahub',
+        'body' => "Hi {name},\n\nWishing you and everyone at {school} a happy and restful holiday. Thank you for being part of Somahub.\n\nKind regards,\nKelvin",
+        'cta_text' => '',
+        'cta_link' => '',
+    ],
     'custom' => [
-        'label' => 'Custom (write your own)',
+        'label' => 'Write my own',
         'subject' => '',
         'body' => '',
         'cta_text' => '',
@@ -99,7 +106,7 @@ $recipientEmail = $_POST['recipient_email'] ?? $_GET['email'] ?? '';
 $recipientPhone = $_POST['recipient_phone'] ?? $_GET['phone'] ?? '';
 $magicLink = $_POST['magic_link'] ?? $_GET['magic_link'] ?? '';
 $prefillSlug = $_GET['slug'] ?? '';
-$templateKey = $_POST['template'] ?? ($prefillSlug ? 'intro_who_we_are' : (isset($_GET['school_name']) ? 'cold_intro' : 'custom'));
+$templateKey = $_POST['template'] ?? ($prefillSlug ? 'preview_ready' : (isset($_GET['school_name']) ? 'first_contact' : 'custom'));
 $subject = $_POST['subject'] ?? '';
 $message = $_POST['message'] ?? '';
 $ctaText = $_POST['cta_text'] ?? '';
@@ -304,7 +311,7 @@ function applyTemplate() {
 
 // Arriving from leads-convert.php with credentials ready — load the intro
 // template automatically so the first message is one click away.
-<?php if ($prefillSlug && $templateKey === 'intro_who_we_are'): ?>
+<?php if ($prefillSlug && $templateKey === 'preview_ready'): ?>
 document.addEventListener('DOMContentLoaded', () => {
     applyTemplate();
     document.getElementById('cta_link').value = <?= json_encode($ctaLink) ?>;

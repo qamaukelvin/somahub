@@ -7,7 +7,7 @@ require_once __DIR__ . '/includes/ratelimit.php';
 if ($_SERVER['REQUEST_METHOD']==='POST') rate_limit_or_die('contact:'.client_ip(), 5, 3600);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: index.php');
+    header('Location: contact.php');
     exit;
 }
 

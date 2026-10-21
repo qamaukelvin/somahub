@@ -156,7 +156,10 @@ function plan_badge_text(array $school): array {
       <?php if ($mySlug): ?><a class="dl" href="https://<?= htmlspecialchars($mySlug) ?>.somahub.top/?edit=1" style="background:#F2A65A;color:#0A3A3E;border-radius:999px;font-weight:800;"><span class="material-symbols-outlined">edit_square</span>Edit site</a><?php endif; ?>
     </div>
 
-    <button type="button" class="menu-toggle" aria-label="Menu" onclick="document.getElementById('dashnavlinks').classList.toggle('open')"><span class="material-symbols-outlined">menu</span></button>
+    <?php if ($effectiveSchoolId): ?>
+    <a class="nbell-m" href="notifications.php" aria-label="Notifications"><span class="material-symbols-outlined"><?= $unreadCount > 0 ? 'notifications_unread' : 'notifications' ?></span><?php if ($unreadCount > 0): ?><span class="notif-badge"><?= $unreadCount > 9 ? '9+' : $unreadCount ?></span><?php endif; ?></a>
+    <?php endif; ?>
+    <button type="button" class="menu-toggle" aria-label="Menu" aria-expanded="false" data-menu-toggle="dashnavlinks"><span class="material-symbols-outlined">menu</span></button>
   </div>
 </nav>
 <style>
@@ -195,10 +198,14 @@ function plan_badge_text(array $school): array {
   .notif-title{font-size:.85rem;font-weight:700;} .notif-msg{font-size:.78rem;color:#666;margin-top:2px;}
   .notif-empty{padding:20px 16px;color:#888;font-size:.85rem;text-align:center;}
   .notif-view-all{display:block;text-align:center;padding:11px;font-size:.8rem;font-weight:800;color:#0F5257;text-decoration:none;}
-  .dnav .menu-toggle{display:none;color:#fff;background:rgba(255,255,255,.1);border-radius:9px;padding:6px;}
+  .dnav .menu-toggle{display:none;color:#fff;background:rgba(255,255,255,.1);border:none;border-radius:9px;padding:6px;cursor:pointer;}
+  .dnav .nbell-m{display:none;position:relative;color:#fff;background:rgba(255,255,255,.1);border-radius:9px;padding:6px;text-decoration:none;}
   @media(max-width:900px){
     .dnav-name{max-width:110px;}
     .dnav .menu-toggle{display:flex;margin-left:0;}
+    .dnav .nbell-m{display:flex;margin-left:auto;}
+    .dnav .navlinks .notif-bell-wrap{display:none;}
+    .dnav-in{padding:0 12px;gap:8px;}
     .dnav .navlinks{display:none;position:absolute;top:58px;left:0;right:0;margin:0;flex-direction:column;align-items:stretch;gap:2px;background:var(--teal);padding:10px 14px 16px;max-height:calc(100vh - 58px);overflow-y:auto;box-shadow:0 14px 24px rgba(0,0,0,.25);}
     .dnav .navlinks.open{display:flex;}
     .dnav .dl,.dnav .nav-group-label{width:100%;padding:11px 12px;}
@@ -210,6 +217,7 @@ function plan_badge_text(array $school): array {
   }
   @media(max-width:760px){ .notif-panel{position:fixed;top:auto;bottom:0;left:0;right:0;width:100%;max-height:70vh;border-radius:16px 16px 0 0;} }
 </style>
+<?php include __DIR__ . '/../includes/menu-toggle.php'; include __DIR__ . '/../includes/cookie-consent.php'; ?>
 <script>
 function toggleNotifPanel() { document.getElementById('notifPanel').classList.toggle('open'); }
 document.addEventListener('click', (e) => {

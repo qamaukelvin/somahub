@@ -68,19 +68,21 @@ function bc_html(string $msg, string $cta, string $link): string {
 function bc_send(PDO $db, array $b, array $r): array {
     $url = 'https://somahub.top/unsubscribe.php?e=' . rawurlencode($r['email']) . '&t=' . unsub_token($db, $r['email']);
     $ok = send_somahub_email($r['email'], bc_fill($b['subject'], $r), bc_html(bc_fill($b['body'], $r), $b['cta_text'], bc_fill($b['cta_link'], $r)), 'hello@somahub.top', ['unsubscribe' => $url]);
-    return [$ok, $ok ? null : 'Send failed (see error log)'];
+    return [$ok, $ok ? null : mb_substr('Send failed: ' . ($GLOBALS['somahub_mail_error'] ?? 'unknown error'), 0, 250)];
 }
 $cap = max(1, (int)get_setting($db, 'broadcast_daily_cap', '250'));
 
 // ---- AJAX: send the next small batch ---------------------------------------
 if (isset($_GET['tick'])) {
     header('Content-Type: application/json');
+    @set_time_limit(120); ignore_user_abort(true);
+    try {
     $id = (int)$_GET['tick'];
     $b = $db->prepare("SELECT * FROM broadcasts WHERE id = ?"); $b->execute([$id]); $b = $b->fetch();
     if (!$b) { echo json_encode(['error' => 'Not found']); exit; }
     $today = (int)$db->query("SELECT COUNT(*) FROM broadcast_recipients WHERE status='sent' AND sent_at >= CURDATE()")->fetchColumn();
     $room = max(0, $cap - $today);
-    $take = min(8, $room);
+    $take = min(4, $room);
     $q = $db->prepare("SELECT * FROM broadcast_recipients WHERE broadcast_id = ? AND status = 'queued' ORDER BY id LIMIT " . (int)$take);
     $q->execute([$id]);
     foreach ($take ? $q->fetchAll() : [] as $r) {
@@ -91,7 +93,9 @@ if (isset($_GET['tick'])) {
     $db->prepare("UPDATE broadcasts SET sent = (SELECT COUNT(*) FROM broadcast_recipients WHERE broadcast_id = ? AND status='sent'), failed = (SELECT COUNT(*) FROM broadcast_recipients WHERE broadcast_id = ? AND status='failed') WHERE id = ?")->execute([$id, $id, $id]);
     $left = (int)$db->query("SELECT COUNT(*) FROM broadcast_recipients WHERE broadcast_id = $id AND status='queued'")->fetchColumn();
     $b = $db->query("SELECT sent, failed, total FROM broadcasts WHERE id = $id")->fetch();
-    echo json_encode(['sent' => (int)$b['sent'], 'failed' => (int)$b['failed'], 'total' => (int)$b['total'], 'left' => $left, 'capped' => $left > 0 && $room - $take <= 0]);
+    $le = $db->query("SELECT error FROM broadcast_recipients WHERE broadcast_id = $id AND status='failed' ORDER BY id DESC LIMIT 1")->fetchColumn();
+    echo json_encode(['sent' => (int)$b['sent'], 'failed' => (int)$b['failed'], 'total' => (int)$b['total'], 'left' => $left, 'capped' => $left > 0 && $room - $take <= 0, 'lastError' => $le ?: '']);
+    } catch (Throwable $e) { error_log('broadcast tick: ' . $e->getMessage()); echo json_encode(['error' => 'Server error: ' . $e->getMessage()]); }
     exit;
 }
 
@@ -167,14 +171,15 @@ $todaySent = (int)$db->query("SELECT COUNT(*) FROM broadcast_recipients WHERE st
   </div>
   <script>
   (function(){ var id=<?= (int)$runId ?>, bar=document.getElementById('bar'), st=document.getElementById('st');
-    function tick(){ fetch('broadcast.php?tick='+id,{method:'POST',credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    function tick(){ fetch('broadcast.php?tick='+id,{method:'POST',credentials:'same-origin'}).then(function(r){return r.text().then(function(t){ try{ return JSON.parse(t); }catch(e){ return {error:'Server replied '+r.status+': '+t.replace(/<[^>]*>/g,' ').trim().slice(0,200)}; } });}).then(function(d){
       if(d.error){ st.textContent=d.error; return; }
+      if(d.failed>0 && d.sent===0 && d.lastError){ st.textContent=d.failed+' failed. First error: '+d.lastError+' . Check your Brevo SMTP settings in Settings, then use Resume.'; return; }
       var done=d.sent+d.failed; bar.style.width=(d.total?Math.round(done/d.total*100):100)+'%';
       st.textContent=d.sent+' sent, '+d.failed+' failed, '+d.left+' waiting of '+d.total;
       if(d.left===0){ st.textContent+=' . Done.'; return; }
       if(d.capped){ st.textContent+=' . Daily cap reached, paused. Continue tomorrow.'; return; }
       setTimeout(tick,300);
-    }).catch(function(){ st.textContent='Connection problem. Reload this page to continue.'; }); }
+    }).catch(function(e){ st.textContent='Could not reach the server ('+(e&&e.message?e.message:'network')+'). Reload this page and press Resume to continue.'; }); }
     tick(); })();
   </script>
 <?php endif; else: ?>

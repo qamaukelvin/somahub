@@ -115,7 +115,7 @@ function generate_school_joined_post(PDO $db, array $school): ?int {
     $body = "
         <p>We're excited to welcome <strong>{$name}</strong>{$locationLine} to the Somahub family! 🎉</p>
         {$aboutParagraph}
-        <p>If you know a school that could use a free website too, <a href=\"/index.php#contact\">let them know about Somahub</a>.</p>
+        <p>If you know a school that could use a free website too, <a href=\"/contact.php\">let them know about Somahub</a>.</p>
     ";
 
     return create_blog_draft(
@@ -149,6 +149,6 @@ function maybe_generate_milestone_post(PDO $db, int $totalSchoolCount): ?int {
     return create_blog_draft(
         $db, 'auto_milestone', $title, $body, $excerpt, $totalSchoolCount,
         ctaText: 'See All Schools',
-        ctaLink: '/index.php#portfolio'
+        ctaLink: '/schools.php'
     );
 }

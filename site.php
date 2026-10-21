@@ -776,7 +776,7 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
         <?php endif; ?>
       <?php endforeach; ?>
     </ul></nav>
-    <button class="menu-toggle" onclick="document.getElementById('navlinks').classList.toggle('open')">☰</button>
+    <button class="menu-toggle" aria-label="Menu" data-menu-toggle="navlinks">☰</button>
   </div>
 </header>
 
@@ -2151,5 +2151,6 @@ if (!$demoEmbed && !$editMode) {
     include __DIR__ . '/_chat_widget.php';
 }
 ?>
+<?php include __DIR__ . '/includes/menu-toggle.php'; if (empty($editMode) && empty($demoEmbed)) include __DIR__ . '/includes/cookie-consent.php'; ?>
 </body>
 </html>

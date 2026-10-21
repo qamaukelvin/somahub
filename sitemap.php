@@ -17,7 +17,7 @@ if ($isSchoolHost) {
     $urls[] = ['https://' . $s['slug'] . '.somahub.top/', $s['updated_at'] ?? null, '1.0', 'weekly'];
 } else {
     $pages = [
-        ['/', '1.0', 'weekly'], ['/pricing.php', '0.8', 'monthly'], ['/docs.php', '0.8', 'monthly'],
+        ['/', '1.0', 'weekly'], ['/pricing.php', '0.8', 'monthly'], ['/features.php', '0.8', 'monthly'], ['/schools.php', '0.7', 'weekly'], ['/reviews.php', '0.6', 'weekly'], ['/contact.php', '0.6', 'monthly'], ['/docs.php', '0.8', 'monthly'],
         ['/get-started.php', '0.7', 'monthly'], ['/blog/', '0.7', 'weekly'], ['/results-portal.php', '0.6', 'monthly'],
         ['/terms.php', '0.3', 'yearly'], ['/privacy.php', '0.3', 'yearly'],
     ];

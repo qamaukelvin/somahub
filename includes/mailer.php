@@ -72,6 +72,8 @@ function send_somahub_email(string $to, string $subject, string $bodyHtml, strin
 
     try {
         $mail->isSMTP();
+        $mail->Timeout = 20;          // give up on a dead SMTP server in 20s, not 5 minutes
+        $mail->SMTPKeepAlive = false;
         $mail->Host = $smtp['host'];
         $mail->SMTPAuth = true;
         $mail->Username = $smtp['username'];
@@ -99,6 +101,7 @@ function send_somahub_email(string $to, string $subject, string $bodyHtml, strin
     } catch (PHPMailerException $e) {
         // Log quietly rather than breaking the page the user is on —
         // a failed email should never be the reason a form submission fails
+        $GLOBALS['somahub_mail_error'] = $mail->ErrorInfo ?: $e->getMessage();
         error_log('Somahub mail failed: ' . $mail->ErrorInfo);
         error_log('Somahub SMTP config: Host=' . $smtp['host'] . ' Port=' . $smtp['port'] . ' User=' . $smtp['username']);
         return false;
@@ -115,7 +118,7 @@ function email_wrapper(string $innerHtml): string {
     $links = '<a href="https://somahub.top/" ' . $lk . '>Website</a> &nbsp;·&nbsp; '
         . '<a href="https://wa.me/' . $wa . '" ' . $lk . '>WhatsApp us</a> &nbsp;·&nbsp; '
         . '<a href="mailto:' . htmlspecialchars($supportEmail) . '" ' . $lk . '>Email us</a> &nbsp;·&nbsp; '
-        . '<a href="https://somahub.top/#contact" ' . $lk . '>Contact</a> &nbsp;·&nbsp; '
+        . '<a href="https://somahub.top/contact.php" ' . $lk . '>Contact</a> &nbsp;·&nbsp; '
         . '<a href="https://somahub.top/dashboard/login.php" ' . $lk . '>Log in</a>';
     return '
     <div style="font-family: Arial, sans-serif; background:#F7F2E7; padding:30px 20px;">

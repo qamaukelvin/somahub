@@ -71,6 +71,9 @@
   <h2>8. Your Rights</h2>
   <p>Parents, guardians, and school staff may request to see what information is held about them, request corrections, or request deletion, by contacting the school directly or by contacting Somahub at hello@somahub.top.</p>
 
+  <h2 id="cookies">Cookies</h2>
+  <p>Somahub uses a small number of cookies. <strong>Essential cookies</strong> keep you logged in (a session cookie), protect forms from forgery, and remember your cookie choice. If you tick "Keep me logged in", a login cookie stays for 30 days, otherwise it ends when you close the browser. We do not use advertising cookies and we do not sell your data. Pages may load fonts and maps from Google, which can set their own cookies under their policies. You can delete cookies in your browser settings at any time, but you will need to log in again.</p>
+
   <h2>9. Changes to This Policy</h2>
   <p>This policy may be updated from time to time as Somahub's services grow. Significant changes will be communicated to schools using the platform.</p>
 

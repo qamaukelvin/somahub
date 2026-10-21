@@ -5,15 +5,16 @@ $navRoot = $navRoot ?? '.';
 $spnGroups = [
     ['Product', [
         ['How it works', '/index.php#how', 'play_circle'],
-        ["What's included", '/index.php#features', 'checklist'],
+        ["What's included", '/features.php', 'checklist'],
         ['Plans and pricing', '/pricing.php', 'sell'],
         ['Try the editor', '/index.php#try', 'edit'],
     ]],
     ['Schools', [
-        ['Schools on Somahub', '/index.php#portfolio', 'school'],
+        ['Schools on Somahub', '/schools.php', 'school'],
         ['Check results', '/results-portal.php', 'grading'],
         ['Search schools', '/search.php', 'search'],
-        ['Reviews', '/index.php#reviews', 'reviews'],
+        ['Reviews', '/reviews.php', 'reviews'],
+        ['Contact us', '/contact.php', 'mail'],
     ]],
     ['Learn', [
         ['Guide', '/docs.php', 'menu_book'],
@@ -83,3 +84,4 @@ $spnGroups = [
   menu.querySelectorAll('a').forEach(function(link) { link.addEventListener('click', function() { setOpen(false); }); });
 })();
 </script>
+<?php include __DIR__ . '/includes/cookie-consent.php'; ?>
