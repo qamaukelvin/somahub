@@ -10,7 +10,7 @@ include __DIR__ . '/_public_head.php';
     <div class="section-head">
       <span class="kicker">What is included</span>
       <h1>Free to start, more when you need it</h1>
-      <p style="margin-top:10px;font-size:0.92rem;color:var(--muted);">Everything tagged "Paid" below is included in the 60-day trial every new school starts with, no card required. After the trial it needs <a href="pricing.php" style="color:var(--teal);font-weight:700;">Premium</a>.</p>
+      <p style="margin-top:10px;font-size:0.92rem;color:var(--muted);">Your core website is free and never expires. Features tagged "Paid" are Premium tools: every new school gets them free for 60 days, and they continue on <a href="pricing.php" style="color:var(--teal);font-weight:700;">Premium</a>. Without it, your site stays online and those tools simply pause.</p>
     </div>
     <div class="feature-grid">
       <div class="feature-card"><h3>Website and hosting</h3><p>Every core page your school needs, hosted and online, always free.</p></div>

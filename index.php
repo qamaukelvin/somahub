@@ -1,8 +1,11 @@
 <?php
 require_once __DIR__ . '/includes/consent.php';
 require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/reviews.php';
 $db = get_db();
 $schoolCount = $db->query("SELECT COUNT(*) c FROM schools WHERE status IN ('active','trial') AND slug <> 'demo'")->fetch()['c'];
+$platformReviews = get_approved_reviews($db, 'platform', null, 6);
+$platformAvgRating = get_average_rating($platformReviews);
 $pageTitle = 'Somahub: Free Websites for Kenyan Schools';
 $pagePath = '/';
 $pageJsonLd = <<<'LD'
@@ -12,14 +15,14 @@ include __DIR__ . '/_public_head.php';
 ?>
 <section class="hero">
   <div class="hero-inner">
-    <span class="hero-tag"><span class="dot"></span> Built for Kenyan schools</span>
+    <span class="hero-tag"><span class="dot"></span> Free websites for Kenyan schools</span>
     <h1>Your school deserves a <span class="accent">real website</span>, at no cost to you</h1>
-    <p>Sign up, answer a few questions, and your site is live in minutes. We set up the pages and host them. You edit text, photos and colours right on the page.</p>
+    <p>Sign up, answer a few questions, and your site is live in minutes. We build and host it, and it stays online for free. You edit text, photos and colours right on the page.</p>
     <div class="hero-ctas">
       <a href="get-started.php" class="btn-primary">Create my school site</a>
       <a href="#try" class="btn-ghost">Try the editor</a>
     </div>
-    <p style="margin-top:14px;font-size:.84rem;color:var(--muted);">60 days of everything free, no card needed. Already have a site? <a href="dashboard/login.php" style="color:var(--teal);font-weight:700;text-decoration:underline;">Log in</a></p>
+    <p style="margin-top:14px;font-size:.84rem;color:var(--muted);">Core site free, always. Premium features free for 60 days, no card needed. Already have a site? <a href="dashboard/login.php" style="color:var(--teal);font-weight:700;text-decoration:underline;">Log in</a></p>
 
   </div>
 </section>
@@ -101,27 +104,140 @@ include __DIR__ . '/_public_head.php';
   </div>
 </section>
 
-<section class="explore" id="explore">
+<section class="bg-white" id="plans">
   <div class="wrap">
     <div class="section-head center">
-      <span class="kicker">Keep exploring</span>
-      <h2>Everything else, one tap away</h2>
+      <span class="kicker">Plans</span>
+      <h2>A free website, with extras when you want them</h2>
+      <p style="margin-top:10px;font-size:0.95rem;color:var(--muted);">Your core website is free and stays online. Premium adds tools like enrollment and results. Every new school gets them free for 60 days, starting automatically.</p>
     </div>
-    <div class="explore-grid">
-      <a href="features.php"><span class="ex-ic">checklist</span><h3>What is included</h3><p>Hosting, your own address, enrollment, results and fees. See what is free and what is paid.</p><b>See features &rarr;</b></a>
-      <a href="pricing.php"><span class="ex-ic">sell</span><h3>Plans and pricing</h3><p>Free to start, a 60-day full trial, then Premium at KSh 3,000 a year.</p><b>View pricing &rarr;</b></a>
-      <a href="schools.php"><span class="ex-ic">school</span><h3><?= $schoolCount ?> school<?= $schoolCount == 1 ? '' : 's' ?> online</h3><p>Browse the schools already using Somahub and visit their sites.</p><b>See schools &rarr;</b></a>
-      <a href="reviews.php"><span class="ex-ic">reviews</span><h3>Reviews</h3><p>What head teachers and administrators say, and how to leave your own.</p><b>Read reviews &rarr;</b></a>
-      <a href="contact.php"><span class="ex-ic">mail</span><h3>Talk to us</h3><p>Questions before you start? Message us and we will help you personally.</p><b>Contact us &rarr;</b></a>
+    <div class="plans-wrap two">
+      <div class="plan-card">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">KSh 0 <span>forever</span></div>
+        <div class="plan-desc">Your school's website, online and yours to edit. No expiry.</div>
+        <ul>
+          <li><span class="check">＋</span> Full website with all core pages</li>
+          <li><span class="check">＋</span> Free yourschool.somahub.top address</li>
+          <li><span class="check">＋</span> Edit text, photos and colours yourself</li>
+          <li><span class="check">＋</span> Optional: your own domain (add-on)</li>
+        </ul>
+        <a href="get-started.php" class="plan-cta">Create my free site</a>
+      </div>
+      <div class="plan-card highlight">
+        <div class="plan-name">Premium <span style="font-size:.7rem;background:var(--amber);color:var(--teal-deep);padding:2px 9px;border-radius:20px;vertical-align:middle;">60 days free, automatic</span></div>
+        <div class="plan-price">KSh 3,000 <span>per year</span></div>
+        <div class="plan-desc">About KSh 750 a term. Try it free for 60 days, then keep it or not.</div>
+        <ul>
+          <li><span class="check">＋</span> Everything in Free</li>
+          <li><span class="check">＋</span> Online enrollment applications</li>
+          <li><span class="check">＋</span> Results checking, attendance, positions and trends</li>
+          <li><span class="check">＋</span> Fee structure for every grade and term</li>
+        </ul>
+        <a href="get-started.php" class="plan-cta">Start with 60 days free</a>
+      </div>
     </div>
+    <p style="text-align:center;margin-top:22px;font-size:.92rem;color:var(--muted);max-width:620px;margin-left:auto;margin-right:auto;"><strong style="color:var(--teal);">Your site never goes offline after the trial.</strong> If you do not upgrade, it simply stays on Free and the Premium tools pause until you are ready. <a href="pricing.php" style="color:var(--teal);font-weight:700;">Full pricing</a></p>
+  </div>
+</section>
+
+<section id="reviews">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="kicker">What people are saying</span>
+      <h2>Reviews</h2>
+      <?php if ($platformAvgRating !== null): ?>
+        <p style="color:var(--muted);"><?= render_stars((int)round($platformAvgRating)) ?> <?= $platformAvgRating ?> out of 5 (<?= count($platformReviews) ?> review<?= count($platformReviews) == 1 ? '' : 's' ?>)</p>
+      <?php endif; ?>
+    </div>
+
+    <?php if (isset($_GET['review_submitted'])): ?>
+      <p style="background:#DCEFE1;color:#1B4D3E;padding:10px 16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;max-width:480px;margin-left:auto;margin-right:auto;text-align:center;">Thank you! Your review has been submitted and will appear once reviewed.</p>
+    <?php elseif (!empty($_GET['review_error'])): ?>
+      <p style="background:#FBE8E4;color:#8C3B2E;padding:10px 16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;max-width:480px;margin-left:auto;margin-right:auto;text-align:center;"><?= htmlspecialchars($_GET['review_error']) ?></p>
+    <?php endif; ?>
+
+    <div class="testimonial-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-bottom:32px;">
+      <?php foreach ($platformReviews as $r): ?>
+        <div class="testimonial-card" style="background:#fff;border-radius:10px;padding:22px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+          <div style="color:#F2A65A;letter-spacing:2px;margin-bottom:8px;"><?= render_stars((int)$r['rating']) ?></div>
+          <div style="font-style:italic;color:#333;margin-bottom:10px;">"<?= htmlspecialchars($r['comment']) ?>"</div>
+          <div style="font-weight:700;font-size:0.9rem;"><?= htmlspecialchars($r['reviewer_name']) ?><?= $r['reviewer_role'] ? ' - ' . htmlspecialchars($r['reviewer_role']) : '' ?></div>
+        </div>
+      <?php endforeach; ?>
+      <?php if (!$platformReviews): ?><p style="color:var(--muted);grid-column:1/-1;text-align:center;">No reviews yet - be the first to leave one.</p><?php endif; ?>
+    </div>
+
+    <details style="max-width:480px;margin:0 auto;">
+      <summary style="cursor:pointer;color:var(--teal);font-weight:700;text-align:center;">Leave a review</summary>
+      <form method="POST" action="/reviews-submit.php" style="margin-top:16px;">
+        <input type="hidden" name="reviewable_type" value="platform">
+        <input type="hidden" name="redirect_to" value="/index.php">
+        <input type="text" name="website" style="position:absolute;left:-9999px;" tabindex="-1" autocomplete="off">
+
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Your Name</label>
+        <input type="text" name="reviewer_name" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;box-sizing:border-box;">
+
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">You are a... (optional)</label>
+        <input type="text" name="reviewer_role" placeholder="e.g. Head Teacher, School Admin" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;box-sizing:border-box;">
+
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Rating</label>
+        <select name="rating" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+          <option value="">Choose a rating</option>
+          <option value="5">★★★★★ Excellent</option>
+          <option value="4">★★★★☆ Good</option>
+          <option value="3">★★★☆☆ Average</option>
+          <option value="2">★★☆☆☆ Below Average</option>
+          <option value="1">★☆☆☆☆ Poor</option>
+        </select>
+
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Your Review</label>
+        <textarea name="comment" rows="4" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:14px;box-sizing:border-box;"></textarea>
+
+        <?= consent_checkbox() ?>
+        <button type="submit" class="btn-primary" style="width:100%;">Submit Review</button>
+      </form>
+    </details>
+  </div>
+</section>
+
+<p style="text-align:center;margin:-30px 0 50px;font-size:.92rem;"><a href="reviews.php" style="color:var(--teal);font-weight:700;">Read all reviews</a> &nbsp;·&nbsp; <a href="schools.php" style="color:var(--teal);font-weight:700;"><?= (int)$schoolCount ?> school<?= $schoolCount == 1 ? '' : 's' ?> online</a> &nbsp;·&nbsp; <a href="features.php" style="color:var(--teal);font-weight:700;">Everything included</a></p>
+<section class="bg-white" id="contact">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="kicker">Get In Touch</span>
+      <h2>Have a question?</h2>
+      <p style="margin-top:14px;font-size:0.95rem;color:var(--muted);">We'll get back to you as soon as we can.</p>
+    </div>
+    <form method="POST" action="contact-submit.php" class="contact-form loader-on-submit">
+      <div class="form-row">
+        <div>
+          <label>Email</label>
+          <input type="email" name="email" required>
+        </div>
+        <div>
+          <label>Phone (optional)</label>
+          <input type="tel" name="phone">
+        </div>
+      </div>
+      <label>Subject</label>
+      <input type="text" name="subject" required>
+      <label>Message</label>
+      <textarea name="message" rows="5" required></textarea>
+      <label class="consent-check">
+        <input type="checkbox" name="agreed_to_terms" required>
+        I agree to Somahub's <a href="terms.php" target="_blank">Terms of Service</a> and <a href="privacy.php" target="_blank">Privacy Policy</a>.
+      </label>
+      <button type="submit" class="btn-primary" style="width:100%;margin-top:10px;">Send Message</button>
+    </form>
   </div>
 </section>
 
 <div class="cta-band">
   <div class="wrap">
     <h2>Ready to put your school online?</h2>
-    <p>Create your site in minutes. It is free to start.</p>
-    <a href="get-started.php" class="btn-primary" style="display:inline-block;">Get started free</a>
+    <p>Free to start. Your site is live in minutes.</p>
+    <a href="get-started.php" class="btn-primary" style="display:inline-block;">Create my school site</a>
   </div>
 </div>
 
