@@ -39,6 +39,22 @@ function csql_split(string $sql): array {
 function csql_bare(string $st): string {
     return preg_replace(['/\'(?:[^\'\\\\]|\\\\.|\'\')*\'/s', '/"(?:[^"\\\\]|\\\\.|"")*"/s'], ["''", '""'], $st);
 }
+/** MySQL stores binary strings (FROM_BASE64, CHAR(10) in a CONCAT) inside JSON as "base64:typeNN:...". Decode them back to text. */
+function csql_fix_encoded(PDO $db, int $schoolId): int {
+    $rows = $db->prepare("SELECT id, content_json FROM site_sections WHERE school_id = ? AND content_json LIKE '%base64:type%'");
+    $rows->execute([$schoolId]); $fixed = 0;
+    foreach ($rows->fetchAll() as $r) {
+        $j = json_decode($r['content_json'], true); if (!is_array($j)) continue; $ch = false;
+        foreach ($j as $k => $v) {
+            if (is_string($v) && preg_match('/^base64:type\d+:(.*)$/s', $v, $m)) {
+                $d = base64_decode(preg_replace('/\s+/', '', $m[1]), true);
+                if ($d !== false) { $j[$k] = $d; $ch = true; }
+            }
+        }
+        if ($ch) { $db->prepare("UPDATE site_sections SET content_json = ? WHERE id = ?")->execute([json_encode($j, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $r['id']]); $fixed++; }
+    }
+    return $fixed;
+}
 function csql_validate(string $st, int $schoolId): ?string {
     $bare = strtolower(csql_bare($st));
     if (!preg_match('/^\s*(update|insert|select)\b/', $bare, $m)) return 'Only UPDATE, INSERT and SELECT are allowed.';
@@ -61,7 +77,10 @@ function csql_validate(string $st, int $schoolId): ?string {
     return null;
 }
 
-if ($mode === 'restore' && $school) {
+if ($mode === 'repair' && $school) {
+    $n = csql_fix_encoded($db, $schoolId);
+    $notice = $n ? "Repaired $n section(s): garbled 'base64:type' text is now normal text." : 'Nothing needed repairing.';
+} elseif ($mode === 'restore' && $school) {
     $run = $db->prepare("SELECT * FROM content_sql_runs WHERE id = ? AND school_id = ? AND restored = 0");
     $run->execute([(int)($_POST['run_id'] ?? 0), $schoolId]); $run = $run->fetch();
     if (!$run || !$run['snapshot_json']) { $error = 'Nothing to restore for that run.'; }
@@ -103,6 +122,7 @@ if ($mode === 'restore' && $school) {
                 if ($isSel) { $rows = $q->fetchAll(PDO::FETCH_ASSOC); $report[] = ['n' => $i + 1, 'sql' => $st, 'rows' => array_slice($rows, 0, 30), 'count' => count($rows), 'select' => true]; }
                 else { $c = $q->rowCount(); if ($c > 60) throw new RuntimeException('Statement ' . ($i + 1) . " would change $c rows, more than expected for one school. Nothing was saved."); $total += $c; $report[] = ['n' => $i + 1, 'sql' => $st, 'count' => $c]; }
             }
+            if (csql_fix_encoded($db, $schoolId)) $report[] = ['n' => 0, 'sql' => 'Auto-fix: converted binary text values back to normal text.', 'count' => 0];
             // Every section must still hold valid JSON.
             $bad = $db->prepare("SELECT id FROM site_sections WHERE school_id = ? AND (content_json IS NULL OR JSON_VALID(content_json) = 0) LIMIT 1");
             $bad->execute([$schoolId]);
@@ -164,6 +184,7 @@ $example = "-- Example: rewrite the hero and about text for this school\nUPDATE 
   <div class="btns">
     <button class="b2" name="mode" value="dry">Dry run (saves nothing)</button>
     <button class="btn" name="mode" value="apply" onclick="return confirm('Apply this SQL to the school now? A snapshot is saved so you can undo.')">Apply</button>
+    <button class="b2" name="mode" value="repair" title="Fix text showing as base64:type15:...">Repair garbled text</button>
     <button type="button" class="b2" onclick="document.getElementById('sqlBox').value=<?= htmlspecialchars(json_encode($example), ENT_QUOTES) ?>">Insert example</button>
   </div>
 </form>
