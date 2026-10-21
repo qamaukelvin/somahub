@@ -120,7 +120,7 @@ $tabs = [
         <?php if ($l['email']): ?><a class="chip fill" href="<?= htmlspecialchars($out) ?>">Email</a><?php endif; ?>
         <?php if ($digits): ?><a class="chip wa" href="<?= htmlspecialchars($out) ?>&amp;channel=wa">WhatsApp</a><?php endif; ?>
         <?php if ($l['status'] !== 'converted'): ?><a class="chip" href="leads-convert.php?lead_id=<?= (int)$l['id'] ?>">Convert to school</a>
-        <?php elseif ($l['converted_school_id']): ?><a class="chip" href="school-edit.php?id=<?= (int)$l['converted_school_id'] ?>">Manage school</a><?php endif; ?>
+        <?php elseif ($l['converted_school_id']): ?><a class="chip" href="school-edit.php?id=<?= (int)$l['converted_school_id'] ?>">Manage school</a> <a class="chip" href="content-sql.php?school_id=<?= (int)$l['converted_school_id'] ?>">Content SQL</a><?php endif; ?>
         <form method="POST" onsubmit="return confirm('Delete this lead? This cannot be undone.')" style="display:inline"><input type="hidden" name="action" value="delete_lead"><input type="hidden" name="lead_id" value="<?= (int)$l['id'] ?>"><button class="chip del" type="submit">Delete</button></form>
       </div>
     </div>

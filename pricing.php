@@ -193,10 +193,7 @@ $db = get_db();
   <a href="https://wa.me/<?= htmlspecialchars(get_setting($db, 'whatsapp_outreach_number', '254707306888')) ?>?text=<?= urlencode('Hi Somahub, I have a question about pricing.') ?>" class="btn-primary">Chat on WhatsApp</a>
 </div>
 
-<footer>
-  <div>Somahub. Websites for Kenyan schools.</div>
-  <div style="margin-top:6px;"><a href="index.php" style="text-decoration:underline;">Back to somahub.top</a></div>
-</footer>
+<?php include __DIR__ . '/_public_footer.php'; ?>
 
 <?php
 $SOMAHUB_CHAT_CONTEXT = 'marketing';

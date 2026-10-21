@@ -27,11 +27,12 @@ function adm_active(array $f): string { global $__cur; return in_array($__cur, $
         </div>
       </div>
       <div class="nav-group">
-        <span class="nav-group-label<?= adm_active(['leads.php','leads-convert.php','outreach.php','broadcast.php','blog.php','reviews.php','contact-messages.php']) ?>">Growth ▾</span>
+        <span class="nav-group-label<?= adm_active(['leads.php','leads-convert.php','outreach.php','broadcast.php','content-sql.php','blog.php','reviews.php','contact-messages.php']) ?>">Growth ▾</span>
         <div class="nav-dropdown">
           <a href="leads.php">Leads</a>
           <a href="outreach.php">Outreach (one by one)</a>
           <a href="broadcast.php">Broadcast (bulk email)</a>
+          <a href="content-sql.php">Content SQL</a>
           <a href="blog.php">Blog</a>
           <a href="reviews.php">Reviews</a>
           <a href="contact-messages.php">Contact messages</a>

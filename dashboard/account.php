@@ -170,6 +170,12 @@ $pendingRemoval = $pendingRemoval->fetch();
   .avatar-row{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
   .avatar-preview{width:56px;height:56px;border-radius:50%;object-fit:cover;background:#F4F1E6;display:flex;align-items:center;justify-content:center;font-weight:800;color:#0F5257;font-size:1.2rem;}
   .role-badge{display:inline-block;background:#F4F1E6;color:#0F5257;padding:4px 12px;border-radius:12px;font-size:0.78rem;font-weight:700;}
+  .acc{padding:0;overflow:hidden;} .acc>*:not(summary){margin-left:20px;margin-right:20px;} .acc>form,.acc>p:last-child,.acc>div:last-child{margin-bottom:20px;}
+  .acc summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;}
+  .acc summary::-webkit-details-marker{display:none;}
+  .acc summary b{display:block;font-size:.98rem;} .acc summary small{display:block;color:#777;font-size:.82rem;margin-top:2px;word-break:break-all;}
+  .acc summary em{font-style:normal;font-weight:700;font-size:.82rem;color:#0F5257;background:#F4F1E6;padding:6px 14px;border-radius:16px;flex:none;}
+  .acc[open] summary{border-bottom:1px solid #eee;} .acc[open] summary em{display:none;}
   .danger-box{border:1px solid #F5C6C0;}
   .btn-danger{background:#8C3B2E;color:#fff;border:none;padding:9px 18px;border-radius:6px;font-weight:700;cursor:pointer;font-size:0.88rem;}
 </style>
@@ -220,9 +226,9 @@ $pendingRemoval = $pendingRemoval->fetch();
     </form>
   </div>
 
-  <div class="box">
-    <h3 style="margin-bottom:6px;">Login email</h3>
-    <p style="font-size:0.85rem;color:#666;margin-bottom:14px;">Current: <strong><?= $hasPlaceholderEmail ? 'none yet (you log in with your phone number)' : htmlspecialchars($currentUser['email']) ?></strong>. To change it we email a confirmation link to the new address, and tell your old address.</p>
+  <details class="box acc" <?= (($_POST['action'] ?? '') === 'request_email_change') ? 'open' : '' ?>>
+    <summary><span><b>Login email</b><small><?= $hasPlaceholderEmail ? 'None yet' : htmlspecialchars($currentUser['email']) ?></small></span><em>Change</em></summary>
+    <p style="font-size:0.85rem;color:#666;margin:14px 0;">We email a confirmation link to the new address and tell your old one.</p>
     <form method="POST">
       <input type="hidden" name="action" value="request_email_change">
       <label>New email</label>
@@ -233,10 +239,11 @@ $pendingRemoval = $pendingRemoval->fetch();
       <?php endif; ?>
       <button type="submit" class="btn"><?= $hasPlaceholderEmail ? 'Add email' : 'Send confirmation link' ?></button>
     </form>
-  </div>
+  </details>
 
-  <div class="box">
-    <h3 style="margin-bottom:16px;"><?= !empty($currentUser['password_is_temp']) ? 'Set a Password' : 'Change Password' ?></h3>
+  <details class="box acc" <?= (!empty($currentUser['password_is_temp']) || ($_POST['action'] ?? '') === 'change_password') ? 'open' : '' ?>>
+    <summary><span><b>Password</b><small><?= !empty($currentUser['password_is_temp']) ? 'Not set yet' : 'Keep your account safe' ?></small></span><em><?= !empty($currentUser['password_is_temp']) ? 'Set' : 'Change' ?></em></summary>
+    <div style="height:14px"></div>
     <?php if (!empty($currentUser['password_is_temp'])): ?>
       <p style="font-size:0.85rem;color:#8C6D1F;margin-bottom:14px;">You logged in via a one-time link. Set a password now so you can log in normally next time.</p>
     <?php endif; ?>
@@ -252,10 +259,11 @@ $pendingRemoval = $pendingRemoval->fetch();
       <input type="password" name="confirm_password" required minlength="6">
       <button type="submit" class="btn"><?= !empty($currentUser['password_is_temp']) ? 'Set Password' : 'Update Password' ?></button>
     </form>
-  </div>
+  </details>
 
-  <div class="box danger-box">
-    <h3 style="margin-bottom:10px;color:#8C3B2E;">Remove My Account</h3>
+  <details class="box acc danger-box" <?= $pendingRemoval ? 'open' : '' ?>>
+    <summary><span><b style="color:#8C3B2E;">Remove my account</b><small><?= $pendingRemoval ? 'Request pending' : 'We confirm with you first' ?></small></span><em>Open</em></summary>
+    <div style="height:14px"></div>
     <?php if ($pendingRemoval): ?>
       <p style="font-size:0.88rem;color:#666;">A removal request is pending review, submitted <?= date('d M Y', strtotime($pendingRemoval['requested_at'])) ?>. We'll reach out before anything is deleted.</p>
     <?php else: ?>
@@ -267,7 +275,7 @@ $pendingRemoval = $pendingRemoval->fetch();
         <button type="submit" class="btn-danger" onclick="return confirm('Submit a removal request? Nothing is deleted right away — we\'ll follow up first.')">Request Account Removal</button>
       </form>
     <?php endif; ?>
-  </div>
+  </details>
 
   <?php endif; ?>
 </main>

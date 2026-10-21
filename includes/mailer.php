@@ -119,6 +119,7 @@ function email_wrapper(string $innerHtml): string {
         . '<a href="https://wa.me/' . $wa . '" ' . $lk . '>WhatsApp us</a> &nbsp;·&nbsp; '
         . '<a href="mailto:' . htmlspecialchars($supportEmail) . '" ' . $lk . '>Email us</a> &nbsp;·&nbsp; '
         . '<a href="https://somahub.top/contact.php" ' . $lk . '>Contact</a> &nbsp;·&nbsp; '
+        . '<a href="https://www.instagram.com/somahub.top/" ' . $lk . '>Instagram</a> &nbsp;·&nbsp; '
         . '<a href="https://somahub.top/dashboard/login.php" ' . $lk . '>Log in</a>';
     return '
     <div style="font-family: Arial, sans-serif; background:#F7F2E7; padding:30px 20px;">

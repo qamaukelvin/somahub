@@ -9,7 +9,7 @@ $platformAvgRating = get_average_rating($platformReviews);
 $pageTitle = 'Somahub: Free Websites for Kenyan Schools';
 $pagePath = '/';
 $pageJsonLd = <<<'LD'
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Somahub","url":"https://somahub.top/","logo":"https://somahub.top/assets/apple-touch-icon.png"},{"@type":"WebSite","name":"Somahub","url":"https://somahub.top/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Somahub","url":"https://somahub.top/","logo":"https://somahub.top/assets/apple-touch-icon.png","sameAs":["https://www.instagram.com/somahub.top/"]},{"@type":"WebSite","name":"Somahub","url":"https://somahub.top/"}]}</script>
 LD;
 include __DIR__ . '/_public_head.php';
 ?>
