@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
     $secondaryOverride = $colorMode === 'custom' ? (trim($_POST['secondary_override'] ?? '') ?: null) : null;
     $accentOverride = $colorMode === 'custom' ? (trim($_POST['accent_override'] ?? '') ?: null) : null;
     $bgOverride = $colorMode === 'custom' ? (trim($_POST['bg_override'] ?? '') ?: null) : null;
-    $presetKey = $_POST['content_preset'] ?? 'blank';
+    $presetKey = $_POST['content_preset'] ?? 'primary_day';
 
     $baseSlug = strtolower(preg_replace('/[^a-z0-9]/', '', strtolower($schoolName)));
     $baseSlug = $baseSlug ?: 'school';
@@ -64,46 +64,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
         $insertUser->execute([$schoolId, $lead['contact_name'] ?: $schoolName, $loginUsername, $lead['phone'], password_hash($tempPassword, PASSWORD_DEFAULT)]);
         $userId = $db->lastInsertId();
 
-        $presetContent = $contentPresets[$presetKey]['content'] ?? [];
         require_once __DIR__ . '/../includes/school-provision.php';
-        $hasVariantCol = db_has_column($db, 'site_sections', 'layout_variant');
-        $typeStmt = $db->prepare("SELECT id, schema_json FROM section_types WHERE key_name = ?");
-        $insertSection = $db->prepare($hasVariantCol
-            ? "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, layout_variant, content_json) VALUES (?, ?, ?, ?, ?, ?)"
-            : "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, content_json) VALUES (?, ?, ?, ?, ?)");
-        foreach (get_starter_layout() as $idx => [$key, $variant, $visible]) {
-            $typeStmt->execute([$key]);
-            $type = $typeStmt->fetch();
-            if ($type) {
-                $schema = json_decode($type['schema_json'], true);
-                $content = array_fill_keys(array_keys($schema), '');
-                if (!empty($presetContent[$key])) {
-                    foreach ($presetContent[$key] as $field => $text) {
-                        if (array_key_exists($field, $content)) {
-                            $content[$field] = str_replace('{school}', $schoolName, $text);
-                        }
-                    }
-                }
-
-                // Contact section: prefill whatever we already know from the
-                // lead itself, so the school doesn't have to re-type it.
-                if ($key === 'contact') {
-                    if (array_key_exists('phone', $content) && !empty($lead['phone'])) {
-                        $content['phone'] = $lead['phone'];
-                    }
-                    if (array_key_exists('email', $content) && !empty($realEmail)) {
-                        $content['email'] = $realEmail;
-                    }
-                    if (array_key_exists('address', $content) && !empty($lead['county'])) {
-                        $content['address'] = $lead['county'] . ' County';
-                    }
-                }
-
-                $hasVariantCol
-                    ? $insertSection->execute([$schoolId, $type['id'], $idx, $visible, $variant, json_encode($content)])
-                    : $insertSection->execute([$schoolId, $type['id'], $idx, $visible, json_encode($content)]);
-            }
-        }
+        seed_starter_sections($db, (int)$schoolId, $schoolName, $presetKey, [
+            'county' => $lead['county'] ?? '', 'phone' => $lead['phone'] ?? '', 'email' => $realEmail,
+        ]);
 
         $db->prepare("UPDATE leads SET status = 'converted', converted_school_id = ? WHERE id = ?")->execute([$schoolId, $leadId]);
         $db->commit();

@@ -21,6 +21,7 @@ function get_starter_layout(): array {
     return [
         ['hero', 'split_cta', 1],
         ['about', 'photo_left', 1],
+        ['stats', 'strip', 1], // school highlights: safe, factual stats only (see get_safe_highlights)
         ['academics', 'text_only', 1],
         ['admissions', 'text_photo', 1],
         ['enrollment_form', 'inline_form', 1],
@@ -32,6 +33,69 @@ function get_starter_layout(): array {
         ['results_lookup', 'inline_form', 1],
         ['contact', 'side_by_side', 1],
     ];
+}
+
+
+/**
+ * Highlights strip content for a new school. Only facts that are true for any
+ * school of that type, never invented figures (the type presets' stats are
+ * deliberately NOT used for this section).
+ */
+function get_safe_highlights(string $presetKey, string $county): array {
+    $items = [];
+    if ($presetKey === 'blank') return [];
+    $items[] = ['CBC', $presetKey === 'ecd_nursery' ? 'Early years curriculum' : 'National curriculum'];
+    $map = [
+        'primary_day' => [['Day School', 'Learning option'], ['KPSEA', 'Grade 6 national assessment']],
+        'secondary' => [['Secondary', 'School level']],
+        'ecd_nursery' => [['PP1 & PP2', 'Pre-Primary levels']],
+        'boarding' => [['Boarding', 'Learning option']],
+        'mixed_day_boarding' => [['Day & Boarding', 'Learning options']],
+    ];
+    foreach ($map[$presetKey] ?? [] as $m) $items[] = $m;
+    if (trim($county) !== '') $items[] = [trim($county), 'County'];
+    $out = [];
+    foreach (array_slice($items, 0, 4) as $i => [$n, $l]) { $out['stat_' . ($i + 1) . '_number'] = $n; $out['stat_' . ($i + 1) . '_label'] = $l; }
+    return $out;
+}
+
+/**
+ * Seeds the starter sections for a school. The ONE place that does it, so
+ * self-signup, "Convert lead" and admin "Add school" all start identically.
+ * $o keys (all optional): county, phone, email, lat, lng, author_name.
+ * Call inside the caller's transaction. Returns the hero section id.
+ */
+function seed_starter_sections(PDO $db, int $schoolId, string $schoolName, string $presetKey, array $o = []): int {
+    $presets = get_school_content_presets();
+    $presetContent = $presets[$presetKey]['content'] ?? [];
+    $presetContent['stats'] = get_safe_highlights($presetKey, (string)($o['county'] ?? ''));
+    $typeStmt = $db->prepare("SELECT id, schema_json FROM section_types WHERE key_name = ?");
+    $hasVariantCol = db_has_column($db, 'site_sections', 'layout_variant');
+    $ins = $db->prepare($hasVariantCol
+        ? "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, layout_variant, content_json) VALUES (?, ?, ?, ?, ?, ?)"
+        : "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, content_json) VALUES (?, ?, ?, ?, ?)");
+    $pos = 0; $heroId = 0;
+    foreach (get_starter_layout() as [$key, $variant, $visible]) {
+        $typeStmt->execute([$key]);
+        $type = $typeStmt->fetch();
+        if (!$type) continue; // section type not installed on this server
+        $schema = json_decode($type['schema_json'], true) ?: [];
+        $content = array_fill_keys(array_keys($schema), '');
+        foreach (($presetContent[$key] ?? []) as $field => $text) {
+            if (array_key_exists($field, $content)) $content[$field] = str_replace('{school}', $schoolName, $text);
+        }
+        if ($key === 'contact') {
+            $county = trim((string)($o['county'] ?? ''));
+            if (array_key_exists('phone', $content)) $content['phone'] = (string)($o['phone'] ?? '');
+            if (array_key_exists('email', $content)) $content['email'] = (string)($o['email'] ?? '');
+            if (array_key_exists('address', $content) && $county !== '') $content['address'] = $county . ' County';
+            if (array_key_exists('map_location', $content) && isset($o['lat'], $o['lng']) && $o['lat'] !== null && $o['lng'] !== null) $content['map_location'] = round((float)$o['lat'], 6) . ',' . round((float)$o['lng'], 6);
+        }
+        if ($key === 'about' && !empty($o['author_name']) && array_key_exists('author_name', $content)) $content['author_name'] = (string)$o['author_name'];
+        $ins->execute($hasVariantCol ? [$schoolId, $type['id'], $pos++, $visible, $variant, json_encode($content)] : [$schoolId, $type['id'], $pos++, $visible, json_encode($content)]);
+        if ($key === 'hero') $heroId = (int)$db->lastInsertId();
+    }
+    return $heroId;
 }
 
 /** True if the column exists (lets the signup work before/after optional migrations). */
@@ -121,33 +185,11 @@ function provision_school(PDO $db, array $user, array $d): array {
         if (db_has_column($db, 'users', 'terms_accepted_at')) $sql .= ', terms_accepted_at = COALESCE(terms_accepted_at, NOW())';
         $db->prepare($sql . ' WHERE id = ?')->execute(array_merge(array_values($uSet), [$user['id']]));
 
-        $typeStmt = $db->prepare("SELECT id, schema_json FROM section_types WHERE key_name = ?");
-        $hasVariantCol = db_has_column($db, 'site_sections', 'layout_variant');
-        $ins = $db->prepare($hasVariantCol
-            ? "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, layout_variant, content_json) VALUES (?, ?, ?, ?, ?, ?)"
-            : "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, content_json) VALUES (?, ?, ?, ?, ?)");
-        $pos = 0;
-        foreach (get_starter_layout() as [$key, $variant, $visible]) {
-            $typeStmt->execute([$key]);
-            $type = $typeStmt->fetch();
-            if (!$type) continue; // section type not installed on this server
-            $schema = json_decode($type['schema_json'], true) ?: [];
-            $content = array_fill_keys(array_keys($schema), '');
-            foreach (($presetContent[$key] ?? []) as $field => $text) {
-                if (array_key_exists($field, $content)) $content[$field] = str_replace('{school}', $d['school_name'], $text);
-            }
-            if ($key === 'contact') {
-                if (array_key_exists('phone', $content)) $content['phone'] = $user['phone'] ?? '';
-                if (array_key_exists('email', $content)) $content['email'] = $user['email'];
-                if (array_key_exists('address', $content) && $d['county'] !== '') $content['address'] = $d['county'] . ' County';
-                if (array_key_exists('map_location', $content) && $d['lat'] !== null && $d['lng'] !== null) $content['map_location'] = round($d['lat'], 6) . ',' . round($d['lng'], 6);
-            }
-            if ($key === 'about' && role_is_authority($d['job_title']) && stripos($d['job_title'], 'head') !== false && array_key_exists('author_name', $content)) {
-                $content['author_name'] = $user['name'] ?? '';
-            }
-            $ins->execute($hasVariantCol ? [$schoolId, $type['id'], $pos++, $visible, $variant, json_encode($content)] : [$schoolId, $type['id'], $pos++, $visible, json_encode($content)]);
-            if ($key === 'hero') $heroId = (int)$db->lastInsertId();
-        }
+        $heroId = seed_starter_sections($db, $schoolId, $d['school_name'], $d['content_preset'], [
+            'county' => $d['county'], 'phone' => $user['phone'] ?? '', 'email' => $user['email'] ?? '',
+            'lat' => $d['lat'], 'lng' => $d['lng'],
+            'author_name' => (role_is_authority($d['job_title']) && stripos($d['job_title'], 'head') !== false) ? ($user['name'] ?? '') : '',
+        ]);
         $db->commit();
     } catch (\Throwable $e) {
         if ($db->inTransaction()) $db->rollBack();

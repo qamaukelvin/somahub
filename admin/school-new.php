@@ -3,6 +3,7 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/app_log.php';
 require_once __DIR__ . '/../includes/mailer.php';
 require_once __DIR__ . '/../includes/blog.php';
+require_once __DIR__ . '/../includes/school-provision.php';
 require_platform_admin();
 $db = get_db();
 
@@ -35,13 +36,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $db->beginTransaction();
             try {
-                // 1. Create the school (starts on free plan + promo window, per the free-first-term strategy)
-                $promoEnds = date('Y-m-d', strtotime('+1 term', strtotime('+4 months')));
+                // 1. Create the school: free plan, 60-day trial starts on first login (same as Convert lead)
                 $insertSchool = $db->prepare("
-                    INSERT INTO schools (name, slug, palette_id, color_mode, primary_override, secondary_override, accent_override, bg_override, plan, promo_ends_at, status, phone, email)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'promo_paid', ?, 'trial', ?, ?)
+                    INSERT INTO schools (name, slug, palette_id, color_mode, primary_override, secondary_override, accent_override, bg_override, plan, status, verification_status, phone, email, activate_trial_on_login)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'free', 'trial', 'pending', ?, ?, 1)
                 ");
-                $insertSchool->execute([$name, $slug, $paletteId, $colorMode, $primaryOverride, $secondaryOverride, $accentOverride, $bgOverride, $promoEnds, $ownerPhone, $ownerEmail]);
+                $insertSchool->execute([$name, $slug, $paletteId, $colorMode, $primaryOverride, $secondaryOverride, $accentOverride, $bgOverride, $ownerPhone, $ownerEmail]);
                 $schoolId = $db->lastInsertId();
 
                 // 2. Create the owner login
@@ -54,25 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     password_hash($tempPassword, PASSWORD_DEFAULT),
                 ]);
 
-                // 3. Seed default sections
-                $typeStmt = $db->prepare("SELECT id, schema_json FROM section_types WHERE key_name = ?");
+                // 3. Seed the same starter sections as self-signup and Convert lead
                 require_once __DIR__ . '/../includes/school-provision.php';
-                $hasVariantCol = db_has_column($db, 'site_sections', 'layout_variant');
-                $insertSection = $db->prepare($hasVariantCol
-                    ? "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, layout_variant, content_json) VALUES (?, ?, ?, ?, ?, ?)"
-                    : "INSERT INTO site_sections (school_id, section_type_id, position, is_visible, content_json) VALUES (?, ?, ?, ?, ?)");
-                // Same starter layout as self-signup, so every school begins identically
-                foreach (get_starter_layout() as $i => [$key, $variant, $visible]) {
-                    $typeStmt->execute([$key]);
-                    $type = $typeStmt->fetch();
-                    if ($type) {
-                        $schema = json_decode($type['schema_json'], true);
-                        $emptyContent = array_fill_keys(array_keys($schema), '');
-                        $hasVariantCol
-                            ? $insertSection->execute([$schoolId, $type['id'], $i, $visible, $variant, json_encode($emptyContent)])
-                            : $insertSection->execute([$schoolId, $type['id'], $i, $visible, json_encode($emptyContent)]);
-                    }
-                }
+                seed_starter_sections($db, (int)$schoolId, $name, $_POST['content_preset'] ?? 'primary_day', [
+                    'phone' => $ownerPhone, 'email' => $ownerEmail,
+                ]);
 
                 $db->commit();
 
@@ -183,6 +169,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <label>Owner Phone</label>
     <input type="text" name="owner_phone">
 
+    <label style="display:block;font-size:0.85rem;font-weight:600;margin:14px 0 6px;">Starting Content</label>
+    <select name="content_preset" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:4px;margin-bottom:16px;">
+      <?php foreach (get_school_content_presets() as $pk => $pp): ?><option value="<?= $pk ?>" <?= $pk === 'primary_day' ? 'selected' : '' ?>><?= htmlspecialchars($pp['label']) ?></option><?php endforeach; ?>
+    </select>
     <button type="submit" class="btn">Create School</button>
   </form>
 </main>

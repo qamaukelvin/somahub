@@ -171,7 +171,7 @@ $todaySent = (int)$db->query("SELECT COUNT(*) FROM broadcast_recipients WHERE st
   </div>
   <script>
   (function(){ var id=<?= (int)$runId ?>, bar=document.getElementById('bar'), st=document.getElementById('st');
-    function tick(){ fetch('broadcast.php?tick='+id,{method:'POST',credentials:'same-origin'}).then(function(r){return r.text().then(function(t){ try{ return JSON.parse(t); }catch(e){ return {error:'Server replied '+r.status+': '+t.replace(/<[^>]*>/g,' ').trim().slice(0,200)}; } });}).then(function(d){
+    function tick(){ fetch('broadcast.php?tick='+id,{method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':<?= json_encode(csrf_token()) ?>,'Accept':'application/json'}}).then(function(r){return r.text().then(function(t){ try{ return JSON.parse(t); }catch(e){ return {error:'Server replied '+r.status+': '+t.replace(/<[^>]*>/g,' ').trim().slice(0,200)}; } });}).then(function(d){
       if(d.error){ st.textContent=d.error; return; }
       if(d.failed>0 && d.sent===0 && d.lastError){ st.textContent=d.failed+' failed. First error: '+d.lastError+' . Check your Brevo SMTP settings in Settings, then use Resume.'; return; }
       var done=d.sent+d.failed; bar.style.width=(d.total?Math.round(done/d.total*100):100)+'%';
