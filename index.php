@@ -49,7 +49,7 @@ include __DIR__ . '/_public_head.php';
       var f = document.getElementById('tryIframe'), g = document.getElementById('tryGate'), d = document.getElementById('tryDone'), frame = document.getElementById('tryFrame'), on = false;
       function send(c){ try { f.contentWindow.postMessage({dmCmd: c}, 'https://demo.somahub.top'); } catch (e) {} }
       function set(v){ on = v; frame.classList.toggle('editing', v); send(v ? 'start' : 'stop'); }
-      document.getElementById('tryStart').onclick = function(){ set(true); };
+      document.getElementById('tryStart').onclick = function(){ set(true); if (window.matchMedia('(max-width:700px)').matches) frame.scrollIntoView({block: 'start', behavior: 'smooth'}); };
       document.getElementById('tryStop').onclick = function(){ set(false); frame.scrollIntoView({block: 'start', behavior: 'smooth'}); };
       f.addEventListener('load', function(){ if (on) send('start'); });
     })();

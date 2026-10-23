@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // 1. Create the school: free plan, 60-day trial starts on first login (same as Convert lead)
                 $insertSchool = $db->prepare("
                     INSERT INTO schools (name, slug, palette_id, color_mode, primary_override, secondary_override, accent_override, bg_override, plan, status, verification_status, phone, email, activate_trial_on_login)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'free', 'trial', 'pending', ?, ?, 1)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'promo_paid', 'trial', 'pending', ?, ?, 1)
                 ");
                 $insertSchool->execute([$name, $slug, $paletteId, $colorMode, $primaryOverride, $secondaryOverride, $accentOverride, $bgOverride, $ownerPhone, $ownerEmail]);
                 $schoolId = $db->lastInsertId();

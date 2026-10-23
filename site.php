@@ -784,6 +784,8 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
 <?php foreach ($sections as $s):
     $c = json_decode($s['content_json'], true) ?: [];
     $key = $s['key_name'];
+    // Demo only: lets the homepage showcase preview another layout without saving anything.
+    if ($demoEmbed && isset($_GET['dv'][$key]) && is_string($_GET['dv'][$key])) { $__dvReg = get_section_variant_registry(); if (isset($__dvReg[$key]['options'][$_GET['dv'][$key]])) $s['layout_variant'] = $_GET['dv'][$key]; }
 ?>
 <?php if ($editMode): ?><i class="se-marker" data-sid="<?= (int)$s['id'] ?>"<?= !empty($s['__locked']) ? ' data-locked="1"' : '' ?> hidden></i><?php endif; ?>
 <?php if ($editMode && isset($__liveFiles[$key])): ?>
@@ -2142,6 +2144,15 @@ $seoDesc = mb_substr($seoDesc, 0, 158);
 if ($editMode) {
     include __DIR__ . '/_site_editor.php';
 } elseif ($school['slug'] === 'demo') {
+    $demoLayouts = [];
+    $__lreg = get_section_variant_registry();
+    foreach ($sections as $__ls) {
+        $__k = $__ls['key_name']; $__cfg = $__lreg[$__k] ?? null;
+        if (!$__cfg || count($__cfg['options'] ?? []) < 2) continue;
+        $__o = [];
+        foreach ($__cfg['options'] as $__ok => $__ov) $__o[] = ['k' => $__ok, 'l' => $__ov['label'], 'i' => $__ov['icon']];
+        $demoLayouts[$__k] = ['cur' => $__ls['layout_variant'] ?? ($__cfg['default'] ?? ''), 'options' => $__o];
+    }
     include __DIR__ . '/_demo_editor.php';
 }
 if (!$demoEmbed && !$editMode) {

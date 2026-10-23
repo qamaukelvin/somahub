@@ -7,14 +7,15 @@ $selectedColorMode = $selectedColorMode ?? 'preset';
 $customColors = $customColors ?? ['primary' => '#0F5257', 'secondary' => '#1C1C16', 'accent' => '#F2A65A', 'bg' => '#F7F2E7'];
 ?>
 <style>
-  .pal-scroll{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;-webkit-overflow-scrolling:touch;}
-  .pal-chip{position:relative;flex:0 0 auto;}
+  .pal-scroll{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:4px 2px 12px;}
+  .pal-chip{position:relative;}
   .pal-chip input{position:absolute;opacity:0;}
-  .pal-chip label{display:flex;align-items:center;gap:7px;border:1.5px solid var(--line);border-radius:20px;padding:7px 13px;cursor:pointer;background:#fff;white-space:nowrap;transition:border-color .15s;}
+  .pal-chip label{display:flex;flex-direction:column;gap:8px;border:2px solid var(--line);border-radius:14px;padding:8px;cursor:pointer;background:#fff;transition:border-color .15s,transform .1s;}
+  .pal-chip label:hover{transform:translateY(-2px);}
   .pal-chip input:checked + label{border-color:var(--teal);box-shadow:0 0 0 2px rgba(15,82,87,0.15);background:#F4F8F6;}
-  .pal-swatch-row{display:flex;gap:2px;}
-  .pal-swatch-row span{width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,0.08);display:block;}
-  .pal-chip-name{font-size:0.8rem;font-weight:600;}
+  .pal-swatch-row{display:flex;height:44px;border-radius:9px;overflow:hidden;border:1px solid rgba(0,0,0,.1);}
+  .pal-swatch-row span{flex:1;display:block;} .pal-swatch-row span:first-child{flex:2;}
+  .pal-chip-name{font-size:0.82rem;font-weight:700;text-align:center;padding-bottom:2px;}
 
   .custom-accordion{border:1.5px solid var(--line);border-radius:10px;overflow:hidden;}
   .custom-accordion summary{list-style:none;padding:12px 14px;cursor:pointer;font-weight:700;font-size:0.85rem;display:flex;align-items:center;justify-content:space-between;background:#fafafa;}
@@ -30,6 +31,7 @@ $customColors = $customColors ?? ['primary' => '#0F5257', 'secondary' => '#1C1C1
 
 <input type="hidden" name="color_mode" id="color_mode_field" value="<?= htmlspecialchars($selectedColorMode) ?>">
 
+<?php $__palNames = palette_display_names($palettes); ?>
 <div class="pal-scroll" id="palPresetRow">
   <?php foreach ($palettes as $p):
     $vars = json_decode($p['css_variables_json'], true);
@@ -50,7 +52,7 @@ $customColors = $customColors ?? ['primary' => '#0F5257', 'secondary' => '#1C1C1
           <span style="background:<?= htmlspecialchars($vars['accent'] ?? '#ccc') ?>;"></span>
           <span style="background:<?= htmlspecialchars($vars['bg'] ?? '#ccc') ?>;"></span>
         </span>
-        <span class="pal-chip-name"><?= htmlspecialchars($p['name']) ?></span>
+        <span class="pal-chip-name"><?= htmlspecialchars($__palNames[(int)$p['id']] ?? $p['name']) ?></span>
       </label>
     </div>
   <?php endforeach; ?>

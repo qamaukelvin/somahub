@@ -8,19 +8,21 @@ try {
 } catch (\Throwable $e) {}
 ?>
 <style>
-.shf{background:#0A3A3E;color:#9FC0C1;font-family:'Manrope',sans-serif;margin-top:0;}
+.shf,.shf *{box-sizing:border-box;}
+footer.shf{background:#0A3A3E;color:#9FC0C1;font-family:'Manrope',sans-serif;margin:0;padding:0;width:100%;text-align:left;font-size:16px;line-height:1.5;border-top:0;display:block;}
 .shf a{color:#CFE3E3;text-decoration:none;} .shf a:hover{color:#F5B83D;}
-.shf-in{max-width:1100px;margin:0 auto;padding:56px 24px 30px;display:grid;grid-template-columns:1.5fr 1fr 1fr 1.2fr;gap:36px;}
+.shf-in{max-width:1100px;width:100%;margin:0 auto;padding:56px 24px 30px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.3fr);gap:36px;align-items:start;}
+.shf-in>div{min-width:0;}
 .shf-brand{font-weight:800;font-size:1.3rem;color:#fff;display:flex;align-items:center;gap:8px;margin-bottom:12px;}
 .shf-brand i{width:11px;height:11px;border-radius:50%;background:#F5B83D;display:inline-block;}
-.shf p{font-size:.88rem;line-height:1.65;margin:0 0 16px;}
+.shf p{text-align:left;font-size:.88rem;line-height:1.65;margin:0 0 16px;}
 .shf h4{color:#fff;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;margin:0 0 14px;}
-.shf ul{list-style:none;margin:0;padding:0;} .shf li{margin-bottom:9px;font-size:.9rem;}
+.shf ul{list-style:none;margin:0;padding:0;} .shf li{margin-bottom:9px;font-size:.9rem;word-break:break-word;}
 .shf-cta{display:inline-block;background:#F5B83D;color:#0A3A3E!important;font-weight:800;padding:11px 20px;border-radius:24px;font-size:.88rem;}
 .shf-cta:hover{background:#fff;color:#0A3A3E!important;}
 .shf-contact a{display:flex;align-items:center;gap:8px;}
 .shf-bar{border-top:1px solid #164447;}
-.shf-bar div{max-width:1100px;margin:0 auto;padding:18px 24px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;font-size:.8rem;color:#7FA5A6;}
+.shf-bar div{width:100%;max-width:1100px;margin:0 auto;padding:18px 24px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;font-size:.8rem;color:#7FA5A6;}
 .shf-bar span a{margin-left:16px;}
 @media(max-width:860px){.shf-in{grid-template-columns:1fr 1fr;padding-top:44px;} .shf-in>div:first-child{grid-column:1/-1;}}
 @media(max-width:480px){.shf-in{grid-template-columns:1fr;gap:26px;} .shf-bar div{flex-direction:column;} .shf-bar span a{margin:0 16px 0 0;}}

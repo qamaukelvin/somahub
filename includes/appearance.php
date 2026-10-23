@@ -8,6 +8,45 @@
  * resolve_school_appearance().
  */
 
+/** Plain-English name for a colour, from its hue/lightness (e.g. "Forest", "Gold", "Navy"). */
+function palette_color_name(string $hex, bool $accent = false): string {
+    $hex = ltrim($hex, '#');
+    if (strlen($hex) === 3) $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+    if (!preg_match('/^[0-9a-f]{6}$/i', $hex)) return $accent ? 'Gold' : 'Teal';
+    [$r, $g, $b] = [hexdec(substr($hex,0,2))/255, hexdec(substr($hex,2,2))/255, hexdec(substr($hex,4,2))/255];
+    $mx = max($r,$g,$b); $mn = min($r,$g,$b); $l = ($mx+$mn)/2; $d = $mx-$mn;
+    $s = $d == 0 ? 0 : $d / (1 - abs(2*$l - 1));
+    if ($d == 0) $h = 0; elseif ($mx == $r) $h = fmod(($g-$b)/$d, 6); elseif ($mx == $g) $h = ($b-$r)/$d + 2; else $h = ($r-$g)/$d + 4;
+    $h = fmod($h*60 + 360, 360);
+    if ($s < 0.12) return $l < 0.2 ? 'Charcoal' : ($l < 0.6 ? 'Slate' : 'Silver');
+    if ($s < 0.30 && $l < 0.35) return 'Slate';
+    $dark = $l < 0.30; $light = $l > 0.68;
+    if ($h < 15 || $h >= 345) return $dark ? 'Maroon' : ($light ? 'Rose' : 'Crimson');
+    if ($h < 28)  return $dark ? 'Brown' : ($light ? 'Peach' : 'Coral');
+    if ($h < 52)  return $dark ? 'Bronze' : ($light ? 'Sand' : 'Amber');
+    if ($h < 68)  return $dark ? 'Olive' : ($light ? 'Cream' : 'Gold');
+    if ($h < 168) return $dark ? 'Forest' : ($light ? 'Mint' : ($accent ? 'Lime' : 'Green'));
+    if ($h < 188) return $dark ? 'Deep Teal' : ($light ? 'Aqua' : 'Teal');
+    if ($h < 215) return $dark ? 'Ocean' : ($light ? 'Sky' : 'Cyan');
+    if ($h < 250) return $dark ? 'Navy' : ($light ? 'Sky' : 'Royal Blue');
+    if ($h < 285) return $dark ? 'Indigo' : ($light ? 'Lavender' : 'Violet');
+    return $dark ? 'Plum' : ($light ? 'Blush' : 'Magenta');
+}
+/** [palette id => display name], unique, named after the actual colours: "Forest & Gold". */
+function palette_display_names(array $palettes): array {
+    $out = []; $seen = [];
+    foreach ($palettes as $p) {
+        $v = json_decode($p['css_variables_json'] ?? '{}', true) ?: [];
+        $a = palette_color_name($v['primary'] ?? '#0F5257');
+        $b = palette_color_name($v['accent'] ?? '#F2A65A', true);
+        $n = $a === $b ? $a . ' Tones' : "$a & $b";
+        $seen[$n] = ($seen[$n] ?? 0) + 1;
+        if ($seen[$n] > 1) $n .= ' ' . $seen[$n];
+        $out[(int)$p['id']] = $n;
+    }
+    return $out;
+}
+
 function get_active_palettes(PDO $db): array {
     return $db->query("SELECT * FROM color_palettes WHERE is_active = 1 ORDER BY name ASC")->fetchAll();
 }

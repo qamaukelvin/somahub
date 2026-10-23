@@ -137,13 +137,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $owner['id_verified_at'] = date('Y-m-d H:i:s');
     }
 
-    if (isset($_POST['action']) && $_POST['action'] === 'start_trial_now') {
-        require_once __DIR__ . '/../includes/payments.php';
-        start_trial($db, $id, 60);
-        $message = '60-day trial started manually.';
-        $school['plan'] = 'promo_paid';
-    }
-
     if (isset($_POST['action']) && $_POST['action'] === 'reset_password' && $owner) {
         $newTempPassword = bin2hex(random_bytes(4));
         $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?")
@@ -371,14 +364,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <option value="promo_paid" <?= $school['plan'] === 'promo_paid' ? 'selected' : '' ?>>Paid (Promo / Free Term)</option>
         <option value="paid" <?= $school['plan'] === 'paid' ? 'selected' : '' ?>>Paid (Full)</option>
       </select>
-      <?php if ($school['plan'] === 'free'): ?>
-        <p style="font-size:0.78rem;color:#888;margin-top:-10px;margin-bottom:16px;">
-          Converted before the auto-trial feature existed, or the automatic 60-day trial didn't fire on first login? Start it manually:
-        </p>
-        <form method="POST" style="margin-bottom:16px;">
-          <input type="hidden" name="action" value="start_trial_now">
-          <button type="submit" class="btn-secondary" style="background:#F2A65A;color:#0A3A3E;border:none;padding:8px 16px;border-radius:6px;font-size:0.82rem;font-weight:700;cursor:pointer;">Start 60-Day Trial Now</button>
-        </form>
+      <?php if (!empty($school['activate_trial_on_login'])): ?>
+        <p style="font-size:0.78rem;color:#888;margin-top:-10px;margin-bottom:16px;">Premium is on. The 60-day clock starts the first time the owner logs in.</p>
       <?php endif; ?>
 
       <label>Status</label>

@@ -46,20 +46,24 @@ $demoAuto = isset($_GET['try']); // embedded copies wait for the visitor to pres
   .dm-dots3{background:#1C1C16;color:#fff;border:none;border-radius:999px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.25);}
   .dm-menu{display:none;position:absolute;top:40px;right:0;background:#fff;color:#1C1C16;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.28);min-width:190px;padding:6px;font-family:Arial,sans-serif;}
   .dm-menu.open{display:block;} .dm-menu button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:none;border-radius:8px;padding:10px 12px;font:700 .82rem Arial,sans-serif;color:#1C1C16;cursor:pointer;text-align:left;} .dm-menu button:hover{background:#F4F1E6;} .dm-menu button.del{color:#C0392B;}
+  .dm-lay{display:none;position:absolute;top:10px;left:10px;z-index:60;} body.dm-on .dm-lay{display:block;}
+  .dm-lay>button{background:#1C1C16;color:#fff;border:none;border-radius:999px;height:34px;padding:0 14px 0 10px;cursor:pointer;display:flex;gap:6px;align-items:center;font:700 .78rem Arial,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.25);} .dm-lay .dm-menu{left:0;right:auto;max-height:260px;overflow:auto;}
+  .dm-menu button.on{background:#E7F0EE;color:#0F5257;}
+  @media(max-width:640px){#dmBar .dm-lbl{display:none;} #dmBar button{padding:10px 12px;} #dmBar button#dmReviewBtn{gap:4px;}}
   .dm-menu hr{border:none;border-top:1px solid #eee;margin:4px 0;}
   body.dm-on #dmTip{display:block;} body.dm-on{padding-top:34px;} @media(max-width:640px){#dmBar{left:6px;right:6px;transform:none;justify-content:center;} #dmTip{font-size:.72rem;padding:6px 10px;}}
 </style>
 <div id="dmTip">Demo mode: change anything you like. Edits stay on your screen only and disappear when you refresh. Nobody else can see them.</div>
 <button type="button" id="dmPill"><span class="dm-i">edit</span> Try the editor</button>
 <div id="dmBar">
-  <div style="position:relative;"><button type="button" data-pop="dmCol"><span class="dm-i">palette</span>Colours</button>
+  <div style="position:relative;"><button type="button" data-pop="dmCol"><span class="dm-i">palette</span><span class="dm-lbl">Colours</span></button>
     <div class="dm-pop" id="dmCol"><h5>Colour schemes</h5><div class="dm-pal" id="dmPal"></div>
       <h5 style="margin-top:10px;">Your own</h5><div style="display:flex;gap:10px;align-items:center;font-size:.75rem;color:#555;">Main <input type="color" id="dmC1" value="#0F5257"> Accent <input type="color" id="dmC2" value="#F2A65A"></div></div></div>
-  <div style="position:relative;"><button type="button" data-pop="dmFont"><span class="dm-i">text_fields</span>Font</button>
+  <div style="position:relative;"><button type="button" data-pop="dmFont"><span class="dm-i">text_fields</span><span class="dm-lbl">Font</span></button>
     <div class="dm-pop" id="dmFont"><h5>Font pairing</h5><select id="dmFontSel"><option value="">Keep current</option></select></div></div>
   <button type="button" id="dmUndo" title="Undo" disabled><span class="dm-i">undo</span></button><button type="button" id="dmRedo" title="Redo" disabled><span class="dm-i">redo</span></button>
-  <button type="button" id="dmReviewBtn" class="dm-main"><span class="dm-i">fact_check</span>Review changes <span id="dmBadge">0</span></button>
-  <button type="button" id="dmReset"><span class="dm-i">restart_alt</span>Reset</button>
+  <button type="button" id="dmReviewBtn" class="dm-main"><span class="dm-i">fact_check</span><span class="dm-lbl">Review changes</span> <span id="dmBadge">0</span></button>
+  <button type="button" id="dmReset"><span class="dm-i">restart_alt</span><span class="dm-lbl">Reset</span></button>
 </div>
 <input type="file" id="dmFile" accept="image/*" style="display:none">
 <div id="dmReview"><div class="dm-card"><h3>Your changes</h3><p style="margin:0 0 4px;color:#666;font-size:.85rem;">This is what you changed in this demo. On your own site, every change here saves automatically.</p><div id="dmList"></div>
@@ -67,7 +71,7 @@ $demoAuto = isset($_GET['try']); // embedded copies wait for the visitor to pres
 <script>
 (function(){
   var PAL = <?= json_encode($demoPalettes, JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>, FONTS = <?= json_encode($demoFonts, JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>;
-  var AUTO = <?= $demoAuto ? 'true' : 'false' ?>;
+  var AUTO = <?= $demoAuto ? 'true' : 'false' ?>, LAY = <?= json_encode($demoLayouts ?? (object)[], JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>, LAYSTATE = {};
   var body = document.body, root = document.documentElement, orig = new Map(), hidden = new Set(), photos = new Map(), colour = null, font = null, undo = [], redo = [], struct = 0, lastCol = 0;
   var TEXT = 'body > section h1, body > section h2, body > section h3, body > section p, body > section li, body > section .btn-primary, body > footer div';
   function $(id){ return document.getElementById(id); }
@@ -121,6 +125,30 @@ $demoAuto = isset($_GET['try']); // embedded copies wait for the visitor to pres
       push({u: function(){ par.insertBefore(s, nx); }, r: function(){ s.remove(); }, sd: 1});
     };
     s.appendChild(w);
+    var L = LAY[s.id];
+    if (L && !s.querySelector(':scope > .dm-lay')) {
+      var lw = document.createElement('div'); lw.className = 'dm-lay';
+      lw.innerHTML = '<button type="button" class="dm-layb"><span class="dm-i">dashboard_customize</span>Layout</button><div class="dm-menu"></div>';
+      var lm = lw.querySelector('.dm-menu'), cur = LAYSTATE[s.id] || L.cur;
+      L.options.forEach(function(o){ var b = document.createElement('button'); b.type = 'button'; if (o.k === cur) b.className = 'on'; b.innerHTML = '<span class="dm-i">' + o.i + '</span>' + esc(o.l); b.onclick = function(){ lm.classList.remove('open'); swapLayout(s, o.k); }; lm.appendChild(b); });
+      lw.querySelector('.dm-layb').addEventListener('click', function(e){ e.stopPropagation(); var was = lm.classList.contains('open'); document.querySelectorAll('.dm-menu').forEach(function(m){ m.classList.remove('open'); }); if (!was) lm.classList.add('open'); });
+      s.appendChild(lw);
+    }
+  }
+  function swapLayout(s, k){
+    var key = s.id, cur = LAYSTATE[key] || LAY[key].cur; if (k === cur) return;
+    var q = ['embed=1']; Object.keys(LAYSTATE).forEach(function(x){ if (x !== key) q.push('dv[' + encodeURIComponent(x) + ']=' + encodeURIComponent(LAYSTATE[x])); }); q.push('dv[' + encodeURIComponent(key) + ']=' + encodeURIComponent(k));
+    body.classList.add('dm-busy');
+    fetch(location.pathname + '?' + q.join('&'), {credentials: 'same-origin'}).then(function(r){ return r.text(); }).then(function(t){
+      var doc = new DOMParser().parseFromString(t, 'text/html'), n = doc.querySelector('body > section[id="' + key + '"]');
+      if (!n) throw new Error('missing');
+      n = document.importNode(n, true);
+      n.querySelectorAll('.dm-sec,.dm-lay').forEach(function(x){ x.remove(); });
+      if (s.classList.contains('dm-hidden')) n.classList.add('dm-hidden');
+      s.parentNode.replaceChild(n, s); LAYSTATE[key] = k; wireAll(n);
+      push({u: function(){ n.parentNode.replaceChild(s, n); LAYSTATE[key] = cur; }, r: function(){ s.parentNode.replaceChild(n, s); LAYSTATE[key] = k; }, sd: 1});
+      n.scrollIntoView({block: 'start', behavior: 'smooth'});
+    }).catch(function(){ alert('Could not change the layout just now. Please try again.'); }).then(function(){ body.classList.remove('dm-busy'); });
   }
   function wireAll(scope){
     scope.querySelectorAll(TEXT).forEach(function(el){ if (eligible(el)) wireText(el); });

@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
     try {
         $insertSchool = $db->prepare("
             INSERT INTO schools (name, slug, palette_id, color_mode, primary_override, secondary_override, accent_override, bg_override, plan, status, verification_status, county, phone, email, activate_trial_on_login)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'free', 'trial', 'pending', ?, ?, ?, 1)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'promo_paid', 'trial', 'pending', ?, ?, ?, 1)
         ");
         $insertSchool->execute([$schoolName, $slug, $paletteId, $colorMode, $primaryOverride, $secondaryOverride, $accentOverride, $bgOverride, $lead['county'], $lead['phone'], $realEmail ?: null]);
         $schoolId = $db->lastInsertId();
@@ -183,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
           <?php endforeach; ?>
         </select>
 
-        <p style="font-size:0.82rem;color:#666;margin-bottom:16px;">Trial starts automatically the first time they log in — 60 days of full access, no action needed now.</p>
+        <p style="font-size:0.82rem;color:#666;margin-bottom:16px;">Starts on Premium. The 60-day clock begins the first time they log in, nothing to switch on.</p>
 
         <button type="submit" class="btn">Create School</button>
       </form>

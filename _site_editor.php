@@ -75,9 +75,10 @@ foreach ($__ctaSec as $k => [$sk, $nm]) { if (empty($__live[$sk])) $__ctaUnmet[$
 $__types = [];
 foreach ($__schemas as $t) $__types[] = ['id' => (int)$t['id'], 'l' => $t['label'], 'k' => $t['key_name'], 'p' => (int)$t['is_premium']];
 $__pal = [];
-foreach (get_active_palettes($db) as $p) {
+$__palRows = get_active_palettes($db); $__palNames = palette_display_names($__palRows);
+foreach ($__palRows as $p) {
     $v = json_decode($p['css_variables_json'], true) ?: [];
-    $__pal[] = ['id' => (int)$p['id'], 'n' => $p['name'], 'p' => $v['primary'] ?? '#0F5257', 'a' => $v['accent'] ?? '#F2A65A', 'b' => $v['bg'] ?? '#FBF8F2'];
+    $__pal[] = ['id' => (int)$p['id'], 'n' => $__palNames[(int)$p['id']] ?? $p['name'], 'p' => $v['primary'] ?? '#0F5257', 'a' => $v['accent'] ?? '#F2A65A', 'b' => $v['bg'] ?? '#FBF8F2'];
 }
 $__fonts = [];
 foreach (get_font_pairs() as $k => $f) $__fonts[] = ['k' => $k, 'l' => $f['label']];

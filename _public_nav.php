@@ -63,6 +63,14 @@ $spnGroups = [
   .spn-menu a:hover{background:#F0F6F4;color:var(--teal,#0F5257);} .spn-menu .material-symbols-outlined{font-size:19px;color:var(--teal,#0F5257);}
   .somahub-public-navcta{background:var(--teal,#0F5257);color:var(--sand,#F7F2E7)!important;padding:10px 20px;border-radius:24px;font-weight:700;display:inline-block;margin-left:6px;}
   .somahub-public-menu-toggle{display:none;background:none;border:none;cursor:pointer;color:var(--teal-deep,#0A3A3E);flex-shrink:0;line-height:1;padding:6px;}
+  /* Pages with a global button{width:100%...} rule (login, signup) must not restyle the navbar buttons */
+  .somahub-public-header button{width:auto;margin:0;box-shadow:none;}
+  .somahub-public-header .somahub-public-menu-toggle{background:none;border-radius:8px;padding:6px;color:var(--teal-deep,#0A3A3E);}
+  .somahub-public-header .somahub-public-menu-toggle:hover{background:rgba(15,82,87,.08);}
+  .somahub-public-header .spn-label{background:none;border-radius:10px;padding:9px 12px;color:var(--ink,#1C1C16);font-size:.88rem;}
+  .somahub-public-header .spn-label:hover{background:rgba(15,82,87,.08);color:var(--teal,#0F5257);}
+  .somahub-public-header .somahub-public-menu-toggle .material-symbols-outlined{font-size:28px;}
+  @media(max-width:900px){.somahub-public-header .spn-label{width:100%;background:none;padding:12px 8px 4px;font-size:.72rem;color:var(--muted,#6E6A5C);}.somahub-public-header .spn-label:hover{background:none;}}
   @media(max-width:900px){
     .somahub-public-navbar nav ul{display:none;}
     .somahub-public-menu-toggle{display:block;}
